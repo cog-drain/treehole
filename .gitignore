@@ -1,0 +1,71 @@
+# ==========================================
+# 1. 后端 (Java / Maven)
+# ==========================================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Maven 封装器
+.mvn/
+mvnw
+mvnw.cmd
+
+# 敏感配置文件 (如果你有生产环境配置)
+src/main/resources/application-prod.yml
+src/main/resources/application-prod.properties
+
+# ==========================================
+# 2. 前端 (Vue 3 / pnpm)
+# ==========================================
+treehole-frontend/node_modules/
+treehole-frontend/dist/
+treehole-frontend/dist-ssr/
+treehole-frontend/*.local
+
+# 前端日志
+treehole-frontend/npm-debug.log*
+treehole-frontend/yarn-debug.log*
+treehole-frontend/yarn-error.log*
+treehole-frontend/pnpm-debug.log*
+
+# ==========================================
+# 3. 存储与上传 (Uploads)
+# ==========================================
+# 忽略上传文件夹下的所有文件
+uploads/*
+# 排除 .gitkeep，确保文件夹结构被提交
+!uploads/.gitkeep
+# 忽略本地 SQL 补丁
+sql/patch.sql
+
+
+
+# ==========================================
+# 4. IDE / 编辑器相关
+# ==========================================
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# 5. 系统与临时文件
+# ==========================================
+tmp/
+temp/
+*.swp
+*.bak
+
+# ==========================================
+# 6. 其他项目特定文件
+# ==========================================
+HELP.md
+mcp-tools.yaml
+.agents/

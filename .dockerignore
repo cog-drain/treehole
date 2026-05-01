@@ -1,0 +1,12 @@
+target/
+*.log
+.git/
+.idea/
+.vscode/
+.agents/
+mysql-data/
+uploads/
+docker-compose.yml
+Dockerfile
+*.md
+treehole-frontend/
