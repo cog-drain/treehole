@@ -17,8 +17,12 @@ export function getUserIdentity() {
   }
 
   if (!identity || !identity.userId) {
+    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
     identity = {
-      userId: crypto.randomUUID(),
+      userId: newId,
       createdAt: Date.now()
     }
     localStorage.setItem('treehole_identity', JSON.stringify(identity))

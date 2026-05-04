@@ -26,7 +26,12 @@ export const useUserStore = defineStore('user', () => {
     } catch { /* ignore */ }
 
     if (!identity?.userId) {
-      identity = { userId: crypto.randomUUID(), createdAt: Date.now() }
+      // 兼容性修复：非 HTTPS 环境下 crypto.randomUUID 可能不可用
+      const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      
+      identity = { userId: newId, createdAt: Date.now() }
       localStorage.setItem('treehole_identity', JSON.stringify(identity))
     }
     userId.value = identity.userId
