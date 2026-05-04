@@ -1,12 +1,25 @@
+# 忽略构建产物
 target/
-*.log
+*.jar
+*.war
+
+# 忽略前端产物
+treehole-frontend/node_modules/
+treehole-frontend/dist/
+
+# 忽略 Git 和 IDE
 .git/
+.gitignore
+.github/
 .idea/
 .vscode/
-.agents/
-mysql-data/
+*.iml
+
+# 忽略本地上传的文件和日志
 uploads/
-docker-compose.yml
+*.log
+
+# 忽略 Docker 相关自身（可选）
 Dockerfile
-*.md
-treehole-frontend/
+docker-compose.yml
+.dockerignore

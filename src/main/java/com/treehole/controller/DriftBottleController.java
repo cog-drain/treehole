@@ -27,6 +27,13 @@ public class DriftBottleController {
         return Result.success();
     }
 
+    @GetMapping("/my")
+    public Result<java.util.List<DriftBottle>> getMyBottles(@RequestHeader(value = "X-User-Id", required = false) String userId,
+                                                           @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String finalUserId = extractUserId(userId, authorization);
+        return Result.success(bottleService.getMyBottles(finalUserId));
+    }
+
     @GetMapping("/pick")
     public Result<DriftBottle> pickBottle(@RequestHeader(value = "X-User-Id", required = false) String userId,
                                           @RequestHeader(value = "Authorization", required = false) String authorization) {
@@ -41,7 +48,7 @@ public class DriftBottleController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         String finalUserId = extractUserId(userId, authorization);
-        bottleService.replyBottle(id, body.get("content"), finalUserId);
+        bottleService.replyBottle(id, body.get("content"), body.get("replyAuthorAlias"), finalUserId);
         return Result.success();
     }
 

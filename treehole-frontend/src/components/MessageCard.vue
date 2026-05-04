@@ -2,10 +2,47 @@
 import { ref, computed } from 'vue'
 import { 
   Heart, MessageSquare, Share2, Trash2, ImagePlus, Send, 
-  ChevronDown, ChevronUp, Mic, X, MoreHorizontal, Ban, Sparkles, Zap, Hash, Loader2
+  ChevronDown, ChevronUp, Mic, X, MoreHorizontal, Ban, Sparkles, Zap, Hash, Loader2, Play, Pause, Smile, Music
 } from 'lucide-vue-next'
 import { formatTime } from '@/utils/time.js'
+import CommentItem from './CommentItem.vue'
 import api, { getToken, MSG_TOKEN_KEY, CMT_TOKEN_KEY } from '@/api'
+import { useAppStore } from '@/stores/app'
+
+const appStore = useAppStore()
+const isPlaying = ref(false)
+const currentTime = ref(0)
+const duration = ref(0)
+const audioRef = ref(null)
+const isBgmPlaying = ref(false)
+const bgmRef = ref(null)
+
+const formatDuration = (s) => {
+  if (!s || isNaN(s)) return '00:00'
+  const min = Math.floor(s / 60)
+  const sec = Math.floor(s % 60)
+  return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+}
+
+function togglePlayback() {
+  if (!audioRef.value) return
+  if (isPlaying.value) audioRef.value.pause()
+  else audioRef.value.play()
+  isPlaying.value = !isPlaying.value
+}
+
+function onTimeUpdate() {
+  if (!audioRef.value) return
+  currentTime.value = audioRef.value.currentTime
+  duration.value = audioRef.value.duration
+}
+
+function onEnded() { isPlaying.value = false; currentTime.value = 0 }
+
+function seek(val) {
+  if (!audioRef.value) return
+  audioRef.value.currentTime = val
+}
 
 const props = defineProps({
   msg: Object,
@@ -15,14 +52,26 @@ const props = defineProps({
 
 const emit = defineEmits(['like', 'toggle-comments', 'delete', 'delete-comment', 'publish-comment', 'tag-click', 'admin-ban'])
 
-// --- Card Style State ---
-const cardStyle = ref(localStorage.getItem(`card_pref_${props.msg.id}`) || 'default')
-const cycleStyle = () => {
-  const styles = ['default', 'luminous', 'minimal']
-  const next = styles[(styles.indexOf(cardStyle.value) + 1) % styles.length]
-  cardStyle.value = next
-  localStorage.setItem(`card_pref_${props.msg.id}`, next)
-}
+// --- Resonance State ---
+const isResonant = computed(() => props.msg.coFrequency && !props.msg.isOwner)
+
+// --- Comment Tree Logic ---
+const commentTree = computed(() => {
+  const list = props.msg._comments || []
+  const map = {}
+  const tree = []
+  list.forEach(c => {
+    map[c.id] = { ...c, children: [] }
+  })
+  list.forEach(c => {
+    if (c.parentId && map[c.parentId]) {
+      map[c.parentId].children.push(map[c.id])
+    } else {
+      tree.push(map[c.id])
+    }
+  })
+  return tree
+})
 
 // --- Local UI State ---
 const moodMap = { '开心': '😄', '难过': '😢', '愤怒': '😡', '平静': '😌', '迷茫': '🤔' }
@@ -50,16 +99,60 @@ const parseContent = (content) => {
 }
 
 const openImage = (url) => { window.open(url, '_blank') }
+
+// --- Reactions Logic ---
+const parsedReactions = computed(() => {
+  if (!props.msg.reactions) return {}
+  try {
+    return JSON.parse(props.msg.reactions)
+  } catch (e) {
+    return {}
+  }
+})
+
+const addReaction = async (emoji) => {
+  try {
+    await api.post(`/message/react/${props.msg.id}?emoji=${encodeURIComponent(emoji)}`)
+  } catch (e) {
+    console.error('Reaction error:', e)
+  }
+}
+
+// --- BGM Logic ---
+// --- Defensive Audio Filtering ---
+const blockedDomains = ['pixabay.com', 'githubusercontent.com', 'archive.org']
+const isUrlBlocked = (url) => {
+  if (!url) return true
+  return blockedDomains.some(domain => url.includes(domain))
+}
+
+const safeAudioUrl = computed(() => {
+  return isUrlBlocked(props.msg.audioUrl) ? null : props.msg.audioUrl
+})
+
+const safeBgmUrl = computed(() => {
+  return isUrlBlocked(props.msg.bgmUrl) ? null : props.msg.bgmUrl
+})
+
+const toggleBgm = () => {
+  if (!bgmRef.value || !safeBgmUrl.value) return
+  if (isBgmPlaying.value) {
+    bgmRef.value.pause()
+  } else {
+    bgmRef.value.play()
+  }
+  isBgmPlaying.value = !isBgmPlaying.value
+}
 </script>
 
 <template>
   <div 
     :id="'msg-' + msg.id"
-    class="glass-card !p-8 group/card overflow-hidden relative transition-all duration-700" 
+    class="glass-card p-5 sm:p-8 group/card overflow-hidden relative transition-all duration-700" 
     :class="[
       'theme-' + (msg.theme || 'default'),
-      cardStyle === 'luminous' ? 'shadow-[0_0_50px_rgba(59,130,246,0.15)] border-white/20 scale-[1.01]' : '',
-      cardStyle === 'minimal' ? 'backdrop-blur-sm bg-white/[0.02] border-white/5 opacity-90' : ''
+      isResonant ? 'shadow-[0_0_50px_rgba(139,92,246,0.2)] border-purple-500/30 scale-[1.01]' : '',
+      msg.isOwner && appStore.camoEnabled ? 'camo-effect' : ''
     ]"
   >
     <div v-if="msg.isOwner" class="owner-indicator-line absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-60"></div>
@@ -73,23 +166,19 @@ const openImage = (url) => { window.open(url, '_blank') }
             class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 p-1 transition-transform group-hover/avatar:scale-105 duration-500"
             alt="avatar"
           />
-          <button 
-            @click.stop="cycleStyle"
-            class="absolute -bottom-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-500 z-10"
-            :class="[
-              msg.commentCount > 0 && !msg._read 
-                ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-pulse' 
-                : 'bg-slate-900 border-white/10 text-slate-500 hover:text-white hover:border-white/30',
-              cardStyle !== 'default' ? 'rotate-12 scale-110' : ''
-            ]"
+          <!-- Resonance Indicator (The Lightning Bolt) -->
+          <div 
+            v-if="isResonant"
+            class="absolute -bottom-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-500 z-10 bg-gradient-to-tr from-purple-600 to-amber-400 border-amber-200/50 text-white shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse"
+            title="与您深度同频的灵魂"
           >
-            <Zap :size="12" :fill="cardStyle === 'luminous' ? 'currentColor' : 'none'" />
-          </button>
+            <Zap :size="12" fill="currentColor" />
+          </div>
         </div>
         
-        <div class="flex flex-col">
+        <div class="flex flex-col min-w-0">
           <div class="flex items-center gap-2">
-            <span class="text-sm font-bold tracking-tight text-slate-200">{{ msg.authorAlias || '匿名用户' }}</span>
+            <span class="text-sm font-bold tracking-tight text-slate-200 truncate max-w-[120px] sm:max-w-none">{{ msg.authorAlias || '匿名用户' }}</span>
             <span class="text-lg" v-if="msg.mood && moodMap[msg.mood]">{{ moodMap[msg.mood] }}</span>
           </div>
           <span class="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{{ formatTime(msg.createTime) }}</span>
@@ -97,6 +186,20 @@ const openImage = (url) => { window.open(url, '_blank') }
       </div>
 
       <div class="flex items-center gap-2">
+        <!-- BGM 律动播放器 -->
+        <div v-if="msg.bgmUrl" class="mr-2">
+          <button 
+            @click.stop="toggleBgm" 
+            class="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 border border-white/5 relative group/bgm"
+            :class="isBgmPlaying ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-white/5 text-slate-500 hover:text-slate-300'"
+            title="心境律动"
+          >
+            <Music :size="16" :class="{ 'animate-[spin_8s_linear_infinite]': isBgmPlaying }" />
+            <div v-if="isBgmPlaying" class="absolute inset-0 rounded-xl border border-blue-500/30 animate-ping"></div>
+          </button>
+          <audio ref="bgmRef" :src="safeBgmUrl" loop class="hidden"></audio>
+        </div>
+
         <button
           v-if="isAdmin"
           class="w-10 h-10 flex items-center justify-center rounded-xl bg-red-500/5 text-red-500/40 border border-red-500/10 hover:bg-red-500/10 hover:text-red-400 transition-all"
@@ -122,8 +225,85 @@ const openImage = (url) => { window.open(url, '_blank') }
           <span v-else>{{ part.text }}</span>
         </template>
       </div>
-      <div v-if="msg.audioUrl" class="p-2 rounded-2xl bg-white/5 border border-white/5">
-        <audio controls :src="msg.audioUrl" class="w-full h-8 filter invert opacity-60"></audio>
+
+      <!-- Reactions Section -->
+      <div class="flex flex-wrap items-center gap-2 mt-4">
+        <div v-for="(count, emoji) in parsedReactions" :key="emoji" 
+          class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-400 hover:bg-white/10 transition-all cursor-pointer select-none active:scale-95"
+          @click.stop="addReaction(emoji)"
+        >
+          <span>{{ emoji }}</span>
+          <span class="font-bold">{{ count }}</span>
+        </div>
+
+        <el-popover
+          placement="top"
+          :width="220"
+          trigger="click"
+          effect="dark"
+          popper-class="cyber-popover"
+        >
+          <template #reference>
+            <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-blue-400 hover:bg-white/10 hover:border-blue-500/30 transition-all active:scale-90 group/react">
+              <Smile :size="14" />
+              <span class="text-[10px] font-bold uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-all">React</span>
+            </button>
+          </template>
+          <div class="flex justify-between gap-1 p-1">
+            <button v-for="e in ['❤️', '😂', '👍', '🔥', '😭']" :key="e"
+              class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all text-xl active:scale-150"
+              @click="addReaction(e)"
+            >
+              {{ e }}
+            </button>
+          </div>
+        </el-popover>
+      </div>
+
+      <div v-if="msg.audioUrl" class="mt-4 p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group/audio max-w-md mx-auto">
+        <audio 
+          ref="audioRef" 
+          :src="safeAudioUrl" 
+          @timeupdate="onTimeUpdate" 
+          @ended="onEnded"
+          @error="(e) => console.log('Audio suppressed or unreachable')"
+          class="hidden"
+        ></audio>
+
+        <button 
+          @click.stop="togglePlayback" 
+          class="w-10 h-10 rounded-full bg-blue-500/80 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 active:scale-90 transition-all hover:bg-blue-500"
+        >
+          <Play v-if="!isPlaying" :size="16" fill="currentColor" />
+          <Pause v-else :size="16" fill="currentColor" />
+        </button>
+
+        <div class="flex-1 space-y-1">
+          <div class="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+            <span>{{ formatDuration(currentTime) }}</span>
+            <div class="flex gap-0.5">
+              <div v-for="i in 8" :key="i" 
+                class="w-0.5 bg-blue-400/40 rounded-full transition-all"
+                :class="{ 'animate-[bounce_0.6s_infinite]': isPlaying }"
+                :style="{ 
+                  height: (Math.sin(i) * 6 + 8) + 'px', 
+                  animationDelay: (i * 0.1) + 's',
+                  opacity: isPlaying ? 0.8 : 0.2
+                }"
+              ></div>
+            </div>
+            <span>{{ formatDuration(duration) }}</span>
+          </div>
+          <el-slider 
+            v-model="currentTime" 
+            :max="duration || 1" 
+            :show-tooltip="false" 
+            @input="seek"
+            @click.stop
+            size="small"
+            class="cyber-slider-mini"
+          />
+        </div>
       </div>
       <div v-if="msg.imageUrl" class="relative group/img">
         <img :src="msg.imageUrl" class="w-full rounded-2xl border border-white/10 hover:border-white/20 transition-all cursor-zoom-in shadow-lg" @click="openImage(msg.imageUrl)" />
@@ -133,7 +313,7 @@ const openImage = (url) => { window.open(url, '_blank') }
     <!-- Footer Action Bar -->
     <div class="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
       <button
-        class="flex items-center gap-3 px-5 py-2.5 rounded-full transition-all active:scale-95 group/hug"
+        class="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 rounded-full transition-all active:scale-95 group/hug"
         :class="liked ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-white/5 text-slate-400 border border-transparent hover:bg-white/10'"
         @click="$emit('like', msg)"
       >
@@ -142,40 +322,33 @@ const openImage = (url) => { window.open(url, '_blank') }
       </button>
 
       <button 
-        class="flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/5 border border-transparent text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all active:scale-95"
+        class="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 rounded-full bg-white/5 border border-transparent text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all active:scale-95"
         @click="$emit('toggle-comments', msg)"
       >
         <div class="relative">
           <MessageSquare :size="18" />
           <span v-if="msg.commentCount > 0 && !msg._read" class="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
         </div>
-        <span class="text-xs font-bold tracking-widest uppercase">{{ msg._showComments ? 'CLOSE' : 'REPLY' }}</span>
+        <span class="text-[10px] sm:text-xs font-bold tracking-widest uppercase">{{ msg._showComments ? 'CLOSE' : 'REPLY' }}</span>
         <span v-if="msg.commentCount > 0" class="text-[10px] font-mono opacity-40">[{{ msg.commentCount }}]</span>
       </button>
     </div>
 
     <!-- Comments Section -->
     <div v-if="msg._showComments" class="mt-8 pt-8 border-t border-white/5 space-y-6 animate-in slide-in-from-top-4 duration-500">
-      <div v-for="cmt in msg._comments" :key="cmt.id" class="group/cmt flex gap-4 p-4 rounded-2xl hover:bg-white/5 transition-all relative">
-        <img :src="generateDiceBearAvatar(cmt.authorAlias || '匿名')" class="w-10 h-10 rounded-xl bg-white/5 p-1 flex-shrink-0" />
-        <div class="flex-1 space-y-1">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold text-slate-300">{{ cmt.authorAlias }}</span>
-              <span v-if="cmt.isOwner" class="px-1.5 py-0.5 rounded text-[7px] font-bold uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">Author</span>
-            </div>
-            <span class="text-[9px] font-mono text-slate-600">{{ formatTime(cmt.createTime) }}</span>
-          </div>
-          <p class="text-sm text-slate-400 leading-relaxed">{{ cmt.content }}</p>
-          <img v-if="cmt.imageUrl" :src="cmt.imageUrl" class="mt-2 max-w-[200px] rounded-lg border border-white/5" @click="openImage(cmt.imageUrl)" />
-        </div>
-        <button 
-          v-if="cmt.isOwner || isAdmin || getToken(CMT_TOKEN_KEY, cmt.id)" 
-          @click="$emit('delete-comment', {msg, comment: cmt})"
-          class="absolute top-4 right-4 opacity-0 group-hover/cmt:opacity-100 p-1.5 text-slate-600 hover:text-red-400 transition-all"
-        >
-          <Trash2 :size="12" />
-        </button>
+      <div v-if="commentTree.length === 0" class="py-10 text-center">
+        <p class="text-xs font-bold tracking-widest text-slate-600 uppercase italic">Silence is a message too...</p>
+      </div>
+      
+      <div class="space-y-8">
+        <CommentItem 
+          v-for="cmt in commentTree" 
+          :key="cmt.id" 
+          :comment="cmt"
+          :isAdmin="isAdmin"
+          @reply="(c) => { msg._replyToId = c.id; msg._commentText = `@${c.authorAlias} ` }"
+          @delete="(c) => $emit('delete-comment', {msg, comment: c})"
+        />
       </div>
 
       <!-- Comment Input -->
@@ -201,3 +374,77 @@ const openImage = (url) => { window.open(url, '_blank') }
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Camo Effect */
+.camo-effect {
+  position: relative;
+  opacity: 0.85;
+  filter: saturate(0.5) contrast(1.3) brightness(1.1);
+  animation: thermoptic-camo 8s infinite;
+}
+
+:global(.dark) .camo-effect {
+  filter: saturate(0.6) contrast(1.2) brightness(1.3);
+}
+
+.camo-effect::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(transparent, transparent 2px, rgba(99, 102, 241, 0.1) 3px, rgba(99, 102, 241, 0.15) 4px);
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.7;
+  animation: scanline-shift 10s linear infinite;
+}
+
+:global(.dark) .camo-effect::before {
+  background: repeating-linear-gradient(transparent, transparent 2px, rgba(167, 139, 250, 0.15) 3px, rgba(167, 139, 250, 0.2) 4px);
+}
+
+.camo-effect::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    45deg, 
+    transparent 40%, 
+    rgba(56, 189, 248, 0.4) 47%, 
+    rgba(255, 255, 255, 0.9) 50%, 
+    rgba(168, 85, 247, 0.4) 53%, 
+    transparent 60%
+  );
+  background-size: 200% 200%;
+  z-index: 20;
+  pointer-events: none;
+  mix-blend-mode: hard-light;
+  animation: camo-glare 6s infinite ease-in-out;
+}
+
+:global(.dark) .camo-effect::after {
+  background: linear-gradient(45deg, transparent 40%, rgba(139, 92, 246, 0.2) 45%, rgba(139, 92, 246, 0.5) 50%, rgba(139, 92, 246, 0.2) 55%, transparent 60%);
+  mix-blend-mode: color-dodge;
+}
+
+@keyframes thermoptic-camo {
+  0% { opacity: 0.85; filter: blur(0px) hue-rotate(0deg); transform: skewX(0deg); }
+  94% { opacity: 0.85; filter: blur(0px) hue-rotate(0deg); transform: skewX(0deg); }
+  95% { opacity: 0.4; filter: blur(2px) hue-rotate(90deg); transform: skewX(2deg) translateX(2px); }
+  96% { opacity: 0.9; filter: blur(0px) hue-rotate(-90deg); transform: skewX(-2deg) translateX(-2px); }
+  97% { opacity: 0.85; filter: blur(0px) hue-rotate(0deg); transform: skewX(0deg); }
+  100% { opacity: 0.85; filter: blur(0px) hue-rotate(0deg); transform: skewX(0deg); }
+}
+
+@keyframes scanline-shift {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100px; }
+}
+
+@keyframes camo-glare {
+  0% { background-position: 200% 200%; opacity: 0; }
+  10% { opacity: 1; }
+  20% { background-position: -50% -50%; opacity: 0; }
+  100% { background-position: -50% -50%; opacity: 0; }
+}
+</style>

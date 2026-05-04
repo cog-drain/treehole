@@ -79,6 +79,12 @@ public class MessageController {
         return Result.success();
     }
 
+    @PostMapping("/react/{id}")
+    public Result<Void> react(@PathVariable Long id, @RequestParam String emoji) {
+        messageService.react(id, emoji);
+        return Result.success();
+    }
+
 
     /**
      * 提取身份标识：优先认 X-User-Id，兼容 Authorization

@@ -46,6 +46,12 @@ public class CommentController {
         return Result.success();
     }
 
+    @PostMapping("/react/{id}")
+    public Result<Void> react(@PathVariable Long id, @RequestParam String emoji) {
+        commentService.react(id, emoji);
+        return Result.success();
+    }
+
     private String extractUserId(String userIdHeader, String authHeader) {
         if (userIdHeader != null && !userIdHeader.isBlank()) {
             return userIdHeader.trim();

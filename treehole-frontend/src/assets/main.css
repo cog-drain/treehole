@@ -7,12 +7,12 @@
 
 :root {
   color-scheme: light;
-  --color-bg: #fbfbfd;
+  --color-bg: #e2e8f0; /* 稍微压深背景以突出白色卡片 */
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
-  --color-card-bg: rgba(255, 255, 255, 0.7);
-  --color-border: rgba(15, 23, 42, 0.04);
-  --glass-blur: 60px;
+  --color-card-bg: rgba(255, 255, 255, 0.8);
+  --color-border: rgba(0, 0, 0, 0.05); /* 切换为深色描边以产生切割感 */
+  --glass-blur: 12px;
 }
 
 .dark {
@@ -27,39 +27,68 @@
 
 body {
   background-color: var(--color-bg);
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
   color: var(--color-text-primary);
   @apply antialiased transition-colors duration-700;
   margin: 0;
+  min-height: 100vh;
   font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* --- Godly Glassmorphism System --- */
+@utility glass-card {
+  background-color: var(--color-card-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(200%);
+  border: 1px solid var(--color-border);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.02),
+    0 20px 40px -10px rgba(0, 0, 0, 0.05),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8); /* 模拟玻璃边缘高光 */
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  @apply rounded-[2.5rem] p-6 sm:p-8 md:p-10;
+}
+
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.08); /* 激进提亮：在纯黑背景上产生显著灰阶 */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* 银色边框：绝对清晰的轮廓 */
+  box-shadow: 
+    0 30px 60px -12px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0px rgba(6, 182, 212, 0.3); /* 顶部青色环境光：既是美化也是“修改生效”的视觉验证码 */
+}
+
+/* Resonance Special Glow */
+.resonance-glow {
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), 
+              inset 0 0 20px rgba(139, 92, 246, 0.05) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  transform: scale(1.01);
+}
+
 @utility glass-effect {
   background-color: var(--color-card-bg);
   backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--color-border);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.dark .glass-effect {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-}
-
-@utility glass-card {
-  @apply glass-effect rounded-[2.5rem] p-6 sm:p-8 md:p-10;
 }
 
 .glass-card:hover {
   transform: translateY(-4px);
   background-color: color-mix(in srgb, var(--color-card-bg), transparent 10%);
   border-color: color-mix(in srgb, var(--color-border), white 20%);
-  box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.2);
 }
 
-/* Typography Remapping to ensure components are theme-aware */
-.text-slate-200,
-.text-slate-200\/90 {
+.theme-default {
+  background-color: var(--color-bg) !important;
+}
+
+/* Typography Remapping (Ensures visibility in light mode) */
+.text-slate-200, .text-slate-200\/90, .text-slate-300, .text-slate-300\/90 {
   color: var(--color-text-primary) !important;
 }
 
@@ -67,31 +96,329 @@ body {
   color: var(--color-text-secondary) !important;
 }
 
-.text-slate-500 {
-  color: color-mix(in srgb, var(--color-text-secondary), transparent 30%) !important;
+.text-slate-500, .text-slate-600 {
+  color: color-mix(in srgb, var(--color-text-secondary), transparent 20%) !important;
 }
 
 .bg-white\/5 {
   background-color: color-mix(in srgb, var(--color-text-primary), transparent 95%) !important;
 }
 
+.bg-white\/10 {
+  background-color: color-mix(in srgb, var(--color-text-primary), transparent 90%) !important;
+}
+
+.bg-white\/20 {
+  background-color: color-mix(in srgb, var(--color-text-primary), transparent 80%) !important;
+}
+
+.border-white\/5 {
+  border-color: color-mix(in srgb, var(--color-text-primary), transparent 95%) !important;
+}
+
 .border-white\/10 {
   border-color: var(--color-border) !important;
 }
 
-/* Custom transitions */
-.page-enter-active,
-.page-leave-active {
-  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+.border-white\/20 {
+  border-color: color-mix(in srgb, var(--color-text-primary), transparent 80%) !important;
 }
 
-.page-enter-from,
-.page-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
+.border-white {
+  border-color: var(--color-text-primary) !important;
+}
+
+/* Theme Dots */
+.theme-dot-default {
+  background-color: #94a3b8;
+}
+
+.theme-dot-autumn {
+  background-color: #f97316;
+}
+
+.theme-dot-starry {
+  background-color: #8b5cf6;
+}
+
+.theme-dot-retro {
+  background-color: #a8a29e;
+}
+
+.theme-dot-dawn {
+  background-color: #7dd3fc;
+}
+
+.theme-dot-sakura {
+  background-color: #fda4af;
+}
+
+.theme-dot-spring {
+  background-color: #6ee7b7;
+}
+
+.theme-dot-active {
+  box-shadow: 0 0 15px rgba(15, 23, 42, 0.4);
+}
+
+.dark .theme-dot-active {
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+/* ==========================================
+   PREMIUM SKINS SYSTEM (v2.0)
+   ========================================== */
+
+/* --- 🍯 琥珀之境 (Amber Realm - Rebuilt for Dark) --- */
+.theme-autumn {
+  --theme-primary: #d97706;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(217, 119, 6, 0.1)), #ffffff !important;
+  border: 1px solid rgba(217, 119, 6, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(217, 119, 6, 0.05) !important;
+}
+
+.dark .theme-autumn {
+  background: #1a140f !important; /* 深琥珀基色，优雅且沉稳 */
+  border: 1px solid rgba(251, 191, 36, 0.25) !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 金沙图层：细微粒子 */
+.dark .theme-autumn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #f59e0b 0.5px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.15;
+  animation: amber-dust 15s linear infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 丝绸流光：斜向反光 */
+.dark .theme-autumn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(125deg, transparent 40%, rgba(251, 191, 36, 0.05) 50%, transparent 60%);
+  background-size: 200% 100%;
+  animation: amber-sheen 8s ease-in-out infinite;
+  z-index: 2;
+  pointer-events: none; /* 关键修复：防止背景层拦截按钮点击 */
+}
+
+@keyframes amber-dust {
+  from { background-position: 0 0; }
+  to { background-position: 40px -80px; }
+}
+
+@keyframes amber-sheen {
+  0%, 100% { background-position: -100% 0; }
+  50% { background-position: 100% 0; }
+}
+
+.theme-autumn .text-slate-200, .theme-autumn .text-slate-300, .theme-autumn p {
+  color: #92400e !important;
+}
+
+.dark .theme-autumn .text-slate-200, .dark .theme-autumn p {
+  color: #fde68a !important; /* 香槟金文字 */
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 10;
+}
+
+/* --- 🌸 樱花 (Sakura / Midnight Petals) --- */
+.theme-sakura {
+  background: linear-gradient(135deg, #fff5f7, #fdf2f8) !important;
+  border: 1px solid rgba(244, 114, 182, 0.2) !important;
+}
+
+.dark .theme-sakura {
+  background: linear-gradient(135deg, #2d1b24, #1a0f14) !important;
+  border: 1px solid rgba(244, 114, 182, 0.3) !important;
+}
+
+.theme-sakura .text-slate-300, .theme-sakura p {
+  color: #be185d !important;
+}
+
+.dark .theme-sakura .text-slate-200, .dark .theme-sakura p {
+  color: #fda4af !important;
+}
+
+/* --- 🍃 清泉 (Spring / Deep Forest) --- */
+.theme-spring {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7) !important;
+  border: 1px solid rgba(34, 197, 94, 0.2) !important;
+}
+
+.dark .theme-spring {
+  background: linear-gradient(135deg, #064e3b, #022c22) !important;
+  border: 1px solid rgba(52, 211, 153, 0.3) !important;
+}
+
+.theme-spring .text-slate-300, .theme-spring p {
+  color: #15803d !important;
+}
+
+.dark .theme-spring .text-slate-200, .dark .theme-spring p {
+  color: #6ee7b7 !important;
+}
+
+/* --- 📻 复古 (Retro) --- */
+.theme-retro {
+  --theme-primary: #78350f;
+  background: #fdf6e3 !important;
+  border: 2px solid #586e75 !important;
+  box-shadow: 6px 6px 0px #586e75 !important;
+  image-rendering: pixelated;
+}
+
+.dark .theme-retro {
+  background: #073642 !important;
+  border-color: #93a1a1 !important;
+  box-shadow: 6px 6px 0px #93a1a1 !important;
+}
+
+.theme-retro::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 2px);
+  z-index: 10;
+}
+
+.theme-retro .text-slate-200,
+.theme-retro .text-slate-200\/90 {
+  color: #586e75 !important;
+  font-family: "Courier New", Courier, monospace;
+  font-weight: bold;
+}
+
+.dark .theme-retro .text-slate-200 {
+  color: #93a1a1 !important;
+}
+
+.theme-retro .bg-blue-600 {
+  background-color: #268bd2 !important;
+  border-radius: 0 !important;
+}
+
+.dark .theme-retro .bg-blue-600 {
+  background-color: #2aa198 !important;
+}
+
+/* --- 🌅 破晓 (Dawn) --- */
+.theme-dawn {
+  background: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%) !important;
+  border: 1px solid rgba(125, 211, 252, 0.4) !important;
+  box-shadow: 0 20px 40px -10px rgba(125, 211, 252, 0.3) !important;
+}
+.theme-dawn::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 20% 30%, rgba(125, 211, 252, 0.4) 0%, transparent 40%);
+  filter: blur(40px); animation: dawn-glow 10s ease-in-out infinite alternate;
+}
+@keyframes dawn-glow { from { transform: translate(-10%, -10%); } to { transform: translate(10%, 10%); } }
+.theme-dawn .text-slate-200, .theme-dawn .text-slate-200\/90 { color: #0369a1 !important; font-weight: 500; }
+.theme-dawn .text-slate-400, .theme-dawn .text-slate-500 { color: #0ea5e9 !important; }
+
+/* --- 🌸 樱花 (Sakura) --- */
+.theme-sakura {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%) !important;
+  border: 1px solid rgba(253, 164, 175, 0.4) !important;
+  box-shadow: 0 20px 40px -10px rgba(253, 164, 175, 0.2) !important;
+}
+.theme-sakura::after {
+  content: "🌸"; position: absolute; font-size: 10px;
+  top: -20px; animation: sakura-fall 8s linear infinite;
+  opacity: 0.2; pointer-events: none;
+  text-shadow: 20px 100px rgba(253,164,175,0.4), 80px 200px rgba(253,164,175,0.2), -50px 300px rgba(253,164,175,0.3);
+}
+@keyframes sakura-fall {
+  from { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.4; }
+  90% { opacity: 0.4; }
+  to { transform: translateY(600px) rotate(720deg); opacity: 0; }
+}
+.theme-sakura .text-slate-200, .theme-sakura .text-slate-200\/90 { color: #be123c !important; }
+.theme-sakura .text-slate-400 { color: #fb7185 !important; }
+
+/* --- 🍃 清泉 (Spring) --- */
+.theme-spring {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%) !important;
+  border: 1px solid rgba(110, 231, 183, 0.3) !important;
+  box-shadow: 0 20px 40px -10px rgba(110, 231, 183, 0.2) !important;
+}
+.theme-spring::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-radial-gradient(circle at 50% 50%, rgba(110, 231, 183, 0.05) 0%, transparent 10%);
+  animation: spring-ripple 15s linear infinite;
+}
+@keyframes spring-ripple { from { transform: scale(1); opacity: 0.5; } to { transform: scale(2); opacity: 0; } }
+.theme-spring .text-slate-200, .theme-spring .text-slate-200\/90 { color: #065f46 !important; }
+.theme-spring .text-slate-400 { color: #10b981 !important; }
+
+/* Pagination Fix */
+:deep(.el-pagination) {
+  --el-pagination-bg-color: transparent !important;
+  --el-pagination-hover-color: var(--theme-primary, #60a5fa) !important;
+  justify-content: center;
+  margin-top: 3rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+:deep(.el-pagination button) {
+  background-color: transparent !important;
+  color: #94a3b8 !important;
+}
+
+:deep(.el-pagination .el-pager li) {
+  background: transparent !important;
+  color: #64748b !important;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  color: #fff !important;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 50%;
 }
 
 .light-mode .owner-indicator-line {
   height: 3px !important;
   opacity: 0.8 !important;
+}
+
+/* Observer Notification Styles */
+.observer-notification {
+  background: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  border-radius: 1.5rem !important;
+}
+
+.observer-notification .el-notification__title {
+  color: #4ade80 !important;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 1px;
+}
+
+.observer-notification .el-notification__content {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+.dark .observer-notification {
+  background: rgba(0, 0, 0, 0.7) !important;
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.1);
 }

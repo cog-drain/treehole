@@ -42,6 +42,18 @@ public interface MessageService extends IService<Message> {
      * @param id         留言 ID
      * @param ownerToken 客户端提供的原始所有权令牌
      */
+    /**
+     * 删除留言，同时级联删除该留言下所有评论
+     *
+     * @param id         留言 ID
+     * @param ownerToken 客户端提供的原始所有权令牌
+     */
     void deleteWithComments(Long id, String ownerToken);
 
+    /**
+     * 更新表情回响
+     * @param id 留言ID
+     * @param emoji 表情符号
+     */
+    void react(Long id, String emoji);
 }

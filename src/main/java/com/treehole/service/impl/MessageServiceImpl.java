@@ -12,8 +12,12 @@ import com.treehole.mapper.CommentMapper;
 import com.treehole.mapper.MessageMapper;
 import com.treehole.service.MessageService;
 import com.treehole.service.TagService;
+import com.treehole.service.AIService;
 import com.treehole.entity.Tag;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.treehole.websocket.WebSocketServer;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +31,13 @@ import java.util.Objects;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> implements MessageService {
 
     private final CommentMapper commentMapper;
     private final TagService tagService;
+    private final AIService aiService;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Map<String, Object> publish(Message message, String userId) {
@@ -38,6 +45,18 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             throw new BusinessException(400, "身份标识不能为空");
         }
         message.setUserId(userId);
+
+        // --- AI 语义自动化：生成自动标签 ---
+        // 1. 生成语义标签
+        List<String> aiTags = aiService.generateTags(message.getContent());
+        if (!aiTags.isEmpty()) {
+            String tagString = String.join(" ", aiTags);
+            message.setContent(message.getContent() + "\n\n" + tagString);
+        }
+
+        // 2. 智能匹配心境律动 BGM
+        String bgmUrl = aiService.generateMoodBgm(message.getContent());
+        message.setBgmUrl(bgmUrl);
 
         if (message.getLikes() == null) {
             message.setLikes(0);
@@ -52,10 +71,56 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         this.save(message);
         tagService.extractAndSaveTags(message.getId(), message.getContent());
 
+        // 核心：通过 WebSocket 广播新留言
+        try {
+            Map<String, Object> broadcastData = new HashMap<>();
+            broadcastData.put("type", "NEW_MESSAGE");
+            broadcastData.put("data", message);
+            WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
+        } catch (Exception e) {
+            log.error("WebSocket broadcast error: {}", e.getMessage());
+        }
+
         Map<String, Object> result = new HashMap<>(2);
         result.put("message", message);
         message.setIsOwner(true);
         result.put("userId", userId);
+
+        // --- 异步触发：守望者的“心灵感应”回复 ---
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                // 模拟守望者在思索（延迟 2-5 秒）
+                Thread.sleep(2000 + (long)(Math.random() * 3000));
+                
+                String replyContent = aiService.generateObserverReply(message.getContent());
+                
+                Comment observerComment = new Comment();
+                observerComment.setMessageId(message.getId());
+                observerComment.setContent(replyContent);
+                observerComment.setAuthorAlias("树洞守望者");
+                observerComment.setUserId("observer_ai"); // 特殊 ID
+                
+                commentMapper.insert(observerComment);
+                
+                // 更新留言的评论数
+                this.update(new LambdaUpdateWrapper<Message>()
+                    .eq(Message::getId, message.getId())
+                    .setSql("comment_count = comment_count + 1"));
+
+                // 通过 WebSocket 广播这条“温暖的回响”
+                Map<String, Object> commentData = new HashMap<>();
+                commentData.put("type", "NEW_COMMENT");
+                commentData.put("data", Map.of(
+                    "messageId", message.getId(),
+                    "comment", observerComment
+                ));
+                WebSocketServer.broadcast(objectMapper.writeValueAsString(commentData));
+                
+            } catch (Exception e) {
+                log.error("Observer AI reply failed: {}", e.getMessage());
+            }
+        });
+
         return result;
     }
 
@@ -122,7 +187,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             }
             
             Integer score = scoreMap.get(m.getUserId());
-            if (score != null && score >= 3) {
+            if (score != null && score >= 5) {
                 m.setCoFrequency(true);
             }
         }
@@ -156,4 +221,37 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         this.removeById(id);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void react(Long id, String emoji) {
+        Message message = this.getById(id);
+        if (message == null) return;
+
+        Map<String, Integer> reactionMap = new HashMap<>();
+        try {
+            if (message.getReactions() != null && !message.getReactions().isBlank()) {
+                reactionMap = objectMapper.readValue(message.getReactions(), 
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Integer>>() {});
+            }
+        } catch (Exception e) {
+            log.error("Parse reactions error: {}", e.getMessage());
+        }
+
+        reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
+
+        try {
+            String json = objectMapper.writeValueAsString(reactionMap);
+            this.update(new LambdaUpdateWrapper<Message>()
+                .eq(Message::getId, id)
+                .set(Message::getReactions, json));
+            
+            // WebSocket 广播表情更新
+            Map<String, Object> broadcastData = new HashMap<>();
+            broadcastData.put("type", "REACTION_UPDATE");
+            broadcastData.put("data", Map.of("messageId", id, "reactions", json));
+            WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
+        } catch (Exception e) {
+            log.error("Save reactions error: {}", e.getMessage());
+        }
+    }
 }

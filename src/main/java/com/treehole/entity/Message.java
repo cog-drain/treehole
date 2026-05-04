@@ -54,6 +54,12 @@ public class Message {
 
     private String ipAddress;
 
+    /** 动态表情统计 (JSON字符串存储，如 {"❤️":2, "🔥":1}) */
+    private String reactions;
+
+    /** 智能律动背景音 URL */
+    private String bgmUrl;
+
     /** 创建时间 */
     private LocalDateTime createTime;
     

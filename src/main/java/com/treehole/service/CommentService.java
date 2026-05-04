@@ -33,4 +33,10 @@ public interface CommentService extends IService<Comment> {
      * @param userId     客户端提供的匿名身份标识
      */
     void deleteWithToken(Long id, String userId);
+    /**
+     * 更新评论表情回响
+     * @param id 评论ID
+     * @param emoji 表情符号
+     */
+    void react(Long id, String emoji);
 }

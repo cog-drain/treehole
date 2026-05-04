@@ -44,4 +44,18 @@ public class DriftBottle {
 
     /** 投放时间 */
     private LocalDateTime createTime;
+
+    /** 回复内容 */
+    private String replyContent;
+
+    /** 回复时间 */
+    private LocalDateTime replyTime;
+
+    /** 最近一次放回者ID */
+    @com.baomidou.mybatisplus.annotation.TableField("last_picker_id")
+    private String lastPickerId;
+
+    /** 回信者昵称 */
+    @com.baomidou.mybatisplus.annotation.TableField("reply_author_alias")
+    private String replyAuthorAlias;
 }

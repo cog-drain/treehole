@@ -46,6 +46,9 @@ public class Comment {
     @TableField("ip_address")
     private String ipAddress;
 
+    /** 动态表情统计 (JSON字符串存储) */
+    private String reactions;
+
     /** 创建时间 */
     private LocalDateTime createTime;
 

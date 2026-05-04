@@ -4,14 +4,14 @@ services:
     container_name: treehole-db
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: root
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD:-treehole_secret_pw}
       MARIADB_DATABASE: treehole
       TZ: Asia/Tokyo
     volumes:
       - db_data:/var/lib/mysql
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     networks:
       - treehole-net
     command:
@@ -33,7 +33,9 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/treehole?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Tokyo&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-treehole_secret_pw}
+      # 映射环境变量到 Spring 配置属性
+      AI_ZHIPU_API-KEY: ${AI_API_KEY:-YOUR_ZHIPU_API_KEY_HERE}
       # 生产环境中关闭 SQL 日志输出
       MYBATIS-PLUS_CONFIGURATION_LOG-IMPL: org.apache.ibatis.logging.nologging.NoLoggingImpl
     volumes:

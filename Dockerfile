@@ -31,15 +31,14 @@ RUN mvn clean package -DskipTests -s /root/.m2/settings.xml -q
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# 替换 Alpine 镜像源为阿里云，加速下载（解决国内服务器卡住的问题）
+# 1. 替换 Alpine 软件源（加速运行环境下的包安装）
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
-# Alpine 时区支持
+# 2. 安装时区数据并设置（确保后端日志时间与数据库一致）
 RUN apk add --no-cache tzdata && \
     cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
     echo "Asia/Tokyo" > /etc/timezone && \
     apk del tzdata
-
 
 COPY --from=build /app/target/*.jar app.jar
 

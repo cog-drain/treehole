@@ -2,6 +2,8 @@
 -- 赛博树洞 (Treehole) - 全平台通用初始化脚本
 -- 兼容性: MySQL 8.0+, MariaDB 11.0+
 -- ======================================================
+CREATE DATABASE IF NOT EXISTS `treehole` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE `treehole`;
 
 SET NAMES utf8mb4;
 
@@ -53,6 +55,7 @@ CREATE TABLE `message` (
     `likes` INT DEFAULT 0,
     `comment_count` INT DEFAULT 0,
     `ip_address` VARCHAR(50),
+    `reactions` TEXT COMMENT '动态表情统计 JSON',
     `is_deleted` TINYINT DEFAULT 0,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_user` (`user_id`),
@@ -71,6 +74,7 @@ CREATE TABLE `comment` (
     `image_url` VARCHAR(500),
     `parent_id` BIGINT DEFAULT NULL,
     `ip_address` VARCHAR(50),
+    `reactions` TEXT COMMENT '动态表情统计 JSON',
     `is_deleted` TINYINT DEFAULT 0,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_message` (`message_id`),
@@ -162,8 +166,12 @@ CREATE TABLE `drift_bottle` (
     `author_alias` VARCHAR(50) DEFAULT '匿名用户',
     `theme` VARCHAR(50) DEFAULT 'default',
     `content` TEXT NOT NULL,
-    `state` INT DEFAULT 0 COMMENT '状态: 0=漂流中, 1=被捞起, 2=已归还',
+    `state` INT DEFAULT 0 COMMENT '状态: 0=漂流中, 1=被捞起, 2=已收到回响',
     `picker_id` VARCHAR(36) COMMENT '捞取者ID',
+    `last_picker_id` VARCHAR(36) COMMENT '最近一次放回者ID',
+    `reply_content` TEXT COMMENT '回信内容',
+    `reply_author_alias` VARCHAR(50) COMMENT '回信者昵称',
+    `reply_time` DATETIME COMMENT '回信时间',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_user` (`user_id`),
     INDEX `idx_picker` (`picker_id`)

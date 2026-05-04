@@ -13,6 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.treehole.common.IdentityUtils;
 import com.treehole.entity.Message;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.treehole.websocket.WebSocketServer;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,9 +27,13 @@ import java.util.stream.Collectors;
  * 评论 Service 实现类
  */
 @Service
+@Slf4j
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
     private MessageService messageService;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     public void setMessageService(@Lazy MessageService messageService) {
@@ -46,6 +53,16 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         messageService.update().setSql("comment_count = comment_count + 1")
                 .eq("id", comment.getMessageId()).update();
+
+        // 核心：广播新评论
+        try {
+            Map<String, Object> broadcastData = new HashMap<>();
+            broadcastData.put("type", "NEW_COMMENT");
+            broadcastData.put("data", comment);
+            WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
+        } catch (Exception e) {
+            log.error("WebSocket broadcast error: {}", e.getMessage());
+        }
 
         comment.setIsOwner(true);
 
@@ -101,7 +118,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         
         for (Comment c : comments) {
             Integer score = scoreMap.get(c.getUserId());
-            if (score != null && score >= 3) {
+            if (score != null && score >= 5) {
                 c.setCoFrequency(true);
             }
         }
@@ -117,5 +134,39 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             throw new BusinessException(403, "无权删除此评论");
         }
         this.removeById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void react(Long id, String emoji) {
+        Comment comment = this.getById(id);
+        if (comment == null) return;
+
+        Map<String, Integer> reactionMap = new HashMap<>();
+        try {
+            if (comment.getReactions() != null && !comment.getReactions().isBlank()) {
+                reactionMap = objectMapper.readValue(comment.getReactions(), 
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Integer>>() {});
+            }
+        } catch (Exception e) {
+            log.error("Parse comment reactions error: {}", e.getMessage());
+        }
+
+        reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
+
+        try {
+            String json = objectMapper.writeValueAsString(reactionMap);
+            this.update(new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Comment>()
+                .eq(Comment::getId, id)
+                .set(Comment::getReactions, json));
+            
+            // WebSocket 广播评论表情更新
+            Map<String, Object> broadcastData = new HashMap<>();
+            broadcastData.put("type", "COMMENT_REACTION_UPDATE");
+            broadcastData.put("data", Map.of("commentId", id, "messageId", comment.getMessageId(), "reactions", json));
+            WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
+        } catch (Exception e) {
+            log.error("Save comment reactions error: {}", e.getMessage());
+        }
     }
 }

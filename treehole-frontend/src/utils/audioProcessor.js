@@ -114,7 +114,7 @@ export async function applyVoiceMask(originalBlob, effectType) {
       }
       return curve;
     }
-    distortion.curve = makeDistortionCurve(150);
+    distortion.curve = makeDistortionCurve(250); // 增加失真力度
     distortion.oversample = '4x';
 
     const compressor = offlineCtx.createDynamicsCompressor();

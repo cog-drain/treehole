@@ -2,8 +2,9 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 const request = axios.create({
+  // 生产环境自适应：使用相对路径，让 Nginx 处理转发
   baseURL: '/api',
-  timeout: 10000
+  timeout: 20000 // 增加超时时间以支持大文件上传
 })
 
 /** 获取或初始化本地身份 (MVP 方案) */
@@ -48,6 +49,7 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   response => {
     const res = response.data
+    console.log(`[API Response] ${response.config.url}:`, res) // 探测器：打印所有后端返回
     if (res.code && res.code !== 200) {
       ElMessage.error(res.msg || '请求失败')
       return Promise.reject(new Error(res.msg || 'Error'))
@@ -65,7 +67,7 @@ request.interceptors.response.use(
   }
 )
 
-export default request
+// export default request
 
 // ── localStorage Token 管理工具 ──
 const MSG_TOKEN_KEY = 'treehole_msg_tokens'
@@ -77,32 +79,39 @@ function loadTokenMap(storageKey) {
   } catch { return {} }
 }
 
-// --- 留言 API ---
-export const publishMessage = (data) => request.post('/message', data)
-export const getMessages = (pageNum = 1, pageSize = 10) =>
-  request.get(`/message/list?pageNum=${pageNum}&pageSize=${pageSize}`)
-export const getMessagesByTag = (tag, pageNum = 1, pageSize = 10) =>
-  request.get(`/message/listByTag?tag=${encodeURIComponent(tag)}&pageNum=${pageNum}&pageSize=${pageSize}`)
-export const likeMessage = (id) => request.put(`/message/like/${id}`)
-export const deleteMessage = (id, ownerToken) => {
-  return request.delete(`/message/${id}`, {
-    headers: { Authorization: `Bearer ${ownerToken}` }
-  })
-}
-export const getRandomMessage = () => request.get('/message/random')
+// 将业务方法挂载到 request 实例上，确保 api.get() 和 api.getMessages() 同时可用
+const api = Object.assign(request, {
+  publishMessage: (data) => request.post('/message', data),
+  getMessages: (pageNum = 1, pageSize = 10) =>
+    request.get(`/message/list?pageNum=${pageNum}&pageSize=${pageSize}`),
+  getMessagesByTag: (tag, pageNum = 1, pageSize = 10) =>
+    request.get(`/message/listByTag?tag=${encodeURIComponent(tag)}&pageNum=${pageNum}&pageSize=${pageSize}`),
+  likeMessage: (id) => request.put(`/message/like/${id}`),
+  deleteMessage: (id, ownerToken) => {
+    return request.delete(`/message/${id}`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    })
+  },
+  getRandomMessage: () => request.get('/message/random'),
+  getTrendingTags: (limit = 10) => request.get(`/tag/trending?limit=${limit}`),
+  throwBottle: (data) => request.post('/bottle/throw', data),
+  pickBottle: () => request.get('/bottle/pick'),
+  replyBottle: (id, content, replyAuthorAlias) => request.post(`/bottle/reply/${id}`, { content, replyAuthorAlias }),
+  returnBottle: (id) => request.post(`/bottle/return/${id}`),
+  backupIdentity: () => request.get('/user/backup'),
+  restoreIdentity: (recoveryKey) => request.post('/user/restore', { recoveryKey }),
+  getUserIdentity,
+  getUserToken
+})
 
-// --- 标签 API ---
-export const getTrendingTags = (limit = 10) => request.get(`/tag/trending?limit=${limit}`)
+export default api
 
-// --- 漂流瓶 API ---
-export const throwBottle = (data) => request.post('/bottle/throw', data)
-export const pickBottle = () => request.get('/bottle/pick')
-export const replyBottle = (id, content) => request.post(`/bottle/reply/${id}`, { content })
-export const returnBottle = (id) => request.post(`/bottle/return/${id}`)
-
-// --- 用户/身份 API ---
-export const backupIdentity = () => request.get('/user/backup')
-export const restoreIdentity = (recoveryKey) => request.post('/user/restore', { recoveryKey })
+// 同时导出具名函数供部分组件解构使用
+export const { 
+  publishMessage, getMessages, getMessagesByTag, likeMessage, deleteMessage, 
+  getRandomMessage, getTrendingTags, throwBottle, pickBottle, replyBottle, 
+  returnBottle, backupIdentity, restoreIdentity 
+} = api
 
 /** 保存 Token */
 export function saveToken(storageKey, id, token) {

@@ -47,24 +47,32 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
                .set(DriftBottle::getPickerId, null);
         this.update(reclaim);
 
-        // 2. 随机捞一个不属于自己且在海里的瓶子
+        // 2. 随机捞一个不属于自己且在海里的瓶子，且避开刚被自己扔掉的
         LambdaQueryWrapper<DriftBottle> query = new LambdaQueryWrapper<>();
         query.eq(DriftBottle::getState, 0)
              .ne(DriftBottle::getUserId, userId)
+             .and(w -> w.ne(DriftBottle::getLastPickerId, userId).or().isNull(DriftBottle::getLastPickerId))
              .last("ORDER BY RAND() LIMIT 1");
         
         DriftBottle bottle = this.getOne(query);
         if (bottle != null) {
-            bottle.setState(1); // 已被捞起
+            // 精准更新，不触碰 content 字段，防止因映射问题导致内容被擦除
+            LambdaUpdateWrapper<DriftBottle> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(DriftBottle::getId, bottle.getId())
+                         .set(DriftBottle::getState, 1)
+                         .set(DriftBottle::getPickerId, userId);
+            this.update(updateWrapper);
+            
+            // 同步更新本地对象的内存状态返回给前端
+            bottle.setState(1);
             bottle.setPickerId(userId);
-            this.updateById(bottle);
         }
         return bottle;
     }
 
     @Override
     @Transactional
-    public void replyBottle(Long id, String replyContent, String userId) {
+    public void replyBottle(Long id, String replyContent, String replyAuthorAlias, String userId) {
         DriftBottle bottle = this.getById(id);
         if (bottle == null) throw new BusinessException(404, "瓶子已消失在海中");
         
@@ -72,9 +80,21 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
             throw new BusinessException(403, "你没有权限回复这个瓶子");
         }
         
-        // MVP 简化：回复即消耗瓶子或更新状态
+        // 保存回信内容与时间
+        bottle.setReplyContent(replyContent);
+        bottle.setReplyAuthorAlias(replyAuthorAlias);
+        bottle.setReplyTime(LocalDateTime.now());
         bottle.setState(2); // 已归还/完成
         this.updateById(bottle);
+
+        // 实时通知原作者
+        try {
+            com.treehole.common.Result<DriftBottle> res = com.treehole.common.Result.success(bottle);
+            res.setMsg("BOTTLE_REPLIED"); // 使用 msg 字段标记通知类型
+            com.treehole.websocket.WebSocketServer.sendToUser(bottle.getUserId(), res);
+        } catch (Exception e) {
+            // 通知失败不影响业务流程
+        }
     }
 
     @Override
@@ -89,6 +109,14 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
         
         bottle.setState(0); // 重新放回海里
         bottle.setPickerId(null);
+        bottle.setLastPickerId(userId); // 标记此用户已看过并放回
         this.updateById(bottle);
+    }
+
+    @Override
+    public java.util.List<DriftBottle> getMyBottles(String userId) {
+        return this.list(new LambdaQueryWrapper<DriftBottle>()
+                .eq(DriftBottle::getUserId, userId)
+                .orderByDesc(DriftBottle::getCreateTime));
     }
 }

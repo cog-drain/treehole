@@ -15,8 +15,11 @@ public interface DriftBottleService extends IService<DriftBottle> {
     DriftBottle pickBottle(String userId);
     
     /** 回复瓶子 */
-    void replyBottle(Long id, String replyContent, String userId);
+    void replyBottle(Long id, String replyContent, String replyAuthorAlias, String userId);
     
     /** 归还瓶子（放回海里） */
     void returnBottle(Long id, String userId);
+
+    /** 获取我的瓶子列表 (包含回信) */
+    java.util.List<DriftBottle> getMyBottles(String userId);
 }

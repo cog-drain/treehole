@@ -22,13 +22,20 @@ public interface CommentMapper extends BaseMapper<Comment> {
      * @return 包含 author_token 和 resonance_score 的 Map 列表
      */
     @Select("<script>" +
-            "SELECT t1.author_token, COUNT(DISTINCT t1.message_id) as resonance_score FROM (" +
-            "  SELECT user_id as author_token, message_id FROM comment " +
+            "SELECT t1.author_token, SUM(t1.score) as resonance_score FROM (" +
+            "  /* 基础得分：在同一个留言下互动过 */ " +
+            "  SELECT user_id as author_token, message_id, 1.0 as score FROM comment " +
             "  WHERE is_deleted = 0 AND user_id IN " +
             "  <foreach item='item' index='index' collection='authorIds' open='(' separator=',' close=')'>#{item}</foreach>" +
             "  UNION ALL " +
-            "  SELECT user_id as author_token, id as message_id FROM message " +
+            "  SELECT user_id as author_token, id as message_id, 1.0 as score FROM message " +
             "  WHERE is_deleted = 0 AND user_id IN " +
+            "  <foreach item='item' index='index' collection='authorIds' open='(' separator=',' close=')'>#{item}</foreach>" +
+            "  UNION ALL " +
+            "  /* 额外加分：直接回复过对方 (父子关系) */ " +
+            "  SELECT c1.user_id as author_token, c1.message_id, 2.0 as score " +
+            "  FROM comment c1 JOIN comment c2 ON c1.parent_id = c2.id " +
+            "  WHERE c1.is_deleted = 0 AND c2.is_deleted = 0 AND c2.user_id = #{viewerId} AND c1.user_id IN " +
             "  <foreach item='item' index='index' collection='authorIds' open='(' separator=',' close=')'>#{item}</foreach>" +
             ") t1 JOIN (" +
             "  SELECT message_id FROM comment WHERE is_deleted = 0 AND user_id = #{viewerId}" +
