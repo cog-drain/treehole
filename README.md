@@ -71,13 +71,14 @@ docker exec -i treehole-db mysql -uroot -proot treehole < sql/test_data.sql
 ## 💻 本地开发环境配置
 
 ### 后端运行
-1. 准备本地 MariaDB/MySQL 数据库。
-2. 运行 `sql/init.sql` 初始化表结构。
-3. 修改 `src/main/resources/application.yml` 中的数据库连接与 Gemini API Key。
-4. 运行 `mvn spring-boot:run` 或在 IDE 中启动 `TreeholeBackendApplication`。
+1. 进入目录：`cd backend`
+2. 准备本地 MariaDB/MySQL 数据库。
+3. 运行 `sql/init.sql` 初始化表结构（脚本在根目录）。
+4. 修改根目录下的 `.env` 文件。
+5. 运行 `mvn spring-boot:run` 或在 IDE 中启动。
 
 ### 前端运行
-1. 进入目录：`cd treehole-frontend`
+1. 进入目录：`cd frontend`
 2. 安装依赖：`pnpm install`
 3. 启动开发服务器：`pnpm dev`
 

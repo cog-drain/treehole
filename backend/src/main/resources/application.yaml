@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: treehole-backend
+
+  # 数据源配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:${DB_PORT:3306}/${DB_NAME:treehole}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Tokyo&allowPublicKeyRetrieval=true
+    username: ${DB_USER:treehole_user}
+    password: ${DB_USER_PASSWORD:treehole_pass}
+  sql:
+    init:
+      mode: never # 禁止启动时自动执行 SQL 脚本（防止 DROP TABLE）
+
+  # 文件上传大小限制
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # 强制打印 SQL 日志
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 服务端口
+server:
+  port: ${BACKEND_PORT:24191}
+  address: 0.0.0.0 # 显式绑定到所有网卡，增强代理稳定性
+
+# 自定义上传配置
+app:
+  upload:
+    path: ./uploads/        # 文件存储目录（相对于项目根目录）
+    url-prefix: /uploads/   # HTTP 访问前缀
+
+# AI 大模型配置映射
+ai:
+  zhipu:
+    api-key: ${AI_API_KEY:YOUR_ZHIPU_API_KEY_HERE}
+

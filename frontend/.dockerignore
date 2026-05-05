@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-ssr/
+*.log
+.git/
+.idea/
+.vscode/
+Dockerfile
+.vite/
+.temp/
+*.local

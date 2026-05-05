@@ -52,7 +52,6 @@ CREATE TABLE `message` (
     `comment_count` INT DEFAULT 0,
     `ip_address` VARCHAR(50),
     `reactions` JSON DEFAULT NULL COMMENT '动态表情统计 JSON',
-    `bgm_url` VARCHAR(512) DEFAULT NULL COMMENT 'AI推荐的背景音乐',
     `is_deleted` TINYINT DEFAULT 0,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_user` (`user_id`),
@@ -111,34 +110,7 @@ CREATE TABLE `drift_bottle` (
     `reply_content` TEXT,
     `reply_author_alias` VARCHAR(50),
     `reply_time` DATETIME,
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
-
--- 8. 通知系统表 (离线功能补全)
--- 用于存储用户离线期间发生的互动（点赞、回复、系统公告）
-DROP TABLE IF EXISTS `notification`;
-CREATE TABLE `notification` (
-    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `target_user_id` VARCHAR(36) NOT NULL COMMENT '接收者 UUID',
-    `type` VARCHAR(20) NOT NULL COMMENT '类型: COMMENT, LIKE, SYSTEM, BOTTLE',
-    `title` VARCHAR(100),
-    `content` TEXT,
-    `related_id` BIGINT COMMENT '关联的留言或评论ID',
-    `is_read` TINYINT DEFAULT 0,
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX `idx_target_user` (`target_user_id`),
-    INDEX `idx_is_read` (`is_read`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
-
--- 9. 举报与审计表
-DROP TABLE IF EXISTS `report`;
-CREATE TABLE `report` (
-    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `reporter_id` VARCHAR(36) NOT NULL,
-    `target_type` VARCHAR(20) NOT NULL COMMENT 'MESSAGE/COMMENT',
-    `target_id` BIGINT NOT NULL,
-    `reason` VARCHAR(255),
-    `status` TINYINT DEFAULT 0 COMMENT '0:待处理, 1:已忽略, 2:已删除目标',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 

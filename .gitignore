@@ -1,7 +1,8 @@
 # ==========================================
 # 1. 后端 (Java / Maven)
 # ==========================================
-target/
+backend/target/
+**/target/
 *.class
 *.jar
 *.war
@@ -9,35 +10,36 @@ target/
 *.log
 
 # Maven 封装器
-.mvn/
-mvnw
-mvnw.cmd
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
 
-# 敏感配置文件 (如果你有生产环境配置)
-src/main/resources/application-prod.yml
-src/main/resources/application-prod.properties
+# 敏感配置文件
+backend/src/main/resources/application-prod.yml
+backend/src/main/resources/application-prod.properties
 
 # ==========================================
 # 2. 前端 (Vue 3 / pnpm)
 # ==========================================
-treehole-frontend/node_modules/
-treehole-frontend/dist/
-treehole-frontend/dist-ssr/
-treehole-frontend/*.local
+frontend/node_modules/
+**/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
 
 # 前端日志
-treehole-frontend/npm-debug.log*
-treehole-frontend/yarn-debug.log*
-treehole-frontend/yarn-error.log*
-treehole-frontend/pnpm-debug.log*
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
 
 # ==========================================
 # 3. 存储与上传 (Uploads)
 # ==========================================
 # 忽略上传文件夹下的所有文件
-uploads/*
+backend/uploads/*
 # 排除 .gitkeep，确保文件夹结构被提交
-!uploads/.gitkeep
+!backend/uploads/.gitkeep
 # 忽略本地 SQL 补丁
 sql/patch.sql
 

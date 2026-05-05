@@ -1,13 +1,29 @@
-# 忽略构建产物
-target/
+# 1. 忽略构建产物
+backend/target/
+**/target/
 *.jar
 *.war
 
-# 忽略前端产物
-treehole-frontend/node_modules/
-treehole-frontend/dist/
+# 2. 忽略前端产物
+frontend/node_modules/
+**/node_modules/
+frontend/dist/
+frontend/dist-ssr/
 
-# 忽略 Git 和 IDE
+# 3. 忽略机密文件（极其重要！）
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# 4. 忽略本地持久化数据（防止镜像过大）
+backend/uploads/
+db_data/
+mysql_data/
+uploads_data/
+
+# 5. 忽略 Git 和 IDE
 .git/
 .gitignore
 .github/
@@ -15,11 +31,8 @@ treehole-frontend/dist/
 .vscode/
 *.iml
 
-# 忽略本地上传的文件和日志
-uploads/
+# 6. 其他
 *.log
-
-# 忽略 Docker 相关自身（可选）
 Dockerfile
 docker-compose.yml
 .dockerignore
