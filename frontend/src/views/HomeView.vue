@@ -934,7 +934,12 @@ async function publishMessage() {
   try {
     let imageUrl = '', audioUrl = ''
     if (imageFile.value) { const fd = new FormData(); fd.append('file', imageFile.value); imageUrl = (await api.uploadFile(fd)).data }
-    if (maskedAudioBlob.value) { const fd = new FormData(); fd.append('file', maskedAudioBlob.value, 'voice.wav'); audioUrl = (await api.uploadFile(fd)).data }
+    if (maskedAudioBlob.value) {
+      const fd = new FormData()
+      const ext = maskedAudioBlob.value.type.includes('webm') ? 'webm' : 'wav'
+      fd.append('file', maskedAudioBlob.value, `voice.${ext}`)
+      audioUrl = (await api.uploadFile(fd)).data
+    }
 
     optimisticMessage.imageUrl = imageUrl
     optimisticMessage.audioUrl = audioUrl
