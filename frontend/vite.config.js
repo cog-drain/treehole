@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
         '/ws': {
-          target: `ws://${backendHost}`,
+          target: `http://${backendHost}`,
           ws: true,
           changeOrigin: true,
         }

@@ -2,7 +2,8 @@ package com.treehole.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.treehole.common.BusinessException;
-import com.treehole.common.TokenUtil;
+import com.treehole.common.ErrorCode;
+import com.treehole.util.TokenUtil;
 import com.treehole.entity.AdminConfig;
 import com.treehole.entity.Blacklist;
 import com.treehole.mapper.AdminConfigMapper;
@@ -38,7 +39,7 @@ public class AdminServiceImpl implements AdminService {
         }
 
         if (!config.getConfigValue().equals(password)) {
-            throw new BusinessException("管理员密码错误");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "管理员密码错误");
         }
         return TokenUtil.generateToken(); 
     }
@@ -48,7 +49,7 @@ public class AdminServiceImpl implements AdminService {
     public void resetPassword(String oldPassword, String newPassword) {
         AdminConfig config = adminConfigMapper.selectById("admin_password");
         if (config == null || !config.getConfigValue().equals(oldPassword)) {
-            throw new BusinessException("原密码错误");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "原密码错误");
         }
         config.setConfigValue(newPassword);
         adminConfigMapper.updateById(config);
@@ -73,7 +74,7 @@ public class AdminServiceImpl implements AdminService {
         try {
             blacklistMapper.insert(blacklist);
         } catch (Exception e) {
-            throw new BusinessException("该 IP 已在黑名单中");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "该 IP 已在黑名单中");
         }
     }
 

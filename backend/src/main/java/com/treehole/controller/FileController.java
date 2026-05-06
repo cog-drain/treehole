@@ -1,6 +1,9 @@
 package com.treehole.controller;
 
 import com.treehole.common.Result;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -11,11 +14,13 @@ import java.io.IOException;
 import java.util.UUID;
 
 /**
- * 文件上传 Controller（独立模块，与业务无耦合）
+ * 文件上传 Controller
  */
+@Tag(name = "文件模块", description = "处理多媒体资源（图片、音频）的上传与存储")
 @Slf4j
 @RestController
 @RequestMapping("/api/file")
+@RequiredArgsConstructor
 public class FileController {
 
     /** 上传目录，默认为项目根目录下的 uploads/ 文件夹 */
@@ -34,12 +39,7 @@ public class FileController {
     /** 最大文件大小：5MB */
     private static final long MAX_SIZE = 5 * 1024 * 1024L;
 
-    /**
-     * 上传图片
-     *
-     * @param file 图片文件
-     * @return 可访问的图片 URL
-     */
+    @Operation(summary = "上传文件", description = "支持图片、语音等文件的上传，返回可访问的 URL")
     @PostMapping("/upload")
     public Result<String> upload(@RequestParam("file") MultipartFile file) {
         // 校验文件非空
@@ -51,20 +51,24 @@ public class FileController {
         if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
             return Result.error(400, "不支持的文件格式");
         }
+
+        // --- 路由逻辑：根据文件类型确定子目录 ---
+        String subDir = contentType.startsWith("audio") ? "audio/" : "images/";
+        
         // 校验文件大小
         if (file.getSize() > MAX_SIZE) {
-            return Result.error(400, "图片大小不能超过 5MB");
+            return Result.error(400, "文件大小不能超过 5MB");
         }
 
         // 生成唯一文件名，保留原始后缀
         String originalName = file.getOriginalFilename();
         String suffix = (originalName != null && originalName.contains("."))
                 ? originalName.substring(originalName.lastIndexOf("."))
-                : ".jpg";
+                : (contentType.startsWith("audio") ? ".webm" : ".jpg");
         String newFileName = UUID.randomUUID().toString().replace("-", "") + suffix;
 
-        // 确保上传目录存在
-        File dir = new File(uploadPath).getAbsoluteFile();
+        // 确保上传子目录存在
+        File dir = new File(uploadPath, subDir).getAbsoluteFile();
         if (!dir.exists() && !dir.mkdirs()) {
             log.error("创建上传目录失败: {}", dir.getAbsolutePath());
             return Result.error("服务器存储目录创建失败");
@@ -79,9 +83,9 @@ public class FileController {
             return Result.error("文件保存失败，请稍后重试");
         }
 
-        // 返回前端可访问的 URL
-        String accessUrl = urlPrefix + newFileName;
-        log.info("文件上传成功: {} -> {}", newFileName, dest.getAbsolutePath());
+        // 返回前端可访问的 URL（包含子目录路径）
+        String accessUrl = urlPrefix + subDir + newFileName;
+        log.info("文件上传成功: {} -> {}", subDir + newFileName, dest.getAbsolutePath());
         return Result.success(accessUrl);
     }
 }

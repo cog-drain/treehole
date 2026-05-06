@@ -1,4 +1,4 @@
-package com.treehole.common;
+package com.treehole.util;
 
 import java.util.Objects;
 

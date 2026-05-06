@@ -17,7 +17,7 @@
 
     <main class="main-container">
       <div id="tsparticles" class="fixed inset-0 pointer-events-none z-0" style="filter: blur(100px); opacity: 0.6;"></div>
-      <Home 
+      <HomeView 
         @open-store="showStore = true" 
         @publish-success="handlePublishSuccess"
         @resonance-boom="handleResonanceBoom"
@@ -62,12 +62,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import Home from './views/Home.vue'
-import LainIntro from './components/LainIntro.vue'
-import EnergyStore from './components/EnergyStore.vue'
-import P5CallingCard from './components/P5CallingCard.vue'
-import P5AllOutAttack from './components/P5AllOutAttack.vue'
-import AlterEgo from './components/AlterEgo.vue'
+import HomeView from './views/HomeView.vue'
+import LainIntro from '@/components/business/LainIntro.vue'
+import EnergyStore from '@/components/business/EnergyStore.vue'
+import P5CallingCard from '@/components/business/P5CallingCard.vue'
+import P5AllOutAttack from '@/components/business/P5AllOutAttack.vue'
+import AlterEgo from '@/components/business/AlterEgo.vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage } from 'element-plus'
 import api from '@/api'

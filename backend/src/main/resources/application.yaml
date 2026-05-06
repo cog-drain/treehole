@@ -1,13 +1,28 @@
+# SpringDoc OpenAPI 配置
 spring:
+  profiles:
+    active: dev
   application:
     name: treehole-backend
 
-  # 数据源配置
+springdoc:
+  swagger-ui:
+    path: /docs # 将默认的 /swagger-ui.html 改为更简洁的 /docs
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-config:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.treehole.controller
+  application:
+    name: treehole-backend
+
+  # 数据源通用配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:${DB_PORT:3306}/${DB_NAME:treehole}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Tokyo&allowPublicKeyRetrieval=true
-    username: ${DB_USER:treehole_user}
-    password: ${DB_USER_PASSWORD:treehole_pass}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
   sql:
     init:
       mode: never # 禁止启动时自动执行 SQL 脚本（防止 DROP TABLE）
@@ -37,11 +52,18 @@ server:
 # 自定义上传配置
 app:
   upload:
-    path: ./uploads/        # 文件存储目录（相对于项目根目录）
+    path: ${UPLOAD_PATH:../storage/uploads/}  # 默认指向根目录 storage/uploads/
     url-prefix: /uploads/   # HTTP 访问前缀
 
 # AI 大模型配置映射
 ai:
   zhipu:
     api-key: ${AI_API_KEY:YOUR_ZHIPU_API_KEY_HERE}
+
+# 日志配置
+logging:
+  file:
+    path: ${LOG_PATH:../storage/logs/}
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 

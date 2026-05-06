@@ -18,10 +18,10 @@ frontend/dist-ssr/
 *.key
 
 # 4. 忽略本地持久化数据（防止镜像过大）
-backend/uploads/
+storage/
+database/
 db_data/
 mysql_data/
-uploads_data/
 
 # 5. 忽略 Git 和 IDE
 .git/
@@ -34,5 +34,5 @@ uploads_data/
 # 6. 其他
 *.log
 Dockerfile
-docker-compose.yml
+compose.yml
 .dockerignore

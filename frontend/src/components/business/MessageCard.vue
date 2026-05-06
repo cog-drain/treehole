@@ -110,7 +110,7 @@ const parsedReactions = computed(() => {
 
 const addReaction = async (emoji) => {
   try {
-    await api.post(`/message/react/${props.msg.id}?emoji=${encodeURIComponent(emoji)}`)
+    await api.reactToMessage(props.msg.id, emoji)
   } catch (e) {
     console.error('Reaction error:', e)
   }

@@ -3,6 +3,7 @@ package com.treehole.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.treehole.common.BusinessException;
+import com.treehole.common.ErrorCode;
 import com.treehole.entity.Comment;
 import com.treehole.mapper.CommentMapper;
 import com.treehole.service.CommentService;
@@ -11,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.treehole.common.IdentityUtils;
+import com.treehole.util.IdentityUtils;
 import com.treehole.entity.Message;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.treehole.websocket.WebSocketServer;
@@ -44,7 +45,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Transactional
     public Map<String, Object> publish(Comment comment, String userId) {
         if (userId == null || userId.isBlank()) {
-            throw new BusinessException(400, "身份标识不能为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "身份标识不能为空");
         }
         comment.setUserId(userId);
         comment.setAuthorAlias(null); 
@@ -128,10 +129,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     public void deleteWithToken(Long id, String userId) {
         Comment comment = this.getById(id);
         if (comment == null) {
-            throw new BusinessException(404, "评论不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "评论不存在");
         }
         if (userId == null || userId.isBlank() || !userId.equals(comment.getUserId())) {
-            throw new BusinessException(403, "无权删除此评论");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权删除此评论");
         }
         this.removeById(id);
     }

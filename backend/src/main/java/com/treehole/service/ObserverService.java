@@ -49,7 +49,7 @@ public class ObserverService {
             log.info("The Observer has spoken: {}", quote);
             
         } catch (Exception e) {
-            log.error("Observer task error: {}", e.getMessage());
+            log.error("Observer task error", e);
         }
     }
 

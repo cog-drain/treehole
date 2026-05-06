@@ -2,6 +2,7 @@ package com.treehole.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.treehole.common.BusinessException;
+import com.treehole.common.ErrorCode;
 import com.treehole.entity.User;
 import com.treehole.mapper.UserMapper;
 import com.treehole.service.UserService;
@@ -31,14 +32,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public String restoreUserId(String recoveryKey) {
         if (recoveryKey == null || !recoveryKey.startsWith(KEY_PREFIX)) {
-            throw new BusinessException(400, "无效的恢复密钥格式");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无效的恢复密钥格式");
         }
         
         String userId = recoveryKey.substring(KEY_PREFIX.length());
         User user = this.getById(userId);
         
         if (user == null) {
-            throw new BusinessException(404, "找不到该密钥对应的存在迹象");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "找不到该密钥对应的存在迹象");
         }
         
         return user.getId();

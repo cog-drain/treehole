@@ -8,6 +8,9 @@ backend/target/
 *.war
 *.ear
 *.log
+.env
+.env.*
+!.env.example
 
 # Maven 封装器
 backend/.mvn/
@@ -16,6 +19,7 @@ backend/mvnw.cmd
 
 # 敏感配置文件
 backend/src/main/resources/application-prod.yml
+backend/src/main/resources/application-prod.yaml
 backend/src/main/resources/application-prod.properties
 
 # ==========================================
@@ -34,14 +38,14 @@ frontend/yarn-error.log*
 frontend/pnpm-debug.log*
 
 # ==========================================
-# 3. 存储与上传 (Uploads)
+# 3. 存储与上传 (Storage & Data)
 # ==========================================
-# 忽略上传文件夹下的所有文件
-backend/uploads/*
-# 排除 .gitkeep，确保文件夹结构被提交
-!backend/uploads/.gitkeep
-# 忽略本地 SQL 补丁
-sql/patch.sql
+# 忽略整个 storage 目录下的内容
+storage/**/*
+# 排除所有的 .gitkeep 文件，确保目录结构被提交
+!storage/**/.gitkeep
+# 忽略本地数据库补丁
+database/patch.sql
 
 
 

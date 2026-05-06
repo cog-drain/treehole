@@ -1,4 +1,4 @@
-package com.treehole.common;
+package com.treehole.config;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;

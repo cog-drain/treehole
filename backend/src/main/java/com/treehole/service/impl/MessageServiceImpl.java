@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.treehole.common.BusinessException;
+import com.treehole.common.ErrorCode;
 import com.treehole.entity.Comment;
 import com.treehole.entity.Message;
 import com.treehole.mapper.CommentMapper;
@@ -42,7 +43,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     @Override
     public Map<String, Object> publish(Message message, String userId) {
         if (userId == null || userId.isBlank()) {
-            throw new BusinessException(400, "身份标识不能为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "身份标识不能为空");
         }
         message.setUserId(userId);
 
@@ -202,11 +203,11 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     public void deleteWithComments(Long id, String userId) {
         Message message = this.getById(id);
         if (message == null) {
-            throw new BusinessException(404, "留言不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "留言不存在");
         }
 
         if (userId == null || userId.isBlank() || !userId.equals(message.getUserId())) {
-            throw new BusinessException(403, "无权删除此留言");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权删除此留言");
         }
 
         LambdaQueryWrapper<Comment> commentWrapper = new LambdaQueryWrapper<>();

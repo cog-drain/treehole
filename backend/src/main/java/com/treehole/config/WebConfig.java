@@ -1,5 +1,6 @@
-package com.treehole.common;
+package com.treehole.config;
 
+import com.treehole.interceptor.SecurityInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;

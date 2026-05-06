@@ -1,5 +1,6 @@
 package com.treehole.entity;
 
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 public class MessageTag {
 
     /** 留言ID */
+    @TableId
     private Long messageId;
 
     /** 标签ID */

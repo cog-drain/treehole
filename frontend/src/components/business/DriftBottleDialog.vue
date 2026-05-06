@@ -300,6 +300,7 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { Mail, Search, Waves, ChevronLeft, RefreshCw } from 'lucide-vue-next'
+import api from '@/api'
 import { formatTime } from '@/utils/time.js'
 
 const props = defineProps({
@@ -375,13 +376,8 @@ const handleReturn = () => { emit('onReturn'); state.value = 'init'; }
 const handleOpenInbox = async () => {
   state.value = 'my-bottles'
   try {
-    const response = await fetch('/api/bottle/my', {
-      headers: { 'X-User-Id': props.userId }
-    })
-    const res = await response.json()
-    if (res.code === 200) {
-      myBottles.value = res.data
-    }
+    const res = await api.getMyBottles()
+    myBottles.value = res.data || []
   } catch (e) {
     console.error('Fetch my bottles failed:', e)
   }

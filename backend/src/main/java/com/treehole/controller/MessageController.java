@@ -6,14 +6,17 @@ import com.treehole.entity.Message;
 import com.treehole.service.MessageService;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 /**
  * 留言 Controller (支持 Local Identity)
  */
+@Tag(name = "留言模块", description = "处理树洞留言的发布、查询、删除及互动")
 @RestController
-@RequestMapping("/api/message")
+@RequestMapping("/api/messages")
 public class MessageController {
 
     private final MessageService messageService;
@@ -24,9 +27,8 @@ public class MessageController {
 
     /**
      * 发布留言
-     * <p>
-     * 使用 X-User-Id 请求头作为身份标识。
      */
+    @Operation(summary = "发布新留言", description = "支持匿名发布，通过 Header 传递身份标识")
     @PostMapping
     public Result<Map<String, Object>> publish(@RequestBody Message message, 
                                                @RequestHeader(value = "X-User-Id", required = false) String userId,
@@ -38,38 +40,24 @@ public class MessageController {
     }
 
     /**
-     * 分页查询留言列表
+     * 分页查询留言列表 (支持标签过滤)
      */
-    @GetMapping("/list")
+    @Operation(summary = "获取留言列表", description = "支持分页及标签过滤查询")
+    @GetMapping
     public Result<IPage<Message>> list(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String tag,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         String finalUserId = extractUserId(userId, authorization);
+        if (tag != null && !tag.isBlank()) {
+            return Result.success(messageService.listByTag(tag, pageNum, pageSize, finalUserId));
+        }
         return Result.success(messageService.listByPage(pageNum, pageSize, finalUserId));
     }
 
-    /**
-     * 按标签分页查询留言列表
-     */
-    @GetMapping("/listByTag")
-    public Result<IPage<Message>> listByTag(
-            @RequestParam String tag,
-            @RequestParam(defaultValue = "1") int pageNum,
-            @RequestParam(defaultValue = "10") int pageSize,
-            @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestHeader(value = "Authorization", required = false) String authorization) {
-        String finalUserId = extractUserId(userId, authorization);
-        return Result.success(messageService.listByTag(tag, pageNum, pageSize, finalUserId));
-    }
-
-    @PutMapping("/like/{id}")
-    public Result<Void> like(@PathVariable Long id) {
-        messageService.like(id);
-        return Result.success();
-    }
-
+    @Operation(summary = "删除留言", description = "仅留言持有者或管理员可删除")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id,
                                @RequestHeader(value = "X-User-Id", required = false) String userId,
@@ -79,7 +67,15 @@ public class MessageController {
         return Result.success();
     }
 
-    @PostMapping("/react/{id}")
+    @Operation(summary = "留言点赞")
+    @PutMapping("/{id}/like")
+    public Result<Void> like(@PathVariable Long id) {
+        messageService.like(id);
+        return Result.success();
+    }
+
+    @Operation(summary = "留言回响", description = "发送 Emoji 回响")
+    @PostMapping("/{id}/reactions")
     public Result<Void> react(@PathVariable Long id, @RequestParam String emoji) {
         messageService.react(id, emoji);
         return Result.success();

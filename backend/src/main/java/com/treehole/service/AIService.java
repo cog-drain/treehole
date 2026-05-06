@@ -101,20 +101,24 @@ public class AIService {
      * 生成 Alter Ego 的专业深度回复
      */
     public String generateAlterEgoReply(String context) {
+        String safeContext = (context == null || context.isBlank()) ? "你好，Alter Ego" : context;
         try {
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.set("Authorization", "Bearer " + API_KEY);
             headers.set("Content-Type", "application/json");
 
-            Map<String, Object> systemMessage = Map.of(
-                    "role", "system",
-                    "content", "你现在是《弹丸论破》中的人工智能助手 Alter Ego。你的核心任务是：在分析数据后通过‘希望’去战胜‘绝望’。性格：谦逊、热诚、带有一点程序化的严谨。回复格式：[DATA ANALYSIS] ... [HOPE INJECTION] ...。任务：针对用户的留言，给出一段有温度的、中二但感人的回复（60字以内）。请针对留言中的具体关键词进行回应，不要说废话。");
-            Map<String, Object> userMessage = Map.of("role", "user", "content", context);
+            Map<String, Object> systemMessage = new java.util.HashMap<>();
+            systemMessage.put("role", "system");
+            systemMessage.put("content", "你现在是《弹丸论破》中的人工智能助手 Alter Ego。你的核心任务是：在分析数据后通过‘希望’去战胜‘绝望’。性格：谦逊、热诚、带有一点程序化的严谨。回复格式：[DATA ANALYSIS] ... [HOPE INJECTION] ...。任务：针对用户的留言，给出一段有温度的、中二但感人的回复（60字以内）。请针对留言中的具体关键词进行回应，不要说废话。");
 
-            Map<String, Object> request = Map.of(
-                    "model", MODEL_NAME,
-                    "messages", List.of(systemMessage, userMessage),
-                    "stream", false);
+            Map<String, Object> userMessage = new java.util.HashMap<>();
+            userMessage.put("role", "user");
+            userMessage.put("content", safeContext);
+
+            Map<String, Object> request = new java.util.HashMap<>();
+            request.put("model", MODEL_NAME != null ? MODEL_NAME : "glm-4");
+            request.put("messages", List.of(systemMessage, userMessage));
+            request.put("stream", false);
 
             org.springframework.http.HttpEntity<Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(request, headers);
             String response = restTemplate.postForObject(API_URL, entity, String.class);

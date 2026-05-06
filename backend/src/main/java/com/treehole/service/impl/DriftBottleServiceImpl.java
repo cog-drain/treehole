@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.treehole.common.BusinessException;
+import com.treehole.common.ErrorCode;
 import com.treehole.entity.DriftBottle;
 import com.treehole.mapper.DriftBottleMapper;
 import com.treehole.service.DriftBottleService;
@@ -24,7 +25,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
     @Transactional
     public void throwBottle(DriftBottle bottle, String userId) {
         if (userId == null || userId.isBlank()) {
-            throw new BusinessException(400, "身份标识不能为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "身份标识不能为空");
         }
         bottle.setUserId(userId);
         bottle.setState(0); // 漂流中
@@ -35,7 +36,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
     @Transactional
     public DriftBottle pickBottle(String userId) {
         if (userId == null || userId.isBlank()) {
-            throw new BusinessException(400, "身份标识不能为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "身份标识不能为空");
         }
         
         // 1. 自动回收：释放超过 5 分钟未处理的“僵尸瓶”
@@ -74,10 +75,10 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
     @Transactional
     public void replyBottle(Long id, String replyContent, String replyAuthorAlias, String userId) {
         DriftBottle bottle = this.getById(id);
-        if (bottle == null) throw new BusinessException(404, "瓶子已消失在海中");
+        if (bottle == null) throw new BusinessException(ErrorCode.BOTTLE_NOT_FOUND, "瓶子已消失在海中");
         
         if (!userId.equals(bottle.getPickerId())) {
-            throw new BusinessException(403, "你没有权限回复这个瓶子");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "你没有权限回复这个瓶子");
         }
         
         // 保存回信内容与时间
@@ -101,10 +102,10 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
     @Transactional
     public void returnBottle(Long id, String userId) {
         DriftBottle bottle = this.getById(id);
-        if (bottle == null) throw new BusinessException(404, "瓶子不存在");
+        if (bottle == null) throw new BusinessException(ErrorCode.BOTTLE_NOT_FOUND, "瓶子不存在");
         
         if (!userId.equals(bottle.getPickerId())) {
-            throw new BusinessException(403, "你没有权限归还这个瓶子");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "你没有权限归还这个瓶子");
         }
         
         bottle.setState(0); // 重新放回海里

@@ -71,10 +71,13 @@ export const offlineQueue = {
       try {
         // 剥离前端生成的临时字符串 id 和时间戳
         const { id, timestamp, ...payload } = item
-        // 必须直接使用底层的 api.post，绕过高层自带的离线拦截机制！
-        // 否则在这里断网时，它会再次被拦截并返回202，导致虚假的“同步成功”
-        await api.post('/message', payload)
+        
+        // 增加一个 300ms 的微小延迟，防止网络刚恢复时的瞬时拥堵
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        await api.post('/messages', payload)
       } catch (err) {
+        console.error('Offline sync failed for item:', item, err)
         // 如果还是失败（比如后端挂了而非网络问题），则保留在队列中
         remaining.push(item)
       }

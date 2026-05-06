@@ -11,7 +11,7 @@ services:
       TZ: Asia/Tokyo
     volumes:
       - db_data:/var/lib/mysql
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./database/01_init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - "127.0.0.1:${DB_PORT:-3306}:3306"
     networks:
@@ -20,7 +20,7 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "${DB_USER:-treehole_user}", "-p${DB_USER_PASSWORD:-treehole_pass}"]
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "${DB_USER:-treehole_user}", "-p${DB_PASSWORD:-treehole_pass}"]
       start_period: 15s
       interval: 10s
       timeout: 5s
@@ -33,17 +33,15 @@ services:
     ports:
       - "${BACKEND_PORT:-24191}:24191"
     environment:
-      # 强制容器内部监听 24191 以适配 Nginx 代理，不受外界 .env 中 BACKEND_PORT 的影响
-      SERVER_PORT: 24191
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME:-treehole}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Tokyo&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: ${DB_USER:-treehole_user}
-      SPRING_DATASOURCE_PASSWORD: ${DB_USER_PASSWORD:-treehole_pass}
-      # 映射环境变量到 Spring 配置属性
-      AI_ZHIPU_API-KEY: ${AI_API_KEY:-YOUR_ZHIPU_API_KEY_HERE}
-      # 生产环境中关闭 SQL 日志输出
-      MYBATIS-PLUS_CONFIGURATION_LOG-IMPL: org.apache.ibatis.logging.nologging.NoLoggingImpl
+      - SPRING_PROFILES_ACTIVE=prod
+      - BACKEND_PORT=24191
+      - LOG_PATH=/app/logs
+      - DB_USER=${DB_USER:-treehole_user}
+      - DB_PASSWORD=${DB_PASSWORD:-treehole_pass}
+      - AI_API_KEY=${AI_API_KEY:-YOUR_KEY}
     volumes:
-      - uploads_data:/app/uploads
+      - ./storage/uploads:/app/uploads
+      - ./storage/logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -67,4 +65,3 @@ networks:
 
 volumes:
   db_data:
-  uploads_data:

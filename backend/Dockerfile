@@ -25,7 +25,8 @@ RUN mkdir -p /root/.m2 && \
 RUN mvn dependency:go-offline -s /root/.m2/settings.xml -q
 
 COPY src ./src
-RUN mvn clean package -DskipTests -s /root/.m2/settings.xml -q
+RUN mvn clean package -DskipTests -s /root/.m2/settings.xml -q && \
+    rm target/*-original.jar || true
 
 # Stage 2: Run — 使用 JRE 而非 JDK，镜像更小
 FROM eclipse-temurin:17-jre-alpine
@@ -42,11 +43,11 @@ RUN apk add --no-cache tzdata && \
 
 COPY --from=build /app/target/*.jar app.jar
 
-# 创建上传目录 & 非 root 用户运行
-RUN mkdir -p /app/uploads && \
+# 创建上传目录和日志目录 & 非 root 用户运行
+RUN mkdir -p /app/uploads /app/logs && \
     addgroup -S appgroup && \
     adduser -S appuser -G appgroup && \
-    chown -R appuser:appgroup /app
+    chown -R appuser:appgroup /app/uploads /app/logs
 USER appuser
 
 EXPOSE 24191

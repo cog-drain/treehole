@@ -21,7 +21,9 @@ public class WebSocketServer {
     
     // 用户 ID -> Session 的映射
     private static final Map<String, Session> USER_SESSIONS = new ConcurrentHashMap<>();
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @OnOpen
     public void onOpen(Session session, @PathParam("userId") String userId) {
@@ -41,7 +43,7 @@ public class WebSocketServer {
 
     @OnError
     public void onError(Session session, Throwable error) {
-        log.error("WebSocket error: {}", error.getMessage());
+        log.error("WebSocket error on session {}: ", session.getId(), error);
     }
 
     /**

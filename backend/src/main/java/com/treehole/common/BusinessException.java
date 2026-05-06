@@ -3,23 +3,30 @@ package com.treehole.common;
 import lombok.Getter;
 
 /**
- * 自定义业务异常
- * <p>
- * 用于在 Service 层抛出可预期的业务错误（如权限不足、资源不存在等），
- * 由 {@link GlobalExceptionHandler} 统一捕获并返回友好响应。
+ * 自定义业务异常 (支持 ErrorCode)
  */
 @Getter
 public class BusinessException extends RuntimeException {
 
-    /** HTTP 风格的状态码，例如 403、404 */
-    private final int code;
+    private final ErrorCode errorCode;
 
-    public BusinessException(int code, String message) {
-        super(message);
-        this.code = code;
+    /**
+     * 基于完整错误码构造
+     */
+    public ErrorCode getErrorCode() {
+        return errorCode;
     }
 
-    public BusinessException(String message) {
-        this(500, message);
+    public BusinessException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+    }
+
+    /**
+     * 基于错误码 + 自定义描述构造
+     */
+    public BusinessException(ErrorCode errorCode, String customMsg) {
+        super(customMsg);
+        this.errorCode = errorCode;
     }
 }

@@ -1,5 +1,7 @@
-package com.treehole.common;
+package com.treehole.interceptor;
 
+import com.treehole.common.BusinessException;
+import com.treehole.common.ErrorCode;
 import com.treehole.service.AdminService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,7 +24,7 @@ public class SecurityInterceptor implements HandlerInterceptor {
             String ip = request.getRemoteAddr();
             if (adminService.isIPBanned(ip)) {
                 // 如果是黑名单 IP，抛出业务异常或直接拦截
-                throw new BusinessException("你的访问权限已被限制 (IP: " + ip + ")");
+                throw new BusinessException(ErrorCode.IDENTITY_BANNED, "你的访问权限已被限制 (IP: " + ip + ")");
             }
         }
         return true;

@@ -12,20 +12,20 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     /**
-     * 捕获自定义业务异常
+     * 处理自定义业务异常
      */
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handleBusinessException(BusinessException e) {
-        log.warn("业务异常: code={}, msg={}", e.getCode(), e.getMessage());
-        return Result.error(e.getCode(), e.getMessage());
+        log.error("业务异常: {}", e.getMessage());
+        return Result.error(e.getErrorCode(), e.getMessage());
     }
 
     /**
-     * 兜底：捕获所有未预期的异常
+     * 处理系统未捕获的异常
      */
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception e) {
-        log.error("系统异常", e);
-        return Result.error(500, "服务器内部错误，请稍后重试");
+        log.error("系统未知异常: ", e);
+        return Result.error(ErrorCode.SYSTEM_ERROR);
     }
 }

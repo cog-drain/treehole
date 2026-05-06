@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  backend-build:
+  backend:
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -35,12 +35,12 @@ jobs:
 
     - name: Initialize Database
       run: |
-        mysql -h 127.0.0.1 -u root -proot treehole < ../sql/init.sql
+        mysql -h 127.0.0.1 -u root -proot treehole < ../database/01_init.sql
 
     - name: Build with Maven
       run: mvn -B package
 
-  frontend-build:
+  frontend:
     runs-on: ubuntu-latest
     defaults:
       run:

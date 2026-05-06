@@ -678,11 +678,11 @@ import api, {
   throwBottle, pickBottle, replyBottle, returnBottle,
   backupIdentity, restoreIdentity
 } from '@/api'
-import MessageCard from '@/components/MessageCard.vue'
-import MindGraph from '@/components/MindGraph.vue'
-import CyberWatermark from '@/components/CyberWatermark.vue'
-import ZenGarden from '@/components/ZenGarden.vue'
-import DriftBottleDialog from '@/components/DriftBottleDialog.vue'
+import MessageCard from '@/components/business/MessageCard.vue'
+import MindGraph from '@/components/business/MindGraph.vue'
+import CyberWatermark from '@/components/common/CyberWatermark.vue'
+import ZenGarden from '@/components/zen/ZenGarden.vue'
+import DriftBottleDialog from '@/components/business/DriftBottleDialog.vue'
 import {
   Dices, Fingerprint, ImagePlus, Mic, Archive, Send, Loader2, Sparkles, Hash, Copy, Waves, Volume2, Moon, Trash2, Plus, X,
   LogOut, ShieldAlert, Users, Lock, ChevronLeft, ChevronRight, Play, Pause, Zap, Edit2
@@ -900,8 +900,8 @@ async function fetchTrending() { try { const res = await getTrendingTags(12); tr
 async function fetchMessages() {
   try {
     const res = activeTag.value
-      ? await getMessagesByTag(activeTag.value, pageNum.value, pageSize.value)
-      : await api.get('/message/list', { params: { pageNum: pageNum.value, pageSize: pageSize.value } })
+      ? await api.getMessagesByTag(activeTag.value, pageNum.value, pageSize.value)
+      : await api.getMessages(pageNum.value, pageSize.value)
     messages.value = (res.data.records || []).map(m => ({
       ...m, _showComments: false, _comments: [], _commentText: '', _commentImage: null, _replyToId: null, _commenting: false,
       _read: readIds.value.has(m.id), coFrequency: m.commentCount > 5 || m.coFrequency
@@ -933,8 +933,8 @@ async function publishMessage() {
 
   try {
     let imageUrl = '', audioUrl = ''
-    if (imageFile.value) { const fd = new FormData(); fd.append('file', imageFile.value); imageUrl = (await api.post('/file/upload', fd)).data }
-    if (maskedAudioBlob.value) { const fd = new FormData(); fd.append('file', maskedAudioBlob.value, 'voice.wav'); audioUrl = (await api.post('/file/upload', fd)).data }
+    if (imageFile.value) { const fd = new FormData(); fd.append('file', imageFile.value); imageUrl = (await api.uploadFile(fd)).data }
+    if (maskedAudioBlob.value) { const fd = new FormData(); fd.append('file', maskedAudioBlob.value, 'voice.wav'); audioUrl = (await api.uploadFile(fd)).data }
 
     optimisticMessage.imageUrl = imageUrl
     optimisticMessage.audioUrl = audioUrl
@@ -979,7 +979,7 @@ async function toggleComments(msg) {
   msg._showComments = !msg._showComments
   if (msg._showComments) {
     msg._read = true; markAsRead(msg.id)
-    try { const res = await api.get(`/comment/list/${msg.id}`); msg._comments = res.data || []; if (msg._comments.some(c => c.coFrequency)) msg.coFrequency = true } catch {}
+    try { const res = await api.getComments(msg.id); msg._comments = res.data || []; if (msg._comments.some(c => c.coFrequency)) msg.coFrequency = true } catch {}
   }
 }
 
@@ -987,8 +987,8 @@ async function publishComment(msg) {
   if (!msg._commentText.trim() && !msg._commentImage) return
   msg._commenting = true
   try {
-    await api.post('/comment', { messageId: msg.id, content: msg._commentText.trim(), imageUrl: msg._commentImage, parentId: msg._replyToId || null })
-    const cmtRes = await api.get(`/comment/list/${msg.id}`)
+    await api.publishComment({ messageId: msg.id, content: msg._commentText.trim(), imageUrl: msg._commentImage, parentId: msg._replyToId || null })
+    const cmtRes = await api.getComments(msg.id)
     msg._comments = [...(cmtRes.data || [])]; msg.commentCount = (msg.commentCount || 0) + 1
     msg._commentText = ''; msg._commentImage = null; msg._replyToId = null
     if (msg._comments.some(c => c.coFrequency)) msg.coFrequency = true
@@ -999,14 +999,15 @@ async function publishComment(msg) {
 
 async function deleteMessage(msg) {
   if (!msg.isOwner && !getToken(MSG_TOKEN_KEY, msg.id) && !isAdmin.value) { ElMessage.warning('你没有删除权限'); return }
-  try { await ElMessageBox.confirm('确定要删除这条树洞吗？', '提示', { type: 'warning' }); await api.delete(`/message/${msg.id}`); ElMessage.success('已删除'); fetchMessages() } catch {}
+  try { await ElMessageBox.confirm('确定要删除这条树洞吗？', '提示', { type: 'warning' }); await api.deleteMessage(msg.id); ElMessage.success('已删除'); fetchMessages() } catch {}
 }
 
 async function handleDeleteComment({ msg, comment }) {
   if (!comment.isOwner && !getToken(CMT_TOKEN_KEY, comment.id) && !isAdmin.value) { ElMessage.warning('你没有删除权限'); return }
   try {
-    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', { type: 'warning' }); await api.delete(`/comment/${comment.id}`)
-    ElMessage.success('评论已删除'); const res = await api.get(`/comment/list/${msg.id}`); msg._comments = res.data || []; msg.commentCount = Math.max(0, msg.commentCount - 1)
+    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', { type: 'warning' }); await api.deleteComment(comment.id)
+    ElMessage.success('评论已删除'); const res = await api.getComments(msg.id)
+    msg._comments = res.data || []; msg.commentCount = Math.max(0, msg.commentCount - 1)
   } catch {}
 }
 
@@ -1019,18 +1020,18 @@ function showNodeDetail(msg) { selectedNodeMsg.value = msg; nodeDetailVisible.va
 async function handleAdminLogin() {
   if (!adminPassword.value.trim()) return
   try {
-    const res = await api.post('/admin/login', { password: adminPassword.value })
+    const res = await api.adminLogin(adminPassword.value)
     if (res.data) { isAdmin.value = true; localStorage.setItem('treehole_admin_token', res.data); adminLoginVisible.value = false; ElMessage({ message: '👑 ACCESS GRANTED.', type: 'success', duration: 3000 }); fetchBlacklist() }
   } catch { adminPassword.value = '' }
 }
-async function fetchBlacklist() { try { blacklist.value = (await api.get('/admin/blacklist')).data || [] } catch {} }
-async function handleUnban(ip) { try { await api.delete(`/admin/unban?ip=${ip}`); ElMessage.success('IP 已解封'); fetchBlacklist() } catch {} }
-async function handleChangePassword() { if (!pwdForm.oldPassword || !pwdForm.newPassword) return; try { await api.post('/admin/resetPassword', pwdForm); ElMessage.success('密码修改成功'); exitAdmin() } catch {} }
+async function fetchBlacklist() { try { blacklist.value = (await api.getBlacklist()).data || [] } catch {} }
+async function handleUnban(ip) { try { await api.unbanIP(ip); ElMessage.success('IP 已解封'); fetchBlacklist() } catch {} }
+async function handleChangePassword() { if (!pwdForm.oldPassword || !pwdForm.newPassword) return; try { await api.resetAdminPassword(pwdForm.oldPassword, pwdForm.newPassword); ElMessage.success('密码修改成功'); exitAdmin() } catch {} }
 function exitAdmin() { isAdmin.value = false; localStorage.removeItem('treehole_admin_token'); showBlacklistModal.value = false; showPasswordModal.value = false; ElMessage.info('管理员模式已退出') }
 async function handleBanIP(ip) {
   try {
     const { value } = await ElMessageBox.prompt('请输入封禁理由', '封禁操作', { confirmButtonText: '确定封禁', cancelButtonText: '取消', inputPlaceholder: '违反社区守则' })
-    await api.post('/admin/ban', { ip, reason: value || '违反社区守则' }); ElMessage.success('已封禁该 IP'); fetchBlacklist()
+    await api.banIP(ip, value || '违反社区守则'); ElMessage.success('已封禁该 IP'); fetchBlacklist()
   } catch {}
 }
 

@@ -1,0 +1,13 @@
+target/
+*.log
+.git/
+.idea/
+.vscode/
+.mvn/
+mvnw
+mvnw.cmd
+Dockerfile
+storage/
+database/
+*.env
+*.env.*
