@@ -1,10 +1,18 @@
-# SpringDoc OpenAPI 配置
+# Spring 通用配置
 spring:
   profiles:
     active: dev
   application:
     name: treehole-backend
+  sql:
+    init:
+      mode: never # 禁止启动时自动执行 SQL 脚本（防止 DROP TABLE）
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
 
+# SpringDoc OpenAPI 配置
 springdoc:
   swagger-ui:
     path: /docs # 将默认的 /swagger-ui.html 改为更简洁的 /docs
@@ -15,23 +23,6 @@ springdoc:
     - group: 'default'
       paths-to-match: '/**'
       packages-to-scan: com.treehole.controller
-  application:
-    name: treehole-backend
-
-  # 数据源通用配置
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${DB_USER:root}
-    password: ${DB_PASSWORD:root}
-  sql:
-    init:
-      mode: never # 禁止启动时自动执行 SQL 脚本（防止 DROP TABLE）
-
-  # 文件上传大小限制
-  servlet:
-    multipart:
-      max-file-size: 5MB
-      max-request-size: 10MB
 
 # MyBatis-Plus 配置
 mybatis-plus:
@@ -52,8 +43,8 @@ server:
 # 自定义上传配置
 app:
   upload:
-    path: ${UPLOAD_PATH:../storage/uploads/}  # 默认指向根目录 storage/uploads/
-    url-prefix: /uploads/   # HTTP 访问前缀
+    path: ${UPLOAD_PATH:../storage/uploads/} # 默认指向根目录 storage/uploads/
+    url-prefix: /uploads/ # HTTP 访问前缀
 
 # AI 大模型配置映射
 ai:
@@ -66,4 +57,3 @@ logging:
     path: ${LOG_PATH:../storage/logs/}
   pattern:
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-

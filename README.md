@@ -39,6 +39,8 @@
 
 1. **环境准备**：确保服务器已安装 `Docker` 和 `docker-compose`。
 2. **环境变量**：在根目录创建 `.env` 文件，配置数据库及 AI API Key。
+   - `DB_ROOT_PASSWORD`：仅用于 MariaDB root 账户初始化
+   - `DB_USER` / `DB_USER_PASSWORD` / `DB_NAME`：后端业务连接数据库使用
 3. **一键启动**：
    ```bash
    docker-compose up -d --build
@@ -56,7 +58,10 @@
 2. **初始化**：运行根目录 `sql/init.sql`。
 3. **环境变量**：
    ```powershell
-   $env:AI_API_KEY='你的Key'; $env:DB_PASSWORD='root'; 
+   $env:AI_API_KEY='你的Key';
+   $env:DB_USER='root'; $env:DB_USER_PASSWORD='root';
+   # 若本地需要以 root 初始化数据库，再设置:
+   # $env:DB_ROOT_PASSWORD='root'
    mvn spring-boot:run
    ```
 
