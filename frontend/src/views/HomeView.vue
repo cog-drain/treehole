@@ -1018,15 +1018,21 @@ function showNodeDetail(msg) { selectedNodeMsg.value = msg; nodeDetailVisible.va
 
 // ── Admin Functions ──
 async function handleAdminLogin() {
-  if (!adminPassword.value.trim()) return
+  const pwd = adminPassword.value.trim()
+  if (!pwd) return
   try {
-    const res = await api.adminLogin(adminPassword.value)
+    const res = await api.adminLogin(pwd)
     if (res.data) { isAdmin.value = true; localStorage.setItem('treehole_admin_token', res.data); adminLoginVisible.value = false; ElMessage({ message: '👑 ACCESS GRANTED.', type: 'success', duration: 3000 }); fetchBlacklist() }
   } catch { adminPassword.value = '' }
 }
 async function fetchBlacklist() { try { blacklist.value = (await api.getBlacklist()).data || [] } catch {} }
 async function handleUnban(ip) { try { await api.unbanIP(ip); ElMessage.success('IP 已解封'); fetchBlacklist() } catch {} }
-async function handleChangePassword() { if (!pwdForm.oldPassword || !pwdForm.newPassword) return; try { await api.resetAdminPassword(pwdForm.oldPassword, pwdForm.newPassword); ElMessage.success('密码修改成功'); exitAdmin() } catch {} }
+async function handleChangePassword() {
+  const oldPassword = (pwdForm.oldPassword || '').trim()
+  const newPassword = (pwdForm.newPassword || '').trim()
+  if (!oldPassword || !newPassword) return
+  try { await api.resetAdminPassword(oldPassword, newPassword); ElMessage.success('密码修改成功'); exitAdmin() } catch {}
+}
 function exitAdmin() { isAdmin.value = false; localStorage.removeItem('treehole_admin_token'); showBlacklistModal.value = false; showPasswordModal.value = false; ElMessage.info('管理员模式已退出') }
 async function handleBanIP(ip) {
   try {

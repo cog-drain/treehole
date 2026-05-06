@@ -19,7 +19,6 @@ backend/mvnw.cmd
 
 # 敏感配置文件
 backend/src/main/resources/application-prod.yml
-backend/src/main/resources/application-prod.yaml
 backend/src/main/resources/application-prod.properties
 
 # ==========================================
