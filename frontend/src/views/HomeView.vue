@@ -951,14 +951,33 @@ async function publishMessage() {
       return
     }
 
+    const serverMessage = res?.data?.message
+    const normalizedServerMessage = serverMessage ? {
+      ...serverMessage,
+      isOwner: true,
+      _showComments: false,
+      _comments: [],
+      _commentText: '',
+      _commentImage: null,
+      _replyToId: null,
+      _commenting: false,
+      _read: false
+    } : null
+
     // 网络请求真正成功后，触发动画并更新 Feed 流
     ElMessage.success('留言已投入星空 🌌 (获得 10 ⚡)')
     appStore.addEnergy(10)
-    emit('publish-success', optimisticMessage)
+    emit('publish-success', normalizedServerMessage || optimisticMessage)
     
     pageNum.value = 1
-    messages.value = [optimisticMessage, ...messages.value.slice(0, pageSize.value - 1)]
-    total.value++
+    const feedBase = messages.value.filter(m => !m.isOptimistic)
+    const hasServerMessage = normalizedServerMessage?.id && feedBase.some(m => m.id === normalizedServerMessage.id)
+    if (!hasServerMessage) {
+      messages.value = [normalizedServerMessage || optimisticMessage, ...feedBase].slice(0, pageSize.value)
+      total.value++
+    } else {
+      messages.value = feedBase
+    }
 
     form.content = ''; clearImage(); clearAudio()
     setTimeout(() => { fetchMessages(); fetchTrending() }, 3000)

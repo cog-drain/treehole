@@ -23,7 +23,7 @@ public class AdminController {
     private final AdminService adminService;
 
     @Operation(summary = "管理员登录", description = "验证密码并获取后台管理令牌")
-    @PostMapping("/auth")
+    @PostMapping({"/auth", "/login"})
     public Result<String> login(@RequestBody Map<String, String> body) {
         return Result.success(adminService.login(body.get("password")));
     }
