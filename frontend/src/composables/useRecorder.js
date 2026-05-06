@@ -30,14 +30,30 @@ export function useRecorder() {
   let recordingTimer = null
 
   async function startRecording() {
+    if (!window.isSecureContext) {
+      ElMessage.error('录音仅支持 HTTPS 或 localhost，请先启用 HTTPS 🔒')
+      return
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      ElMessage.error('当前浏览器不支持麦克风接口，请更换浏览器或检查安全策略')
+      return
+    }
+    if (typeof MediaRecorder === 'undefined') {
+      ElMessage.error('当前浏览器不支持录音（MediaRecorder）')
+      return
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      mediaRecorder = new MediaRecorder(stream)
+      const preferredType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : ''
+      mediaRecorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream)
       const chunks = []
 
       mediaRecorder.ondataavailable = e => chunks.push(e.data)
       mediaRecorder.onstop = async () => {
-        recordedBlob.value = new Blob(chunks, { type: 'audio/wav' })
+        recordedBlob.value = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' })
         rawAudioUrl.value = URL.createObjectURL(recordedBlob.value)
         maskedAudioBlob.value = await applyVoiceMask(recordedBlob.value, voiceEffect.value)
         maskedAudioUrl.value = URL.createObjectURL(maskedAudioBlob.value)
@@ -52,7 +68,13 @@ export function useRecorder() {
         if (recordingTime.value >= 60) stopRecording()
       }, 1000)
     } catch (err) {
-      ElMessage.error('无法访问麦克风，请检查浏览器权限设置 🎙️')
+      if (err?.name === 'NotAllowedError') {
+        ElMessage.error('麦克风权限被拒绝，请在浏览器地址栏授权后重试 🎙️')
+      } else if (err?.name === 'NotFoundError') {
+        ElMessage.error('未检测到麦克风设备，请检查硬件连接')
+      } else {
+        ElMessage.error('无法访问麦克风，请检查浏览器权限与 HTTPS 设置 🎙️')
+      }
       console.error('Recording error:', err)
     }
   }
