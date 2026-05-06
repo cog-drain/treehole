@@ -1,0 +1,29 @@
+赛博树洞 (Treehole) - 全栈大作业交付说明
+
+【1. 项目基本信息】
+- 技术栈(后)：Java 17, Spring Boot 3, MyBatis-Plus, WebSocket
+- 技术栈(前)：Vue 3, Vite, Tailwind CSS, Element Plus
+- 核心功能：匿名留言广场、虚灵之海(漂流瓶)、Alter Ego(AI 人格交互)、实时回响中心
+
+【2. 目录结构说明】
+- /backend : 后端源代码 (Maven 项目)
+- /frontend: 前端源代码 (Vite 项目)
+- /database: 数据库初始化脚本 (01_init.sql, 02_test_data.sql)
+- /docs    : 完整的项目设计、模块开发及 IDEA 配置文档
+- /storage : 附件存储目录 (需保留 .gitkeep)
+
+【3. 快速启动流程】
+1. 数据库：在 MySQL 8.0+ 中运行 database/ 目录下的两个 SQL 文件。
+2. 配置：将根目录 .env.example 复制为 .env，并填入你的数据库信息与 AI Key。
+3. 后端：使用 IDEA 打开 /backend 目录，运行 TreeholeApplication.java。
+4. 前端：在 /frontend 目录下执行 pnpm install 与 pnpm dev。
+
+【4. 作业产物说明】
+- 项目 JAR 包：在 backend 目录下运行 `mvn clean package` 即可生成。
+- 数据库图表：参见 docs/database_reference.md 中的 Mermaid ER 图。
+- 设计报告：参见 docs/project_design.md (含 800 字简介及 AI 使用体会)。
+
+【5. 注意事项】
+- 请确保 IDEA 开启了 Annotation Processing (Lombok 支持)。
+- 若 AI 对话无响应，请检查 .env 中的 AI_API_KEY 是否有效。
+- 所有的 RESTful 接口路径均已针对最新架构进行了标准化对齐。
