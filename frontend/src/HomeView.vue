@@ -441,8 +441,8 @@
                 <Fingerprint :size="20" />
               </div>
               <div>
-                <h3 class="text-sm font-bold tracking-widest uppercase">身份备份</h3>
-                <p class="text-[9px] text-slate-500 uppercase tracking-tighter">Identity Backup Vault</p>
+                <h3 class="text-sm font-bold tracking-widest uppercase">身份恢复码</h3>
+                <p class="text-[9px] text-slate-500 uppercase tracking-tighter">Identity Recovery Code</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -462,15 +462,26 @@
           
           <div class="space-y-6 relative z-10">
             <div class="space-y-3">
-              <label class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase px-1">恢复密钥 / Recovery Key</label>
+              <label class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase px-1">恢复码 / Recovery Code</label>
               <div v-if="recoveryKey" class="group relative flex items-center gap-2 p-5 bg-blue-500/5 rounded-2xl border border-blue-500/10 font-mono text-sm text-blue-600 transition-all hover:bg-blue-500/10">
                 <span class="truncate flex-1">{{ recoveryKey }}</span>
                 <button @click="copyKey" class="p-2 hover:bg-blue-500/20 rounded-xl transition-all active:scale-90 text-blue-500">
                   <Copy :size="16" />
                 </button>
               </div>
-              <button v-else @click="handleBackup" class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-lg hover:shadow-blue-600/20 text-white font-bold text-xs tracking-widest uppercase transition-all active:scale-95">
-                生成备份密钥
+              <p v-if="recoveryNotice" class="text-[10px] text-slate-500 px-1">
+                {{ recoveryNotice }}
+              </p>
+              <div v-if="recoveryKey" class="space-y-2">
+                <button @click="handleBackup(true)" class="w-full py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-900 text-white font-bold text-[11px] tracking-widest uppercase transition-all active:scale-95">
+                  重新生成并使旧码失效
+                </button>
+                <p class="text-[10px] text-slate-500 px-1">
+                  重新生成后，上一枚恢复码会立即失效。
+                </p>
+              </div>
+              <button v-else @click="handleBackup(false)" class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-lg hover:shadow-blue-600/20 text-white font-bold text-xs tracking-widest uppercase transition-all active:scale-95">
+                生成恢复码
               </button>
             </div>
             <div class="relative py-2 flex items-center">
@@ -486,7 +497,7 @@
                   v-model="inputKey" 
                   type="text" 
                   class="flex-1 bg-black/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-400" 
-                  placeholder="treehole-xxx" 
+                  placeholder="treehole-xxxxxxxx" 
                 />
                 <button 
                   @click="handleRestore" 
@@ -496,13 +507,17 @@
                   还原
                 </button>
               </div>
+              <div class="text-[10px] text-slate-500 px-1 space-y-1">
+                <p>可恢复：匿名身份归属、默认昵称。</p>
+                <p>不会恢复：能量、商店道具、主题和本机设置。</p>
+              </div>
             </div>
           </div>
           
           <div class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex gap-3 items-start relative z-10">
             <ShieldAlert class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <p class="text-[9px] text-amber-600/80 leading-relaxed font-medium">
-              密钥丢失后无法找回。请务必妥善保管您的唯一凭证，切勿泄露给第三方。
+              恢复码丢失后无法找回。重新生成会使旧码立即失效；泄露给他人则对方可恢复为你的匿名身份。
             </p>
           </div>
         </div>
@@ -531,6 +546,7 @@
           
           <div class="relative group">
             <input 
+              ref="adminPwdInputRef"
               v-model="adminPassword" 
               type="password" 
               autofocus
@@ -670,7 +686,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import api, {
   saveToken, getToken, removeToken, hasMsgToken, hasCmtToken, MSG_TOKEN_KEY, CMT_TOKEN_KEY,
@@ -767,8 +783,10 @@ const offlineDialogVisible = ref(false)
 const showIdentityModal = ref(false)
 const recoveryKey = ref('')
 const inputKey = ref('')
+const recoveryNotice = ref('')
 const adminLoginVisible = ref(false)
 const adminPassword = ref('')
+const adminPwdInputRef = ref(null)
 const showBlacklistModal = ref(false)
 const showPasswordModal = ref(false)
 const blacklist = ref([])
@@ -817,6 +835,12 @@ watch(() => form.content, (val) => {
   else if (val?.trim() === 'exit' && isAdmin.value) { isAdmin.value = false; localStorage.removeItem('treehole_admin_token'); form.content = ''; ElMessage.info('权限已撤销') }
 })
 
+watch(adminLoginVisible, async (visible) => {
+  if (!visible) return
+  await nextTick()
+  adminPwdInputRef.value?.focus()
+})
+
 // ── Identity (委托给 userStore) ──
 function refreshIdentity() {
   userStore.refreshAlias()
@@ -843,14 +867,58 @@ const handleOffline = () => {
 }
 
 // ── Identity Backup ──
-const handleBackup = async () => { try { const res = await backupIdentity(); recoveryKey.value = res.data; ElMessage.success('备份密钥已生成') } catch {} }
+const handleBackup = async (rotated = false) => {
+  try {
+    const res = await backupIdentity(userStore.alias)
+    recoveryKey.value = res.data?.recoveryKey || ''
+    recoveryNotice.value = rotated ? '已生成新恢复码，旧码现已失效。' : '恢复码已生成，请尽快复制并妥善保存。'
+    ElMessage.success(rotated ? '新恢复码已生成，旧码已失效' : '恢复码已生成')
+  } catch {}
+}
 const handleRestore = async () => {
   try {
     const res = await restoreIdentity(inputKey.value)
-    if (res.code === 200) { localStorage.setItem('treehole_identity', JSON.stringify({ userId: res.data, createdAt: Date.now() })); ElMessage.success('身份还原成功'); setTimeout(() => window.location.reload(), 1500) }
+    if (res.code === 200) {
+      localStorage.setItem('treehole_identity', JSON.stringify({ userId: res.data.userId, createdAt: Date.now() }))
+      if (res.data.displayName) {
+        localStorage.setItem('treehole_alias', res.data.displayName)
+      }
+      recoveryNotice.value = res.data.displayName
+        ? '已恢复匿名身份与默认昵称，不会恢复本机能量和主题设置。'
+        : '已恢复匿名身份，不会恢复本机能量和主题设置。'
+      ElMessage.success(res.data.displayName ? '身份与默认昵称已恢复' : '身份还原成功')
+      setTimeout(() => window.location.reload(), 1500)
+    }
   } catch {}
 }
-const copyKey = () => { navigator.clipboard.writeText(recoveryKey.value); ElMessage.success('已复制') }
+const copyTextFallback = (text) => {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.top = '-9999px'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+  textarea.setSelectionRange(0, text.length)
+  const copied = document.execCommand('copy')
+  document.body.removeChild(textarea)
+  return copied
+}
+const copyKey = async () => {
+  if (!recoveryKey.value) return
+  try {
+    if (window.isSecureContext && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(recoveryKey.value)
+    } else if (!copyTextFallback(recoveryKey.value)) {
+      throw new Error('copy failed')
+    }
+    ElMessage.success('已复制')
+  } catch {
+    ElMessage.error('复制失败，请手动选择文本复制')
+  }
+}
 
 // ── Drift Bottle ──
 const bottleVisible = ref(false)
@@ -1047,7 +1115,11 @@ async function handleAdminLogin() {
   try {
     const res = await api.adminLogin(pwd)
     if (res.data) { isAdmin.value = true; localStorage.setItem('treehole_admin_token', res.data); adminLoginVisible.value = false; ElMessage({ message: '👑 ACCESS GRANTED.', type: 'success', duration: 3000 }); fetchBlacklist() }
-  } catch { adminPassword.value = '' }
+  } catch {
+    adminPassword.value = ''
+    await nextTick()
+    adminPwdInputRef.value?.focus()
+  }
 }
 async function fetchBlacklist() { try { blacklist.value = (await api.getBlacklist()).data || [] } catch {} }
 async function handleUnban(ip) { try { await api.unbanIP(ip); ElMessage.success('IP 已解封'); fetchBlacklist() } catch {} }
