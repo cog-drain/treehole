@@ -68,6 +68,13 @@ const api = {
   // Identity 模块
   backupIdentity: identityApi.backup,
   restoreIdentity: identityApi.restore,
+  adminLogin: identityApi.adminLogin,
+  resetAdminPassword: identityApi.resetAdminPassword,
+  banIP: identityApi.banIP,
+  unbanIP: identityApi.unbanIP,
+  getBlacklist: identityApi.getBlacklist,
+  adminDeleteMessage: identityApi.adminDeleteMessage,
+  adminDeleteComment: identityApi.adminDeleteComment,
 
   // File 模块
   uploadFile: fileApi.upload
@@ -81,5 +88,7 @@ export const {
   getRandomMessage, getTrendingTags, reactToMessage,
   getComments, publishComment, deleteComment, reactToComment,
   throwBottle, pickBottle, replyBottle, returnBottle, getMyBottles,
-  backupIdentity, restoreIdentity, uploadFile 
+  backupIdentity, restoreIdentity,
+  adminLogin, resetAdminPassword, banIP, unbanIP, getBlacklist, adminDeleteMessage, adminDeleteComment,
+  uploadFile 
 } = api

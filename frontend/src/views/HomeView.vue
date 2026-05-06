@@ -531,6 +531,7 @@
           
           <div class="relative group">
             <input 
+              ref="adminPwdInputRef"
               v-model="adminPassword" 
               type="password" 
               autofocus
@@ -670,7 +671,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import api, {
   saveToken, getToken, removeToken, hasMsgToken, hasCmtToken, MSG_TOKEN_KEY, CMT_TOKEN_KEY,
@@ -769,6 +770,7 @@ const recoveryKey = ref('')
 const inputKey = ref('')
 const adminLoginVisible = ref(false)
 const adminPassword = ref('')
+const adminPwdInputRef = ref(null)
 const showBlacklistModal = ref(false)
 const showPasswordModal = ref(false)
 const blacklist = ref([])
@@ -815,6 +817,12 @@ const isAdmin = ref(!!localStorage.getItem('treehole_admin_token'))
 watch(() => form.content, (val) => {
   if (val?.trim() === 'sudo su - root') { adminLoginVisible.value = true; adminPassword.value = ''; form.content = '' }
   else if (val?.trim() === 'exit' && isAdmin.value) { isAdmin.value = false; localStorage.removeItem('treehole_admin_token'); form.content = ''; ElMessage.info('权限已撤销') }
+})
+
+watch(adminLoginVisible, async (visible) => {
+  if (!visible) return
+  await nextTick()
+  adminPwdInputRef.value?.focus()
 })
 
 // ── Identity (委托给 userStore) ──
@@ -1047,7 +1055,11 @@ async function handleAdminLogin() {
   try {
     const res = await api.adminLogin(pwd)
     if (res.data) { isAdmin.value = true; localStorage.setItem('treehole_admin_token', res.data); adminLoginVisible.value = false; ElMessage({ message: '👑 ACCESS GRANTED.', type: 'success', duration: 3000 }); fetchBlacklist() }
-  } catch { adminPassword.value = '' }
+  } catch {
+    adminPassword.value = ''
+    await nextTick()
+    adminPwdInputRef.value?.focus()
+  }
 }
 async function fetchBlacklist() { try { blacklist.value = (await api.getBlacklist()).data || [] } catch {} }
 async function handleUnban(ip) { try { await api.unbanIP(ip); ElMessage.success('IP 已解封'); fetchBlacklist() } catch {} }
