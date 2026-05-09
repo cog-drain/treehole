@@ -36,6 +36,7 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
       - BACKEND_PORT=24191
       - LOG_PATH=/app/logs
+      - UPLOAD_PATH=/app/uploads
       - DB_HOST=db
       - DB_PORT=3306
       - DB_NAME=${DB_NAME:-treehole}

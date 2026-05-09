@@ -21,6 +21,7 @@ public enum ErrorCode {
     // 身份类
     IDENTITY_NOT_FOUND(1001, "未识别到有效的树洞身份"),
     IDENTITY_BANNED(1002, "由于违反社区规则，你的 IP 已被封禁"),
+    IDENTITY_RECOVERY_INVALID(1003, "恢复码无效或已失效"),
     
     // 内容类
     CONTENT_EMPTY(2001, "内容不能为空"),

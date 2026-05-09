@@ -5,9 +5,9 @@ WORKDIR /app
 # 1. 替换 Alpine 软件源（加速 apk 下载）
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
-# 2. 安装 pnpm 并配置国内镜像源（加速 npm/pnpm 安装）
+# 2. 安装固定版本 pnpm 并配置国内镜像源（加速 npm/pnpm 安装）
 RUN npm config set registry https://registry.npmmirror.com && \
-    npm install -g pnpm && \
+    npm install -g pnpm@11.0.9 && \
     pnpm config set registry https://registry.npmmirror.com
 
 COPY package.json pnpm-lock.yaml ./

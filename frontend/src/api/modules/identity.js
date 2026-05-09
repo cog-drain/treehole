@@ -3,7 +3,7 @@ import request from '../request'
 export const identityApi = {
   // --- 用户身份 (Identity) ---
   // 备份身份
-  backup: () => request.get('/identity/backup'),
+  backup: (displayName) => request.get('/identity/backup', { params: { displayName } }),
   // 恢复身份
   restore: (key) => request.post('/identity/restore', { key }),
 

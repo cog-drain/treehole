@@ -18,5 +18,7 @@ import java.time.LocalDateTime;
 public class User {
     @TableId
     private String id; // UUID
+    private String displayName;
+    private String recoveryToken;
     private LocalDateTime createdAt;
 }

@@ -33,6 +33,8 @@ DROP TABLE IF EXISTS `user`;
 
 CREATE TABLE `user` (
     `id` VARCHAR(36) PRIMARY KEY COMMENT 'UUID 身份标识',
+    `display_name` VARCHAR(50) DEFAULT NULL COMMENT '默认昵称',
+    `recovery_token` VARCHAR(64) DEFAULT NULL COMMENT '当前有效恢复码',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '首次降临时间'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
