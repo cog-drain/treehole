@@ -1,15 +1,20 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { 
-  Heart, MessageSquare, Share2, Trash2, ImagePlus, Send, 
-  ChevronDown, ChevronUp, Mic, X, MoreHorizontal, Ban, Sparkles, Zap, Hash, Loader2, Play, Pause, Smile, Music
+  MessageSquare, Trash2, Ban, Zap, Loader2, Play, Pause, X, Send
 } from 'lucide-vue-next'
 import { formatTime } from '@/utils/time.js'
-import CommentItem from './CommentItem.vue'
-import api, { getToken, MSG_TOKEN_KEY, CMT_TOKEN_KEY } from '@/api'
+import api from '@/api'
 import { useAppStore } from '@/stores/app'
+import { useUiStore } from '@/stores/ui'
+import CommentThread from './CommentThread.vue'
+import ReactionBar from '@/components/common/ReactionBar.vue'
+import UiSlider from '@/components/ui/Slider.vue'
+import { buildCommentThreads } from '@/utils/commentThreads'
+import { getMessageSkinClass, normalizeMessageSkin } from '@/utils/messageSkins'
 
 const appStore = useAppStore()
+const uiStore = useUiStore()
 const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
@@ -48,28 +53,22 @@ const props = defineProps({
   isAdmin: Boolean
 })
 
-const emit = defineEmits(['like', 'toggle-comments', 'delete', 'delete-comment', 'publish-comment', 'tag-click', 'admin-ban'])
+const emit = defineEmits([
+  'like',
+  'toggle-comments',
+  'delete',
+  'delete-comment',
+  'publish-comment',
+  'tag-click',
+  'admin-ban',
+  'react-comment'
+])
 
 // --- Resonance State ---
 const isResonant = computed(() => props.msg.coFrequency && !props.msg.isOwner)
+const effectiveSkin = computed(() => normalizeMessageSkin(props.msg.skin || props.msg.theme, uiStore.colorMode))
 
-// --- Comment Tree Logic ---
-const commentTree = computed(() => {
-  const list = props.msg._comments || []
-  const map = {}
-  const tree = []
-  list.forEach(c => {
-    map[c.id] = { ...c, children: [] }
-  })
-  list.forEach(c => {
-    if (c.parentId && map[c.parentId]) {
-      map[c.parentId].children.push(map[c.id])
-    } else {
-      tree.push(map[c.id])
-    }
-  })
-  return tree
-})
+const commentThreads = computed(() => buildCommentThreads(props.msg._comments || []))
 
 // --- Local UI State ---
 const moodMap = { '开心': '😄', '难过': '😢', '愤怒': '😡', '平静': '😌', '迷茫': '🤔' }
@@ -135,7 +134,7 @@ const safeAudioUrl = computed(() => {
     :id="'msg-' + msg.id"
     class="glass-card p-5 sm:p-8 group/card overflow-hidden relative transition-all duration-700" 
     :class="[
-      'theme-' + (msg.theme || 'default'),
+      getMessageSkinClass(effectiveSkin),
       isResonant ? 'shadow-[0_0_50px_rgba(139,92,246,0.2)] border-purple-500/30 scale-[1.01]' : '',
       msg.isOwner && appStore.camoEnabled ? 'camo-effect' : ''
     ]"
@@ -197,40 +196,6 @@ const safeAudioUrl = computed(() => {
         </template>
       </div>
 
-      <!-- Reactions Section -->
-      <div class="flex flex-wrap items-center gap-2 mt-4">
-        <div v-for="(count, emoji) in parsedReactions" :key="emoji" 
-          class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-400 hover:bg-white/10 transition-all cursor-pointer select-none active:scale-95"
-          @click.stop="addReaction(emoji)"
-        >
-          <span>{{ emoji }}</span>
-          <span class="font-bold">{{ count }}</span>
-        </div>
-
-        <el-popover
-          placement="top"
-          :width="220"
-          trigger="click"
-          effect="dark"
-          popper-class="cyber-popover"
-        >
-          <template #reference>
-            <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-blue-400 hover:bg-white/10 hover:border-blue-500/30 transition-all active:scale-90 group/react">
-              <Smile :size="14" />
-              <span class="text-[10px] font-bold uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-all">React</span>
-            </button>
-          </template>
-          <div class="flex justify-between gap-1 p-1">
-            <button v-for="e in ['❤️', '😂', '👍', '🔥', '😭']" :key="e"
-              class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all text-xl active:scale-150"
-              @click="addReaction(e)"
-            >
-              {{ e }}
-            </button>
-          </div>
-        </el-popover>
-      </div>
-
       <div v-if="msg.audioUrl" class="mt-4 p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group/audio max-w-md mx-auto">
         <audio 
           ref="audioRef" 
@@ -265,13 +230,10 @@ const safeAudioUrl = computed(() => {
             </div>
             <span>{{ formatDuration(duration) }}</span>
           </div>
-          <el-slider 
+          <UiSlider
             v-model="currentTime" 
             :max="duration || 1" 
-            :show-tooltip="false" 
             @input="seek"
-            @click.stop
-            size="small"
             class="cyber-slider-mini"
           />
         </div>
@@ -282,18 +244,18 @@ const safeAudioUrl = computed(() => {
     </div>
 
     <!-- Footer Action Bar -->
-    <div class="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
-      <button
-        class="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 rounded-full transition-all active:scale-95 group/hug"
-        :class="liked ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-white/5 text-slate-400 border border-transparent hover:bg-white/10'"
-        @click="$emit('like', msg)"
-      >
-        <span class="text-lg group-hover/hug:scale-125 transition-transform" :class="{ 'animate-pulse': liked }">🫂</span>
-        <span class="text-xs font-bold font-mono tracking-widest">{{ msg.likes || 0 }}</span>
-      </button>
+    <div class="mt-8 flex flex-col gap-4 border-t border-white/5 pt-6">
+      <ReactionBar
+        :reactions="parsedReactions"
+        show-resonance
+        :resonance-count="msg.likes || 0"
+        :resonated="liked"
+        @react="addReaction"
+        @resonate="$emit('like', msg)"
+      />
 
       <button 
-        class="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 rounded-full bg-white/5 border border-transparent text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all active:scale-95"
+        class="inline-flex w-fit items-center gap-2 sm:gap-3 rounded-full border border-transparent bg-white/5 px-4 py-2.5 text-slate-400 transition-all hover:bg-white/10 hover:text-slate-200 active:scale-95"
         @click="$emit('toggle-comments', msg)"
       >
         <div class="relative">
@@ -307,24 +269,34 @@ const safeAudioUrl = computed(() => {
 
     <!-- Comments Section -->
     <div v-if="msg._showComments" class="mt-8 pt-8 border-t border-white/5 space-y-6 animate-in slide-in-from-top-4 duration-500">
-      <div v-if="commentTree.length === 0" class="py-10 text-center">
+      <div v-if="commentThreads.length === 0" class="py-10 text-center">
         <p class="text-xs font-bold tracking-widest text-slate-600 uppercase italic">Silence is a message too...</p>
       </div>
       
-      <div class="space-y-8">
-        <CommentItem 
-          v-for="cmt in commentTree" 
-          :key="cmt.id" 
-          :comment="cmt"
+      <div class="space-y-5">
+        <CommentThread
+          v-for="thread in commentThreads"
+          :key="thread.rootComment.id"
+          :thread="thread"
           :isAdmin="isAdmin"
           @reply="(c) => { msg._replyToId = c.id; msg._commentText = `@${c.authorAlias} ` }"
           @delete="(c) => $emit('delete-comment', {msg, comment: c})"
+          @react="({ comment, emoji }) => $emit('react-comment', { msg, comment, emoji })"
         />
       </div>
 
       <!-- Comment Input -->
       <div class="pt-4 flex gap-3">
         <div class="flex-1 relative">
+          <div
+            v-if="msg._replyToId"
+            class="mb-2 flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/8 px-3 py-2 text-[11px] font-medium text-blue-400"
+          >
+            <span class="truncate">正在回复 {{ msg._commentText.split(' ')[0] }}</span>
+            <button class="rounded-full p-1 transition-colors hover:bg-blue-500/10 hover:text-blue-300" @click="msg._replyToId = null; msg._commentText = ''">
+              <X :size="12" />
+            </button>
+          </div>
           <textarea 
             v-model="msg._commentText" 
             class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-600 resize-none" 

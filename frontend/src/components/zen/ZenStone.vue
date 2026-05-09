@@ -123,13 +123,7 @@
       :height="stone.size * 2.4"
       class="overflow-visible"
     >
-      <el-tooltip
-        placement="top"
-        :show-after="200"
-        :offset="20"
-        effect="light"
-        popper-class="zen-tooltip-popper"
-      >
+      <UiTooltip>
         <template #content>
           <div class="flex flex-col gap-3 min-w-[140px] max-w-[300px] p-3">
             <!-- 作者信息 -->
@@ -171,13 +165,14 @@
 
         <!-- 透明触发层 -->
         <div class="w-full h-full rounded-full cursor-help"></div>
-      </el-tooltip>
+      </UiTooltip>
     </foreignObject>
   </g>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import UiTooltip from '@/components/ui/Tooltip.vue'
 
 const props = defineProps({
   stone: {
@@ -261,26 +256,5 @@ const stonePath = computed(() => {
 .animate-firefly {
   animation: firefly 2.5s infinite ease-in-out;
   transform-origin: center;
-}
-</style>
-
-<style>
-/* 全局样式：重塑 Element Plus Tooltip 的视觉灵魂 */
-.el-popper.is-light.zen-tooltip-popper {
-  background: rgba(10, 15, 30, 0.85) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 16px !important;
-  box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.7),
-    0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-  padding: 0 !important;
-}
-
-/* 箭头同步材质 */
-.el-popper.is-light.zen-tooltip-popper .el-popper__arrow::before {
-  background: rgba(10, 15, 30, 0.85) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 </style>

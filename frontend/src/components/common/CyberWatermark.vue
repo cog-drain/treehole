@@ -7,11 +7,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { getOrGenerateIdentity } from '@/utils/identity'
+import { useUiStore } from '@/stores/ui'
 
 const watermarkRef = ref(null)
 let observer = null
+const uiStore = useUiStore()
 
 const createWatermark = () => {
   const identity = getOrGenerateIdentity()
@@ -28,7 +30,7 @@ const createWatermark = () => {
   
   // 关键：使用极低透明度的颜色，肉眼几乎不可见
   // 在暗色模式下使用亮色，亮色模式下使用暗色
-  const isDark = document.documentElement.classList.contains('dark')
+  const isDark = uiStore.isDark
   ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.006)' : 'rgba(0, 0, 0, 0.006)'
   
   ctx.textAlign = 'left'
@@ -73,6 +75,10 @@ onMounted(() => {
   initProtection()
   // 窗口缩放时重绘以保持覆盖
   window.addEventListener('resize', createWatermark)
+})
+
+watch(() => uiStore.isDark, () => {
+  createWatermark()
 })
 
 onUnmounted(() => {

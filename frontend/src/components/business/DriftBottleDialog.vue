@@ -1,10 +1,7 @@
 <template>
-  <el-dialog
+  <UiModal
     v-model="visible"
-    :show-close="false"
-    width="min(95vw, 550px)"
-    class="drift-bottle-dialog bg-transparent !border-none !shadow-none"
-    align-center
+    max-width="34rem"
     @closed="$emit('update:modelValue', false)"
   >
     <!-- 动态类名切换：is-zen-dark (图1原版样式) | is-zen-light (清爽浅色样式) -->
@@ -31,10 +28,10 @@
 
       <!-- 头部装饰 -->
       <div class="relative z-10 text-center mb-8">
-        <el-text 
-          class="!text-[9px] tracking-[0.8em] uppercase block mb-1 drop-shadow-sm"
+        <p
+          class="text-[9px] tracking-[0.8em] uppercase block mb-1 drop-shadow-sm"
           :class="isDark ? '!text-white/30' : '!text-slate-400'"
-        >Etheral Sea</el-text>
+        >Etheral Sea</p>
         <h3 
           class="text-xl font-light tracking-[0.2em] drop-shadow-md"
           :class="isDark ? 'text-white' : 'text-slate-800'"
@@ -83,9 +80,9 @@
         </div>
         
         <div class="flex justify-center">
-          <el-button link @click="visible = false" class="!text-[11px] opacity-40 uppercase tracking-[0.2em] hover:opacity-100">
+          <UiButton variant="link" size="sm" @click="visible = false" class="!text-[11px] opacity-40 uppercase tracking-[0.2em] hover:opacity-100">
             <ChevronLeft class="w-3 h-3 mr-1" /> 返回岸边
-          </el-button>
+          </UiButton>
         </div>
       </div>
 
@@ -95,26 +92,26 @@
           class="p-1 rounded-2xl border"
           :class="isDark ? 'bg-white/5 border-white/5' : 'bg-black/[0.03] border-black/5'"
         >
-          <el-input
+          <UiTextarea
             v-model="newContent"
-            type="textarea"
             :rows="6"
             placeholder="这封信将随机出现在一个陌生人的海滩上..."
-            :class="isDark ? 'zen-textarea-dark' : 'zen-textarea-light'"
-            resize="none"
           />
         </div>
         <div class="flex gap-4">
-          <el-button 
-            class="flex-1 !border-none !rounded-xl !h-12" 
+          <UiButton
+            variant="secondary"
+            class="flex-1" 
             :class="isDark ? '!bg-white/5 !text-white/40 hover:!bg-white/10' : '!bg-black/[0.05] !text-slate-500 hover:!bg-black/10'"
             @click="state = 'init'"
-          >取消</el-button>
-          <el-button 
-            class="flex-1 !bg-emerald-600 hover:!bg-emerald-500 !border-none !text-white !rounded-2xl !h-14 font-bold tracking-widest shadow-lg shadow-emerald-600/20" 
+          >取消</UiButton>
+          <UiButton
+            variant="success"
+            size="lg"
+            class="flex-1" 
             :disabled="!newContent.trim()"
             @click="handleThrow"
-          >投向大海</el-button>
+          >投向大海</UiButton>
         </div>
       </div>
 
@@ -132,16 +129,17 @@
             ></div>
           </div>
         </div>
-        <el-text 
-          class="!text-xs tracking-[0.5em] animate-pulse"
+        <p
+          class="text-xs tracking-[0.5em] animate-pulse"
           :class="isDark ? '!text-white/30' : '!text-slate-400'"
-        >正在深海搜寻缘分...</el-text>
-        <el-button 
-          link 
+        >正在深海搜寻缘分...</p>
+        <UiButton
+          variant="link"
+          size="sm"
           class="hover:!text-white/50" 
           :class="isDark ? '!text-white/20' : '!text-slate-400'"
           @click="state = 'init'"
-        >放弃搜寻</el-button>
+        >放弃搜寻</UiButton>
       </div>
 
       <!-- 4. 捞到了 (Picked) / 回信中 (Reply) -->
@@ -156,8 +154,8 @@
               :class="isDark ? 'bg-cyan-500/20' : 'bg-white shadow-sm'"
             >✉️</div>
             <div>
-              <el-text class="font-bold block" :class="isDark ? '!text-white/80' : '!text-slate-800'">来自 {{ pickedData.authorAlias }} 的漂流瓶</el-text>
-              <el-text size="small" :class="isDark ? '!text-white/30' : '!text-slate-400'">{{ formatTime(pickedData.createTime) }}</el-text>
+              <p class="font-bold block" :class="isDark ? '!text-white/80' : '!text-slate-800'">来自 {{ pickedData.authorAlias }} 的漂流瓶</p>
+              <p class="text-xs" :class="isDark ? '!text-white/30' : '!text-slate-400'">{{ formatTime(pickedData.createTime) }}</p>
             </div>
           </div>
         </div>
@@ -181,13 +179,10 @@
               class="glass-card !p-1 overflow-hidden"
               :class="isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/5'"
             >
-              <el-input
+              <UiTextarea
                 v-model="replyContent"
-                type="textarea"
                 :rows="4"
                 placeholder="给予这段缘分一份温热的回响..."
-                :class="isDark ? 'zen-textarea-dark' : 'zen-textarea-light'"
-                resize="none"
                 autofocus
               />
             </div>
@@ -197,32 +192,36 @@
         <!-- 底部操作按钮 -->
         <div class="flex gap-4">
           <template v-if="state === 'picked'">
-            <el-button 
-              class="!w-12 !h-12 !p-0 !border-none !rounded-xl" 
+            <UiButton
+              variant="secondary"
+              size="icon"
               :class="isDark ? '!bg-white/5 !text-white/40 hover:!bg-white/10' : '!bg-black/[0.05] !text-slate-500 hover:!bg-black/10'"
               @click="handlePick"
               title="换一个"
             >
               <RefreshCw class="w-5 h-5" />
-            </el-button>
-            <el-button 
-              class="flex-1 !border-none !rounded-xl !h-12" 
+            </UiButton>
+            <UiButton
+              variant="secondary"
+              class="flex-1"
               :class="isDark ? '!bg-white/5 !text-white/40 hover:!bg-white/10' : '!bg-black/[0.05] !text-slate-500 hover:!bg-black/10'"
               @click="handleReturn"
-            >放回大海</el-button>
-            <el-button class="flex-[2] !bg-cyan-600 hover:!bg-cyan-500 !border-none !text-white !rounded-xl !h-12 shadow-lg shadow-cyan-600/20" @click="state = 'reply'">回信给 Ta</el-button>
+            >放回大海</UiButton>
+            <UiButton variant="primary" class="flex-[2]" @click="state = 'reply'">回信给 Ta</UiButton>
           </template>
           <template v-else>
-            <el-button 
-              class="flex-1 !border-none !rounded-xl !h-12" 
+            <UiButton
+              variant="secondary"
+              class="flex-1"
               :class="isDark ? '!bg-white/5 !text-white/40 hover:!bg-white/10' : '!bg-black/[0.05] !text-slate-500 hover:!bg-black/10'"
               @click="state = 'picked'"
-            >取消</el-button>
-            <el-button 
-              class="flex-[2] !bg-cyan-600 hover:!bg-cyan-500 !border-none !text-white !rounded-xl !h-12 shadow-lg shadow-cyan-600/20" 
+            >取消</UiButton>
+            <UiButton
+              variant="primary"
+              class="flex-[2]"
               :disabled="!replyContent.trim()"
               @click="handleReply"
-            >发送回响</el-button>
+            >发送回响</UiButton>
           </template>
         </div>
       </div>
@@ -230,9 +229,9 @@
       <!-- 7. 我的瓶子/回响中心 (My Bottles) -->
       <div v-if="state === 'my-bottles'" class="relative z-10 space-y-4 animate-in slide-in-from-left-4 duration-500">
         <div class="flex items-center gap-2 mb-2">
-          <el-button link @click="state = 'init'" :class="isDark ? '!text-white/40' : '!text-slate-500'">
+          <UiButton variant="link" size="sm" @click="state = 'init'" :class="isDark ? '!text-white/40' : '!text-slate-500'">
             <ChevronLeft class="w-4 h-4 mr-1" /> 返回
-          </el-button>
+          </UiButton>
         </div>
         
         <div class="max-h-[350px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
@@ -255,7 +254,7 @@
                   <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400"># {{ bottle.id }}</span>
                 </div>
               </div>
-              <el-text size="small" class="opacity-20 text-[9px]">{{ formatTime(bottle.createTime) }}</el-text>
+              <p class="opacity-20 text-[9px]">{{ formatTime(bottle.createTime) }}</p>
             </div>
 
             <div class="text-sm px-4 py-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 mb-4 italic opacity-80">
@@ -294,14 +293,18 @@
         </div>
       </div>
     </div>
-  </el-dialog>
+  </UiModal>
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { Mail, Search, Waves, ChevronLeft, RefreshCw } from 'lucide-vue-next'
 import api from '@/api'
 import { formatTime } from '@/utils/time.js'
+import { useUiStore } from '@/stores/ui'
+import UiButton from '@/components/ui/Button.vue'
+import UiModal from '@/components/ui/Modal.vue'
+import UiTextarea from '@/components/ui/Textarea.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -317,25 +320,8 @@ const state = ref(props.initialState)
 const newContent = ref('')
 const replyContent = ref('')
 const myBottles = ref([])
-const isDark = ref(false)
-
-// 主题侦测逻辑：同时监听类名与系统偏好
-const updateTheme = () => {
-  isDark.value = document.documentElement.classList.contains('dark') || 
-                 window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
-let observer = null
-onMounted(() => {
-  updateTheme()
-  // 监听 HTML 类名变化 (如用户手动切换)
-  observer = new MutationObserver(updateTheme)
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-})
-
-onUnmounted(() => {
-  if (observer) observer.disconnect()
-})
+const uiStore = useUiStore()
+const isDark = computed(() => uiStore.isDark)
 
 const stateTitle = computed(() => {
   switch (state.value) {
@@ -352,7 +338,6 @@ watch(() => props.modelValue, (val) => {
   visible.value = val
   if (val) {
     state.value = props.initialState
-    updateTheme()
   }
 })
 
@@ -385,22 +370,4 @@ const handleOpenInbox = async () => {
 </script>
 
 <style>
-/* 协议：全局样式收敛 + 强制优先级覆盖 */
-body .el-overlay-dialog .el-dialog.drift-bottle-dialog {
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-}
-
-/* 深度定制 Input 样式 */
-.zen-textarea-dark .el-textarea__inner, .zen-textarea-light .el-textarea__inner {
-  background: transparent !important;
-  border: none !important;
-  padding: 1.5rem !important;
-  border-radius: 1.5rem !important;
-  font-size: 0.875rem !important;
-  line-height: 1.6 !important;
-}
-.zen-textarea-dark .el-textarea__inner { color: rgba(255, 255, 255, 0.8) !important; }
-.zen-textarea-light .el-textarea__inner { color: #334155 !important; }
 </style>

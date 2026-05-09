@@ -313,6 +313,40 @@ body {
   background-color: #2aa198 !important;
 }
 
+/* --- 🌌 星夜 (Starry) --- */
+.theme-starry {
+  background: linear-gradient(160deg, #0f172a, #111827) !important;
+  border: 1px solid rgba(129, 140, 248, 0.22) !important;
+  box-shadow: 0 20px 40px -18px rgba(15, 23, 42, 0.55) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-starry::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.8) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 76% 24%, rgba(191, 219, 254, 0.85) 0 1.2px, transparent 2px),
+    radial-gradient(circle at 64% 72%, rgba(196, 181, 253, 0.75) 0 1.1px, transparent 2px),
+    radial-gradient(circle at 28% 80%, rgba(255, 255, 255, 0.6) 0 1px, transparent 1.8px);
+  opacity: 0.65;
+}
+
+.theme-starry .text-slate-200,
+.theme-starry .text-slate-200\/90,
+.theme-starry .text-slate-300,
+.theme-starry p {
+  color: #dbeafe !important;
+}
+
+.theme-starry .text-slate-400,
+.theme-starry .text-slate-500 {
+  color: #93c5fd !important;
+}
+
 /* --- 🌅 破晓 (Dawn) --- */
 .theme-dawn {
   background: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%) !important;
@@ -365,7 +399,7 @@ body {
 .theme-spring .text-slate-400 { color: #10b981 !important; }
 
 /* Pagination Fix */
-:deep(.el-pagination) {
+.el-pagination {
   --el-pagination-bg-color: transparent !important;
   --el-pagination-hover-color: var(--theme-primary, #60a5fa) !important;
   justify-content: center;
@@ -376,17 +410,17 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-:deep(.el-pagination button) {
+.el-pagination button {
   background-color: transparent !important;
   color: #94a3b8 !important;
 }
 
-:deep(.el-pagination .el-pager li) {
+.el-pagination .el-pager li {
   background: transparent !important;
   color: #64748b !important;
 }
 
-:deep(.el-pagination .el-pager li.is-active) {
+.el-pagination .el-pager li.is-active {
   color: #fff !important;
   font-weight: bold;
   background: rgba(255, 255, 255, 0.1) !important;

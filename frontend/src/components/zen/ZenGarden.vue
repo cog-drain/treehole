@@ -51,19 +51,19 @@
 
     <!-- 3. 底部 UI 装饰 -->
     <div class="absolute bottom-12 left-0 right-0 flex flex-col items-center pointer-events-none">
-      <el-text class="!text-white/20 !text-xl tracking-[1em] uppercase italic font-light">
+      <p class="text-white/20 text-xl tracking-[1em] uppercase italic font-light">
         Silencing Echoes
-      </el-text>
-      <el-text size="small" class="!text-white/10 mt-2">
+      </p>
+      <p class="text-white/10 mt-2 text-sm">
         Each stone is a memory, each ripple is a breath.
-      </el-text>
+      </p>
     </div>
 
     <!-- 顶部状态栏 -->
     <div class="absolute top-10 left-0 right-0 text-center pointer-events-none">
-      <el-text class="!text-white/30 !text-[10px] tracking-[0.5em] uppercase">
+      <p class="text-white/30 text-[10px] tracking-[0.5em] uppercase">
         Data Transmutation Field
-      </el-text>
+      </p>
     </div>
   </div>
 </template>

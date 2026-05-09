@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { toast } from '@/services/toast'
 
 const request = axios.create({
   baseURL: '/api',
@@ -48,7 +48,7 @@ request.interceptors.response.use(
   response => {
     const res = response.data
     if (res.code !== undefined && res.code !== 200 && res.code !== 0) {
-      ElMessage.error(res.msg || '请求失败')
+      toast.error(res.msg || '请求失败')
       return Promise.reject(new Error(res.msg || 'Error'))
     }
     return res
@@ -59,9 +59,9 @@ request.interceptors.response.use(
     } else {
       const res = error.response && error.response.data
       if (res && res.msg) {
-        ElMessage.error(res.msg)
+        toast.error(res.msg)
       } else {
-        ElMessage.error('服务响应异常')
+        toast.error('服务响应异常')
       }
     }
     return Promise.reject(error)

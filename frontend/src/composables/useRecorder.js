@@ -2,8 +2,8 @@
  * 录音与变声 Composable — 从 Home.vue 中提取的 MediaRecorder 逻辑
  */
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import { applyVoiceMask } from '@/utils/audioProcessor'
+import { toast } from '@/services/toast'
 
 export function useRecorder() {
   const showVoicePanel = ref(false)
@@ -31,15 +31,15 @@ export function useRecorder() {
 
   async function startRecording() {
     if (!window.isSecureContext) {
-      ElMessage.error('录音仅支持 HTTPS 或 localhost，请先启用 HTTPS 🔒')
+      toast.error('录音仅支持 HTTPS 或 localhost，请先启用 HTTPS 🔒')
       return
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      ElMessage.error('当前浏览器不支持麦克风接口，请更换浏览器或检查安全策略')
+      toast.error('当前浏览器不支持麦克风接口，请更换浏览器或检查安全策略')
       return
     }
     if (typeof MediaRecorder === 'undefined') {
-      ElMessage.error('当前浏览器不支持录音（MediaRecorder）')
+      toast.error('当前浏览器不支持录音（MediaRecorder）')
       return
     }
 
@@ -69,11 +69,11 @@ export function useRecorder() {
       }, 1000)
     } catch (err) {
       if (err?.name === 'NotAllowedError') {
-        ElMessage.error('麦克风权限被拒绝，请在浏览器地址栏授权后重试 🎙️')
+        toast.error('麦克风权限被拒绝，请在浏览器地址栏授权后重试 🎙️')
       } else if (err?.name === 'NotFoundError') {
-        ElMessage.error('未检测到麦克风设备，请检查硬件连接')
+        toast.error('未检测到麦克风设备，请检查硬件连接')
       } else {
-        ElMessage.error('无法访问麦克风，请检查浏览器权限与 HTTPS 设置 🎙️')
+        toast.error('无法访问麦克风，请检查浏览器权限与 HTTPS 设置 🎙️')
       }
       console.error('Recording error:', err)
     }

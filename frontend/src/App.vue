@@ -1,13 +1,21 @@
 <template>
   <LainIntro v-if="shouldShowLain()" />
+  <DialogHost />
+  <Toaster
+    theme="dark"
+    rich-colors
+    position="top-right"
+    :expand="true"
+    :visible-toasts="5"
+  />
   
   <div 
     class="app-wrapper transition-all duration-1000"
-    :class="{ 'is-dark': appStore.isDark }"
+    :class="{ 'is-dark': uiStore.isDark }"
   >
     <header class="app-header">
-      <button class="theme-switch" @click="toggleDark" :title="appStore.isDark ? '切换到白天模式' : '切换到夜间模式'">
-        {{ appStore.isDark ? '🌙' : '☀️' }}
+      <button class="theme-switch" @click="toggleColorMode" :title="uiStore.isDark ? '切换到白天模式' : '切换到夜间模式'">
+        {{ uiStore.isDark ? '🌙' : '☀️' }}
       </button>
       <div class="header-content">
         <h1>🌳 树洞留言板</h1>
@@ -68,12 +76,19 @@ import EnergyStore from '@/components/business/EnergyStore.vue'
 import P5CallingCard from '@/components/business/P5CallingCard.vue'
 import P5AllOutAttack from '@/components/business/P5AllOutAttack.vue'
 import AlterEgo from '@/components/business/AlterEgo.vue'
+import DialogHost from '@/components/common/DialogHost.vue'
 import { useAppStore } from '@/stores/app'
-import { ElMessage } from 'element-plus'
+import { useUiStore } from '@/stores/ui'
+import { toast } from '@/services/toast'
 import api from '@/api'
 import { offlineQueue } from '@/utils/offlineQueue'
+import { Toaster } from 'vue-sonner'
 
 const appStore = useAppStore()
+const uiStore = useUiStore()
+
+uiStore.init()
+appStore.init()
 
 const showP5Animation = ref(false)
 const showAoaAnimation = ref(false)
@@ -81,8 +96,6 @@ const showStore = ref(false)
 const latestMessage = ref(null)
 
 onMounted(() => {
-  appStore.init()
-  
   // 离线队列同步：监听网络恢复
   window.addEventListener('online', () => {
     offlineQueue.sync(api)
@@ -102,9 +115,9 @@ const shouldShowLain = () => {
 // 购买逻辑
 const handleBuy = ({ id, cost }) => {
   if (appStore.buy(id, cost)) {
-    ElMessage.success('交易成功 ✨')
+    toast.success('交易成功 ✨')
   } else {
-    ElMessage.warning('能量不足')
+    toast.warning('能量不足')
   }
 }
 
@@ -116,23 +129,23 @@ const handleEarnEnergy = ({ type, amount }) => {
   const now = Date.now()
   
   if (type === 'checkin' && now - lastTime < 86400000) {
-    ElMessage.warning('今天已经签到过了哦，明天再来吧')
+    toast.warning('今天已经签到过了哦，明天再来吧')
     return
   }
   
   if (type === 'ad') {
-    ElMessage({ message: '正在连接神经网路路获取数据...', type: 'info', duration: 2000 })
+    toast.info({ message: '正在连接神经网路路获取数据...', duration: 2000 })
     setTimeout(() => {
       appStore.addEnergy(amount)
       localStorage.setItem(lastKey, Date.now().toString())
-      ElMessage.success(`数据流载入完毕！获得 ${amount} ⚡`)
+      toast.success(`数据流载入完毕！获得 ${amount} ⚡`)
     }, 2000)
     return
   }
 
   appStore.addEnergy(amount)
   localStorage.setItem(lastKey, Date.now().toString())
-  ElMessage.success(`获取成功！获得 ${amount} ⚡`)
+  toast.success(`获取成功！获得 ${amount} ⚡`)
 }
 
 // 切换开关逻辑
@@ -161,8 +174,8 @@ const handleResonanceBoom = () => {
   }
 }
 
-function toggleDark() {
-  appStore.toggleDark()
+function toggleColorMode() {
+  uiStore.toggleColorMode()
 }
 </script>
 

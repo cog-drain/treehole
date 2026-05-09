@@ -5,7 +5,7 @@
  * 通过回调 (callbacks) 将业务逻辑委托给调用方
  */
 import { onUnmounted } from 'vue'
-import { ElMessage, ElNotification } from 'element-plus'
+import { toast } from '@/services/toast'
 
 export function useWebSocket(callbacks = {}) {
   let ws = null
@@ -41,14 +41,10 @@ export function useWebSocket(callbacks = {}) {
 
         // 漂流瓶回响
         if (msg === 'BOTTLE_REPLIED') {
-          ElNotification({
+          toast.success({
             title: '🌊 奇妙的回响',
             message: `你在海边投下的瓶子收到了回信：\n"${data.replyContent}"`,
-            type: 'success',
-            position: 'bottom-right',
-            duration: 0,
-            offset: 100,
-            customClass: 'cyber-notification'
+            duration: 10000
           })
           return
         }

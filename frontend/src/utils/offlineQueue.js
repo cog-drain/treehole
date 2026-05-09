@@ -1,5 +1,5 @@
-import { ElNotification } from 'element-plus'
 import { shallowRef } from 'vue'
+import { toast } from '@/services/toast'
 
 const QUEUE_KEY = 'treehole_offline_messages'
 
@@ -35,10 +35,9 @@ export const offlineQueue = {
     localStorage.setItem(QUEUE_KEY, JSON.stringify(queue))
     offlineQueueCount.value = queue.length
     
-    ElNotification({
+    toast.warning({
       title: '离线模式',
       message: '网络已断开，留言已暂存至本地，将在恢复后自动发送。',
-      type: 'warning',
       duration: 5000
     })
   },
@@ -60,10 +59,9 @@ export const offlineQueue = {
     
     offlineQueueCount.value = queue.length
 
-    ElNotification({
+    toast.info({
       title: '同步中',
-      message: `检测到网络恢复，正在尝试同步 ${queue.length} 条离线留言...`,
-      type: 'info'
+      message: `检测到网络恢复，正在尝试同步 ${queue.length} 条离线留言...`
     })
 
     const remaining = []
@@ -87,17 +85,15 @@ export const offlineQueue = {
     offlineQueueCount.value = remaining.length
 
     if (remaining.length === 0) {
-      ElNotification({
+      toast.success({
         title: '同步成功',
-        message: '所有离线留言已成功投入树洞！',
-        type: 'success'
+        message: '所有离线留言已成功投入树洞！'
       })
       // 依赖 WebSocket 接收同步成功的新消息，无需刷新页面
     } else {
-      ElNotification({
+      toast.error({
         title: '同步部分失败',
-        message: '部分留言未能同步，请检查服务器状态。',
-        type: 'error'
+        message: '部分留言未能同步，请检查服务器状态。'
       })
     }
   }
