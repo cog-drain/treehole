@@ -16,7 +16,7 @@ const emit = defineEmits(['reply', 'delete', 'react'])
 </script>
 
 <template>
-  <div class="space-y-4 rounded-[2rem] border border-white/5 bg-black/[0.02] p-4 sm:p-5">
+  <div class="comment-thread space-y-4 rounded-[2rem] border border-white/8 bg-black/[0.02] p-4 sm:p-5">
     <CommentItem
       :comment="thread.rootComment"
       :is-admin="isAdmin"

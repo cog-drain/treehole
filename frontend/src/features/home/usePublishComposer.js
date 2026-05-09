@@ -26,7 +26,7 @@ export function usePublishComposer({
   const availableSkins = computed(() => uiStore.availableMessageSkins)
 
   watch(() => uiStore.selectedMessageSkin, (skin) => {
-    form.skin = normalizeMessageSkin(skin, uiStore.colorMode)
+    form.skin = normalizeMessageSkin(skin)
   }, { immediate: true })
 
   watch(() => form.authorAlias, (newVal) => {
@@ -145,7 +145,7 @@ export function usePublishComposer({
       const serverMessage = response?.data?.message
       const normalizedServerMessage = serverMessage ? {
         ...serverMessage,
-        skin: normalizeMessageSkin(serverMessage.theme || serverMessage.skin, uiStore.colorMode),
+        skin: normalizeMessageSkin(serverMessage.theme || serverMessage.skin),
         isOwner: true,
         _showComments: false,
         _comments: [],

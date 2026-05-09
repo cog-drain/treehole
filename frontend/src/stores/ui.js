@@ -19,7 +19,7 @@ export const useUiStore = defineStore('ui', () => {
   const initialized = ref(false)
 
   const isDark = computed(() => colorMode.value === 'dark')
-  const availableMessageSkins = computed(() => getAvailableMessageSkins(colorMode.value))
+  const availableMessageSkins = computed(() => getAvailableMessageSkins())
 
   function ensureValidMessageSkin() {
     if (!availableMessageSkins.value.includes(selectedMessageSkin.value)) {

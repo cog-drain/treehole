@@ -616,7 +616,7 @@ function openOfflineBox() {
 
 function editOfflineItem(item) {
   publishComposer.form.content = item.content || ''
-  uiStore.setMessageSkin(normalizeMessageSkin(item.theme || item.skin, uiStore.colorMode))
+  uiStore.setMessageSkin(normalizeMessageSkin(item.theme || item.skin))
   publishComposer.form.mood = item.mood || '0'
   publishComposer.form.authorAlias = item.authorAlias || userStore.alias
   removeOfflineItem(item.id)

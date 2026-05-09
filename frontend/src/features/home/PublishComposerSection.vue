@@ -1,10 +1,13 @@
 <template>
-  <section
+  <motion.section
     class="glass-card group relative animate__animated animate__backInUp"
     :class="[
-      getMessageSkinClass(form.skin),
+      getMessageSkinClass(colorMode, form.skin),
       { 'opacity-20 blur-[20px] pointer-events-none scale-95': disabled }
     ]"
+    :initial="{ opacity: 0, y: 18, scale: 0.985 }"
+    :animate="{ opacity: 1, y: 0, scale: 1 }"
+    :transition="{ type: 'spring', stiffness: 190, damping: 24, mass: 0.85 }"
   >
     <div class="space-y-8">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -206,11 +209,12 @@
         </div>
       </TransitionGroup>
     </div>
-  </section>
+  </motion.section>
 </template>
 
 <script setup>
 import { Dices, ImagePlus, Mic, Archive, Send, Loader2, Trash2, Play, Pause } from 'lucide-vue-next'
+import { motion } from 'motion-v'
 import UiSlider from '@/components/ui/Slider.vue'
 import { getMessageSkinClass } from '@/utils/messageSkins'
 
@@ -219,6 +223,7 @@ defineProps({
   moodMap: { type: Object, required: true },
   availableSkins: { type: Array, required: true },
   messageSkinMeta: { type: Object, required: true },
+  colorMode: { type: String, default: 'light' },
   publishing: { type: Boolean, default: false },
   isOnline: { type: Boolean, default: true },
   isMobile: { type: Boolean, default: false },

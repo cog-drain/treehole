@@ -1,6 +1,6 @@
 <template>
   <article
-    class="group/comment rounded-[1.5rem] border border-white/5 bg-white/[0.03] p-4 transition-all"
+    class="comment-item group/comment rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4 transition-all"
     :class="isReply ? 'shadow-none' : 'shadow-[0_12px_32px_-24px_rgba(15,23,42,0.45)]'"
   >
     <div class="flex gap-3">

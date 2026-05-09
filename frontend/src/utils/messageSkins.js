@@ -1,33 +1,66 @@
 export const DEFAULT_MESSAGE_SKIN = 'default'
 
-export const LIGHT_MESSAGE_SKINS = ['default', 'dawn', 'sakura', 'spring']
-export const DARK_MESSAGE_SKINS = ['default', 'autumn', 'starry', 'retro']
+export const MESSAGE_SKIN_IDS = ['default', 'skin1', 'skin2', 'skin3']
+
+export const LEGACY_SKIN_TO_ID = {
+  default: 'default',
+  dawn: 'skin1',
+  autumn: 'skin1',
+  sakura: 'skin2',
+  starry: 'skin2',
+  spring: 'skin3',
+  retro: 'skin3'
+}
 
 export const MESSAGE_SKIN_META = {
-  default: { label: 'Default', dotClass: 'theme-dot-default' },
-  dawn: { label: 'Dawn', dotClass: 'theme-dot-dawn' },
-  sakura: { label: 'Sakura', dotClass: 'theme-dot-sakura' },
-  spring: { label: 'Spring', dotClass: 'theme-dot-spring' },
-  autumn: { label: 'Autumn', dotClass: 'theme-dot-autumn' },
-  starry: { label: 'Starry', dotClass: 'theme-dot-starry' },
-  retro: { label: 'Retro', dotClass: 'theme-dot-retro' }
-}
-
-export function getAvailableMessageSkins(colorMode) {
-  return colorMode === 'dark' ? DARK_MESSAGE_SKINS : LIGHT_MESSAGE_SKINS
-}
-
-export function normalizeMessageSkin(rawSkin, colorMode = 'light') {
-  const skin = rawSkin || DEFAULT_MESSAGE_SKIN
-  const available = getAvailableMessageSkins(colorMode)
-
-  if (available.includes(skin)) {
-    return skin
+  default: {
+    label: 'Porcelain',
+    dotClass: 'theme-dot-default',
+    lightClass: 'theme-default-light',
+    darkClass: 'theme-default-dark'
+  },
+  skin1: {
+    label: 'Solstice',
+    dotClass: 'theme-dot-skin1',
+    lightClass: 'theme-skin1-light',
+    darkClass: 'theme-skin1-dark'
+  },
+  skin2: {
+    label: 'Velvet',
+    dotClass: 'theme-dot-skin2',
+    lightClass: 'theme-skin2-light',
+    darkClass: 'theme-skin2-dark'
+  },
+  skin3: {
+    label: 'Verdant',
+    dotClass: 'theme-dot-skin3',
+    lightClass: 'theme-skin3-light',
+    darkClass: 'theme-skin3-dark'
   }
-
-  return DEFAULT_MESSAGE_SKIN
 }
 
-export function getMessageSkinClass(rawSkin) {
-  return `theme-${rawSkin || DEFAULT_MESSAGE_SKIN}`
+export function normalizeMessageSkin(rawSkin) {
+  const normalized = LEGACY_SKIN_TO_ID[rawSkin] || rawSkin || DEFAULT_MESSAGE_SKIN
+  return MESSAGE_SKIN_IDS.includes(normalized) ? normalized : DEFAULT_MESSAGE_SKIN
+}
+
+export function getAvailableMessageSkins() {
+  return MESSAGE_SKIN_IDS
+}
+
+export function getSkinVisual(colorMode, rawSkin) {
+  const skinId = normalizeMessageSkin(rawSkin)
+  const meta = MESSAGE_SKIN_META[skinId] || MESSAGE_SKIN_META[DEFAULT_MESSAGE_SKIN]
+  const variant = colorMode === 'dark' ? meta.darkClass : meta.lightClass
+
+  return {
+    id: skinId,
+    variantClass: variant,
+    dotClass: meta.dotClass,
+    label: meta.label
+  }
+}
+
+export function getMessageSkinClass(colorMode, rawSkin) {
+  return getSkinVisual(colorMode, rawSkin).variantClass
 }

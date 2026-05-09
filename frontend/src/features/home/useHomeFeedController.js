@@ -24,7 +24,7 @@ export function useHomeFeedController({
   function normalizeMessage(rawMessage, readIds) {
     return {
       ...rawMessage,
-      skin: normalizeMessageSkin(rawMessage.theme || rawMessage.skin, uiStore.colorMode),
+      skin: normalizeMessageSkin(rawMessage.theme || rawMessage.skin),
       _showComments: false,
       _comments: [],
       _commentText: '',
@@ -159,7 +159,7 @@ export function useHomeFeedController({
     const newMessage = {
       ...data,
       isOwner: data.userId === userStore.userId,
-      skin: normalizeMessageSkin(data.theme || data.skin, uiStore.colorMode),
+      skin: normalizeMessageSkin(data.theme || data.skin),
       _showComments: false,
       _comments: [],
       _commentText: '',

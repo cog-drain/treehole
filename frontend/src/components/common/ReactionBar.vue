@@ -64,7 +64,7 @@ function handleResonate() {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-2">
+  <div class="reaction-bar flex flex-wrap items-center gap-2">
     <UiButton
       v-if="showResonance"
       variant="ghost"

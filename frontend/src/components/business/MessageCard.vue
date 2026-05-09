@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { motion } from 'motion-v'
 import { 
   MessageSquare, Trash2, Ban, Zap, Loader2, Play, Pause, X, Send
 } from 'lucide-vue-next'
@@ -66,7 +67,7 @@ const emit = defineEmits([
 
 // --- Resonance State ---
 const isResonant = computed(() => props.msg.coFrequency && !props.msg.isOwner)
-const effectiveSkin = computed(() => normalizeMessageSkin(props.msg.skin || props.msg.theme, uiStore.colorMode))
+const effectiveSkin = computed(() => normalizeMessageSkin(props.msg.skin || props.msg.theme))
 
 const commentThreads = computed(() => buildCommentThreads(props.msg._comments || []))
 
@@ -130,14 +131,18 @@ const safeAudioUrl = computed(() => {
 </script>
 
 <template>
-  <div 
+  <motion.div 
     :id="'msg-' + msg.id"
     class="glass-card p-5 sm:p-8 group/card overflow-hidden relative transition-all duration-700" 
     :class="[
-      getMessageSkinClass(effectiveSkin),
+      getMessageSkinClass(uiStore.colorMode, effectiveSkin),
       isResonant ? 'shadow-[0_0_50px_rgba(139,92,246,0.2)] border-purple-500/30 scale-[1.01]' : '',
       msg.isOwner && appStore.camoEnabled ? 'camo-effect' : ''
     ]"
+    :initial="{ opacity: 0, y: 22, scale: 0.98 }"
+    :animate="{ opacity: 1, y: 0, scale: 1 }"
+    :while-hover="{ y: -6, scale: 1.012 }"
+    :transition="{ type: 'spring', stiffness: 210, damping: 22, mass: 0.8 }"
   >
     <div v-if="msg.isOwner" class="owner-indicator-line absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-60"></div>
     
@@ -315,7 +320,7 @@ const safeAudioUrl = computed(() => {
         </button>
       </div>
     </div>
-  </div>
+  </motion.div>
 </template>
 
 <style scoped>
