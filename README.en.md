@@ -32,7 +32,7 @@ DB_USER_PASSWORD=your_password
 DB_NAME=treehole
 AI_API_KEY=your_api_key
 
-FRONTEND_PORT=80
+FRONTEND_PORT=443
 BACKEND_PORT=24191
 DB_PORT=3306
 ```
@@ -45,8 +45,8 @@ docker compose up -d --build
 
 ### 3. Access URLs
 
-- Frontend: `http://your-server-ip:${FRONTEND_PORT}`
-- If `FRONTEND_PORT=80`, access directly via: `http://your-server-ip/`
+- Frontend (HTTPS): `https://your-domain-or-ip:${FRONTEND_PORT}`
+- Frontend (HTTP, auto-redirect): `http://your-domain-or-ip/`
 - Backend: `http://your-server-ip:${BACKEND_PORT}`
 
 ### 4. Check Status and Logs
@@ -105,9 +105,15 @@ mvn test
 
 ### About `FRONTEND_PORT`
 
-- `FRONTEND_PORT` controls the **host port exposed by the frontend container in Docker** (port mapping in `compose.yml`).
-- It does not control the listening port in `frontend/nginx.conf` (Nginx inside the container typically still listens on 80).
+- `FRONTEND_PORT` controls the **HTTPS port exposed by the frontend container on the host** (the 443 mapping in `compose.yml`).
+- Nginx inside the container always listens on both `80` and `443`: `80` serves HTTP, and `443` serves HTTPS.
 - Local frontend development (`pnpm dev`) still runs on 5173 by default and is independent of `FRONTEND_PORT`.
+
+### About HTTPS Certificates
+
+- The frontend container reads the origin certificate from `storage/certs/origin.crt` and `storage/certs/origin.key`.
+- If you use Cloudflare, the recommended setup is to generate a **Cloudflare Origin Certificate** and save it to those two paths.
+- For temporary connectivity testing, a self-signed certificate also works if Cloudflare `SSL/TLS` mode is set to `Full`.
 
 ### About `application-prod.yaml`
 
@@ -150,7 +156,7 @@ docker compose restart backend
 ### 3) Why do I sometimes need `:5173` and sometimes not?
 
 - If frontend is mapped to 5173, use `http://ip:5173`
-- If mapped to 80, use `http://ip/`
+- If mapped to 443, use `https://domain/` or `https://ip:443`
 
 Always trust the `PORTS` column in `docker compose ps`.
 

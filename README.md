@@ -32,7 +32,7 @@ DB_USER_PASSWORD=your_password
 DB_NAME=treehole
 AI_API_KEY=your_api_key
 
-FRONTEND_PORT=80
+FRONTEND_PORT=443
 BACKEND_PORT=24191
 DB_PORT=3306
 ```
@@ -45,8 +45,8 @@ docker compose up -d --build
 
 ### 3. 访问地址
 
-- 前端：`http://your-server-ip:${FRONTEND_PORT}`
-- 当 `FRONTEND_PORT=80` 时可直接访问：`http://your-server-ip/`
+- 前端（HTTPS）：`https://your-domain-or-ip:${FRONTEND_PORT}`
+- 前端（HTTP，自动跳转）：`http://your-domain-or-ip/`
 - 后端：`http://your-server-ip:${BACKEND_PORT}`
 
 ### 4. 查看状态与日志
@@ -105,9 +105,15 @@ mvn test
 
 ### 关于 `FRONTEND_PORT`
 
-- `FRONTEND_PORT` 控制的是 **Docker 中 frontend 容器对宿主机暴露的端口**（`compose.yml` 的端口映射）。
-- 它不控制 `frontend/nginx.conf` 的监听端口（容器内 Nginx 通常仍监听 80）。
+- `FRONTEND_PORT` 控制的是 **Docker 中 frontend 容器对宿主机暴露的 HTTPS 端口**（`compose.yml` 的 443 映射）。
+- 容器内 Nginx 固定监听 `80` 和 `443`：`80` 提供 HTTP，`443` 提供 HTTPS。
 - 本地前端开发（`pnpm dev`）默认还是 5173，和 `FRONTEND_PORT` 无关。
+
+### 关于 HTTPS 证书
+
+- 前端容器会从 `storage/certs/origin.crt` 与 `storage/certs/origin.key` 读取源站证书。
+- 若你使用 Cloudflare，推荐直接在面板生成 **Cloudflare Origin Certificate** 并保存到上述两个路径。
+- 若只是临时联通测试，也可以先放置自签名证书，并将 Cloudflare `SSL/TLS` 模式设为 `Full`。
 
 ### 关于 `application-prod.yaml`
 
@@ -150,7 +156,7 @@ docker compose restart backend
 ### 3) 为什么有时需要 `:5173`，有时不需要？
 
 - 若服务映射到 5173，访问 `http://ip:5173`
-- 若映射到 80，访问 `http://ip/`
+- 若映射到 443，访问 `https://域名/` 或 `https://ip:443`
 
 以 `docker compose ps` 里 frontend 的 `PORTS` 为准。
 
