@@ -35,6 +35,7 @@ AI_API_KEY=your_api_key
 FRONTEND_PORT=443
 BACKEND_PORT=24191
 DB_PORT=3306
+REDIS_PORT=6379
 ```
 
 ### 2. 启动服务
@@ -55,6 +56,24 @@ docker compose up -d --build
 docker compose ps
 docker compose logs -f backend
 docker compose logs -f db
+docker compose logs -f redis
+```
+
+### 5. 缓存演示验证
+
+启动后可用下面这组命令快速演示 Redis 缓存已生效：
+
+```bash
+# 先访问一次热门标签、留言列表或图谱接口，触发缓存写入
+curl -k https://127.0.0.1/api/tags/trending?limit=5
+curl -k 'https://127.0.0.1/api/messages?pageNum=1&pageSize=5'
+curl -k https://127.0.0.1/api/graph/data
+
+# 查看 Redis 中的缓存键
+docker compose exec redis redis-cli KEYS 'treehole::*'
+
+# 查看缓存剩余 TTL（示例）
+docker compose exec redis redis-cli TTL 'treehole::graphData::latest'
 ```
 
 ## 测试数据导入
@@ -168,6 +187,9 @@ docker compose down
 
 # 仅重建后端
 docker compose up -d --build backend
+
+# 启动缓存演示所需服务
+docker compose up -d --build redis backend frontend
 
 # 仅重启前端
 docker compose restart frontend

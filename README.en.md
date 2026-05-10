@@ -35,6 +35,7 @@ AI_API_KEY=your_api_key
 FRONTEND_PORT=443
 BACKEND_PORT=24191
 DB_PORT=3306
+REDIS_PORT=6379
 ```
 
 ### 2. Start Services
@@ -55,6 +56,24 @@ docker compose up -d --build
 docker compose ps
 docker compose logs -f backend
 docker compose logs -f db
+docker compose logs -f redis
+```
+
+### 5. Verify Cache Demo
+
+After startup, use the following commands to demonstrate that Redis caching is active:
+
+```bash
+# Hit read-heavy endpoints once to populate cache
+curl -k https://127.0.0.1/api/tags/trending?limit=5
+curl -k 'https://127.0.0.1/api/messages?pageNum=1&pageSize=5'
+curl -k https://127.0.0.1/api/graph/data
+
+# Inspect cache keys in Redis
+docker compose exec redis redis-cli KEYS 'treehole::*'
+
+# Check a sample TTL
+docker compose exec redis redis-cli TTL 'treehole::graphData::latest'
 ```
 
 ## Import Test Data
@@ -168,6 +187,9 @@ docker compose down
 
 # Rebuild backend only
 docker compose up -d --build backend
+
+# Start the full cache demo stack
+docker compose up -d --build redis backend frontend
 
 # Restart frontend only
 docker compose restart frontend
