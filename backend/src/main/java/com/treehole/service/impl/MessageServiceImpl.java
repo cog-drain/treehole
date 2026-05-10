@@ -11,6 +11,7 @@ import com.treehole.entity.Comment;
 import com.treehole.entity.Message;
 import com.treehole.mapper.CommentMapper;
 import com.treehole.mapper.MessageMapper;
+import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.MessageService;
 import com.treehole.service.TagService;
 import com.treehole.service.AIService;
@@ -19,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.treehole.websocket.WebSocketServer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private final TagService tagService;
     private final AIService aiService;
     private final ObjectMapper objectMapper;
+    private final CacheInvalidationService cacheInvalidationService;
 
     @Override
     public Map<String, Object> publish(Message message, String userId) {
@@ -67,6 +70,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         this.save(message);
         tagService.extractAndSaveTags(message.getId(), message.getContent());
+        cacheInvalidationService.evictMessageStructureCaches();
 
         // 核心：通过 WebSocket 广播新留言
         try {
@@ -103,6 +107,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 this.update(new LambdaUpdateWrapper<Message>()
                     .eq(Message::getId, message.getId())
                     .setSql("comment_count = comment_count + 1"));
+                cacheInvalidationService.evictCommentAndMessageListCaches();
 
                 // 通过 WebSocket 广播这条“温暖的回响”
                 Map<String, Object> commentData = new HashMap<>();
@@ -122,6 +127,10 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
+    @Cacheable(
+            cacheNames = "messagePage",
+            key = "T(String).format('%d:%d:%s', #pageNum, #pageSize, #viewerId == null ? '' : #viewerId)"
+    )
     public IPage<Message> listByPage(int pageNum, int pageSize, String viewerId) {
         Page<Message> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Message> wrapper = new LambdaQueryWrapper<>();
@@ -132,6 +141,10 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
+    @Cacheable(
+            cacheNames = "messageTagPage",
+            key = "T(String).format('%s:%d:%d:%s', #tagName, #pageNum, #pageSize, #viewerId == null ? '' : #viewerId)"
+    )
     public IPage<Message> listByTag(String tagName, int pageNum, int pageSize, String viewerId) {
         Page<Message> page = new Page<>(pageNum, pageSize);
         
@@ -196,6 +209,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         wrapper.eq(Message::getId, id)
                .setSql("likes = likes + 1");
         this.update(wrapper);
+        cacheInvalidationService.evictMessageListCaches();
     }
 
     @Override
@@ -216,6 +230,8 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         tagService.decrementTagsForMessage(id);
         this.removeById(id);
+        cacheInvalidationService.evictMessageStructureCaches();
+        cacheInvalidationService.evictCommentCaches();
     }
 
     @Override
@@ -241,6 +257,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             this.update(new LambdaUpdateWrapper<Message>()
                 .eq(Message::getId, id)
                 .set(Message::getReactions, json));
+            cacheInvalidationService.evictMessageListCaches();
             
             // WebSocket 广播表情更新
             Map<String, Object> broadcastData = new HashMap<>();

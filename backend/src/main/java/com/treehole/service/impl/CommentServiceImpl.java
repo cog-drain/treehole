@@ -6,6 +6,7 @@ import com.treehole.common.BusinessException;
 import com.treehole.common.ErrorCode;
 import com.treehole.entity.Comment;
 import com.treehole.mapper.CommentMapper;
+import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.CommentService;
 import com.treehole.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ import com.treehole.entity.Message;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.treehole.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,9 +34,14 @@ import java.util.stream.Collectors;
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
     private MessageService messageService;
+    private final CacheInvalidationService cacheInvalidationService;
     
     @Autowired
     private ObjectMapper objectMapper;
+
+    public CommentServiceImpl(CacheInvalidationService cacheInvalidationService) {
+        this.cacheInvalidationService = cacheInvalidationService;
+    }
 
     @Autowired
     public void setMessageService(@Lazy MessageService messageService) {
@@ -54,6 +61,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         messageService.update().setSql("comment_count = comment_count + 1")
                 .eq("id", comment.getMessageId()).update();
+        cacheInvalidationService.evictCommentAndMessageListCaches();
 
         // 核心：广播新评论
         try {
@@ -74,6 +82,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     }
 
     @Override
+    @Cacheable(
+            cacheNames = "commentList",
+            key = "T(String).format('%d:%s', #messageId, #viewerId == null ? '' : #viewerId)"
+    )
     public List<Comment> listByMessageId(Long messageId, String viewerId) {
         Message message = messageService.getById(messageId);
         String threadOwnerId = (message != null) ? message.getUserId() : "";
@@ -135,6 +147,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权删除此评论");
         }
         this.removeById(id);
+        messageService.update().setSql("comment_count = CASE WHEN comment_count > 0 THEN comment_count - 1 ELSE 0 END")
+                .eq("id", comment.getMessageId()).update();
+        cacheInvalidationService.evictCommentAndMessageListCaches();
     }
 
     @Override
@@ -160,6 +175,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             this.update(new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Comment>()
                 .eq(Comment::getId, id)
                 .set(Comment::getReactions, json));
+            cacheInvalidationService.evictCommentCaches();
             
             // WebSocket 广播评论表情更新
             Map<String, Object> broadcastData = new HashMap<>();

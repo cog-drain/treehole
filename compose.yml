@@ -26,6 +26,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: treehole-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+    volumes:
+      - redis_data:/data
+    networks:
+      - treehole-net
+
   backend:
     build: ./backend
     container_name: treehole-backend
@@ -42,6 +57,8 @@ services:
       - DB_NAME=${DB_NAME:-treehole}
       - DB_USER=${DB_USER:-treehole_user}
       - DB_USER_PASSWORD=${DB_USER_PASSWORD:-treehole_pass}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - AI_API_KEY=${AI_API_KEY:-YOUR_KEY}
     volumes:
       - ./storage/uploads:/app/uploads
@@ -49,6 +66,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - treehole-net
 
@@ -72,3 +91,4 @@ networks:
 
 volumes:
   db_data:
+  redis_data:
