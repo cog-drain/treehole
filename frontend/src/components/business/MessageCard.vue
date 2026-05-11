@@ -99,6 +99,7 @@ const parseContent = (content) => {
 const openImage = (url) => { window.open(url, '_blank') }
 
 // --- Reactions Logic ---
+const reactionEmojis = ['❤️', '😂', '👍', '🔥', '😭']
 const parsedReactions = computed(() => {
   if (!props.msg.reactions) return {}
   try {
@@ -108,12 +109,50 @@ const parsedReactions = computed(() => {
   }
 })
 
-const addReaction = async (emoji) => {
+const reactedKey = computed(() => `treehole_msg_reacted_${props.msg.id}`)
+const getReactedEmojis = () => {
+  try { return JSON.parse(localStorage.getItem(reactedKey.value) || '[]') } catch { return [] }
+}
+const hasReacted = (emoji) => getReactedEmojis().includes(emoji)
+
+const toggleReaction = async (emoji) => {
+  const reacted = getReactedEmojis()
+  const alreadyReacted = reacted.includes(emoji)
   try {
     await api.reactToMessage(props.msg.id, emoji)
+    if (alreadyReacted) {
+      localStorage.setItem(reactedKey.value, JSON.stringify(reacted.filter(e => e !== emoji)))
+    } else {
+      reacted.push(emoji)
+      localStorage.setItem(reactedKey.value, JSON.stringify(reacted))
+    }
   } catch (e) {
     console.error('Reaction error:', e)
   }
+}
+
+// --- Comment Sorting ---
+const commentSort = ref('oldest')
+const sortedCommentTree = computed(() => {
+  const tree = [...commentTree.value]
+  if (commentSort.value === 'newest') {
+    tree.sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+  } else if (commentSort.value === 'hottest') {
+    tree.sort((a, b) => (b.children?.length || 0) - (a.children?.length || 0))
+  }
+  return tree
+})
+
+// --- Reply-to State ---
+const replyTarget = computed(() => {
+  if (!props.msg._replyToId) return null
+  const list = props.msg._comments || []
+  return list.find(c => c.id === props.msg._replyToId) || null
+})
+
+const clearReply = () => {
+  props.msg._replyToId = null
+  props.msg._commentText = ''
 }
 
 // --- Audio Message Filtering ---
@@ -197,40 +236,6 @@ const safeAudioUrl = computed(() => {
         </template>
       </div>
 
-      <!-- Reactions Section -->
-      <div class="flex flex-wrap items-center gap-2 mt-4">
-        <div v-for="(count, emoji) in parsedReactions" :key="emoji" 
-          class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-400 hover:bg-white/10 transition-all cursor-pointer select-none active:scale-95"
-          @click.stop="addReaction(emoji)"
-        >
-          <span>{{ emoji }}</span>
-          <span class="font-bold">{{ count }}</span>
-        </div>
-
-        <el-popover
-          placement="top"
-          :width="220"
-          trigger="click"
-          effect="dark"
-          popper-class="cyber-popover"
-        >
-          <template #reference>
-            <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-blue-400 hover:bg-white/10 hover:border-blue-500/30 transition-all active:scale-90 group/react">
-              <Smile :size="14" />
-              <span class="text-[10px] font-bold uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-all">React</span>
-            </button>
-          </template>
-          <div class="flex justify-between gap-1 p-1">
-            <button v-for="e in ['❤️', '😂', '👍', '🔥', '😭']" :key="e"
-              class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all text-xl active:scale-150"
-              @click="addReaction(e)"
-            >
-              {{ e }}
-            </button>
-          </div>
-        </el-popover>
-      </div>
-
       <div v-if="msg.audioUrl" class="mt-4 p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group/audio max-w-md mx-auto">
         <audio 
           ref="audioRef" 
@@ -281,60 +286,121 @@ const safeAudioUrl = computed(() => {
       </div>
     </div>
 
-    <!-- Footer Action Bar -->
-    <div class="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
-      <button
-        class="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 rounded-full transition-all active:scale-95 group/hug"
-        :class="liked ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-white/5 text-slate-400 border border-transparent hover:bg-white/10'"
-        @click="$emit('like', msg)"
-      >
-        <span class="text-lg group-hover/hug:scale-125 transition-transform" :class="{ 'animate-pulse': liked }">🫂</span>
-        <span class="text-xs font-bold font-mono tracking-widest">{{ msg.likes || 0 }}</span>
-      </button>
+    <!-- Unified Footer: Reactions + Comment Toggle -->
+    <div class="action-bar">
+      <!-- Left: Reaction Pills -->
+      <div class="action-bar-left">
+        <div 
+          v-for="(count, emoji) in parsedReactions" 
+          :key="emoji"
+          class="reaction-pill"
+          :class="{ 'is-own': hasReacted(emoji) }"
+          @click.stop="toggleReaction(emoji)"
+        >
+          <span class="reaction-emoji">{{ emoji }}</span>
+          <span class="reaction-count">{{ count }}</span>
+        </div>
 
+        <!-- Add Reaction -->
+        <el-popover placement="top" :width="240" trigger="click" popper-class="reaction-popover">
+          <template #reference>
+            <button class="add-reaction-trigger">
+              <Smile :size="14" />
+            </button>
+          </template>
+          <div class="reaction-picker-grid">
+            <button 
+              v-for="e in reactionEmojis" 
+              :key="e"
+              class="reaction-picker-cell"
+              :class="{ 'is-selected': hasReacted(e) }"
+              @click="toggleReaction(e)"
+            >
+              {{ e }}
+            </button>
+          </div>
+        </el-popover>
+      </div>
+
+      <!-- Right: Comment Toggle -->
       <button 
-        class="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 rounded-full bg-white/5 border border-transparent text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all active:scale-95"
+        class="comment-toggle-btn"
         @click="$emit('toggle-comments', msg)"
       >
         <div class="relative">
-          <MessageSquare :size="18" />
-          <span v-if="msg.commentCount > 0 && !msg._read" class="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
+          <MessageSquare :size="16" />
+          <span v-if="msg.commentCount > 0 && !msg._read" class="unread-dot"></span>
         </div>
-        <span class="text-[10px] sm:text-xs font-bold tracking-widest uppercase">{{ msg._showComments ? 'CLOSE' : 'REPLY' }}</span>
-        <span v-if="msg.commentCount > 0" class="text-[10px] font-mono opacity-40">[{{ msg.commentCount }}]</span>
+        <span class="comment-toggle-label">{{ msg._showComments ? 'CLOSE' : 'REPLY' }}</span>
+        <span v-if="msg.commentCount > 0" class="comment-toggle-count">{{ msg.commentCount }}</span>
       </button>
     </div>
 
-    <!-- Comments Section -->
-    <div v-if="msg._showComments" class="mt-8 pt-8 border-t border-white/5 space-y-6 animate-in slide-in-from-top-4 duration-500">
-      <div v-if="commentTree.length === 0" class="py-10 text-center">
-        <p class="text-xs font-bold tracking-widest text-slate-600 uppercase italic">Silence is a message too...</p>
+    <!-- Comments Section (Visually Separated) -->
+    <div v-if="msg._showComments" class="comment-section">
+      <!-- Comment Section Header with Sort -->
+      <div class="comment-section-header">
+        <span class="comment-section-title">
+          {{ sortedCommentTree.length }} {{ sortedCommentTree.length === 1 ? 'Comment' : 'Comments' }}
+        </span>
+        <div class="comment-sort-group">
+          <button 
+            v-for="s in [{key:'oldest',label:'最早'},{key:'newest',label:'最新'},{key:'hottest',label:'最热'}]" 
+            :key="s.key"
+            class="comment-sort-btn"
+            :class="{ 'is-active': commentSort === s.key }"
+            @click="commentSort = s.key"
+          >
+            {{ s.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div v-if="sortedCommentTree.length === 0" class="comment-empty">
+        <p>Silence is a message too...</p>
       </div>
       
-      <div class="space-y-8">
+      <!-- Comment Tree -->
+      <div class="comment-tree">
         <CommentItem 
-          v-for="cmt in commentTree" 
+          v-for="cmt in sortedCommentTree" 
           :key="cmt.id" 
           :comment="cmt"
           :isAdmin="isAdmin"
+          :depth="0"
+          :maxDepth="4"
+          :defaultExpanded="true"
           @reply="(c) => { msg._replyToId = c.id; msg._commentText = `@${c.authorAlias} ` }"
           @delete="(c) => $emit('delete-comment', {msg, comment: c})"
         />
       </div>
 
+      <!-- Reply Quote Bar (Telegram-style) -->
+      <div v-if="replyTarget" class="reply-quote-bar">
+        <div class="reply-quote-line"></div>
+        <div class="reply-quote-content">
+          <span class="reply-quote-name">{{ replyTarget.authorAlias || 'ANON' }}</span>
+          <span class="reply-quote-text">{{ replyTarget.content?.substring(0, 60) }}{{ replyTarget.content?.length > 60 ? '...' : '' }}</span>
+        </div>
+        <button class="reply-quote-close" @click.stop="clearReply">
+          <X :size="14" />
+        </button>
+      </div>
+
       <!-- Comment Input -->
-      <div class="pt-4 flex gap-3">
-        <div class="flex-1 relative">
+      <div class="comment-input-row">
+        <div class="comment-input-wrap">
           <textarea 
             v-model="msg._commentText" 
-            class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-600 resize-none" 
-            placeholder="写下你的回响..." 
+            class="comment-input" 
+            :placeholder="replyTarget ? `回复 ${replyTarget.authorAlias}...` : '写下你的回响...'" 
             rows="1"
             @keyup.enter.ctrl="() => $emit('publish-comment', msg)"
           ></textarea>
         </div>
         <button 
-          class="w-12 h-12 flex items-center justify-center rounded-2xl bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-90 disabled:opacity-50"
+          class="comment-send-btn"
           :disabled="msg._commenting || (!msg._commentText && !msg._commentImage)"
           @click="$emit('publish-comment', msg)"
         >
@@ -417,5 +483,468 @@ const safeAudioUrl = computed(() => {
   10% { opacity: 1; }
   20% { background-position: -50% -50%; opacity: 0; }
   100% { background-position: -50% -50%; opacity: 0; }
+}
+
+/* ── Unified Action Bar ── */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  gap: 8px;
+}
+
+:global(.dark) .action-bar {
+  border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+.action-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Reaction Pill (Message Level) ── */
+.reaction-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+:global(.dark) .reaction-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.reaction-pill:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+:global(.dark) .reaction-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.reaction-pill:active {
+  transform: scale(0.93);
+}
+
+.reaction-pill.is-own {
+  border-color: var(--cmt-accent, #3b82f6);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+:global(.dark) .reaction-pill.is-own {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.reaction-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.reaction-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* ── Add Reaction Trigger ── */
+.add-reaction-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.4;
+}
+
+:global(.dark) .add-reaction-trigger {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.action-bar:hover .add-reaction-trigger {
+  opacity: 0.8;
+}
+
+.add-reaction-trigger:hover {
+  opacity: 1 !important;
+  border-style: solid;
+  border-color: var(--cmt-accent, #3b82f6);
+  color: var(--cmt-accent, #3b82f6);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* ── Reaction Picker (Popover Content) ── */
+.reaction-picker-grid {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+}
+
+.reaction-picker-cell {
+  flex: 1;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reaction-picker-cell:hover {
+  background: rgba(59, 130, 246, 0.1);
+  transform: scale(1.3);
+}
+
+.reaction-picker-cell:active {
+  transform: scale(1.5);
+}
+
+.reaction-picker-cell.is-selected {
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* ── Comment Toggle Button ── */
+.comment-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+:global(.dark) .comment-toggle-btn {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.comment-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-primary);
+}
+
+:global(.dark) .comment-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.comment-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  background: #3b82f6;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.comment-toggle-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.comment-toggle-count {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  opacity: 0.5;
+}
+
+/* ── Comment Section (Visually Separated) ── */
+.comment-section {
+  margin-top: 16px;
+  margin-left: 12px;
+  margin-right: 12px;
+  padding: 20px 24px;
+  background: #f8fafc;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 1.25rem;
+  animation: comment-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:global(.dark) .comment-section {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+@keyframes comment-slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.comment-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:global(.dark) .comment-section-header {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.comment-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
+}
+
+.comment-sort-group {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+}
+
+:global(.dark) .comment-sort-group {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.comment-sort-btn {
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.comment-sort-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+:global(.dark) .comment-sort-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.comment-sort-btn.is-active {
+  background: white;
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+:global(.dark) .comment-sort-btn.is-active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.comment-empty {
+  padding: 32px 0;
+  text-align: center;
+}
+
+.comment-empty p {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+}
+
+.comment-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Reply Quote Bar (Telegram-style) ── */
+.reply-quote-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin-top: 12px;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 10px;
+  animation: quote-slide 0.25s ease;
+}
+
+:global(.dark) .reply-quote-bar {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+@keyframes quote-slide {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reply-quote-line {
+  width: 3px;
+  height: 28px;
+  border-radius: 2px;
+  background: #3b82f6;
+  flex-shrink: 0;
+}
+
+.reply-quote-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.reply-quote-name {
+  font-size: 10px;
+  font-weight: 800;
+  color: #3b82f6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reply-quote-text {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-quote-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.reply-quote-close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* ── Comment Input ── */
+.comment-input-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:global(.dark) .comment-input-row {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.comment-input-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.comment-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-size: 13px;
+  resize: none;
+  outline: none;
+  color: var(--color-text-primary);
+  transition: all 0.2s;
+}
+
+:global(.dark) .comment-input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.comment-input:focus {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(0, 0, 0, 0.01);
+}
+
+:global(.dark) .comment-input:focus {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.comment-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+}
+
+.comment-send-btn {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.comment-send-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.comment-send-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.comment-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>

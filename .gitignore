@@ -74,6 +74,9 @@ temp/
 HELP.md
 mcp-tools.yaml
 .agents/
+assignment/
+AGENTS.md
+CLAUDE.md
 
 # ==========================================
 # 7. Docker 运行时数据 (极其重要)
