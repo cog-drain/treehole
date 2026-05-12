@@ -76,8 +76,11 @@ public class MessageController {
 
     @Operation(summary = "留言回响", description = "发送 Emoji 回响")
     @PostMapping("/{id}/reactions")
-    public Result<Void> react(@PathVariable Long id, @RequestParam String emoji) {
-        messageService.react(id, emoji);
+    public Result<Void> react(@PathVariable Long id, @RequestParam String emoji,
+                              @RequestHeader(value = "X-User-Id", required = false) String userId,
+                              @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String finalUserId = extractUserId(userId, authorization);
+        messageService.react(id, emoji, finalUserId);
         return Result.success();
     }
 

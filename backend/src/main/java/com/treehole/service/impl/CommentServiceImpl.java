@@ -39,6 +39,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+
     public CommentServiceImpl(CacheInvalidationService cacheInvalidationService) {
         this.cacheInvalidationService = cacheInvalidationService;
     }
@@ -154,7 +157,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void react(Long id, String emoji) {
+    public void react(Long id, String emoji, String userId) {
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+
         Comment comment = this.getById(id);
         if (comment == null) return;
 
@@ -168,22 +175,41 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             log.error("Parse comment reactions error: {}", e.getMessage());
         }
 
-        reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
+        String redisKey = "treehole:react:cmt:" + id;
 
-        try {
-            String json = objectMapper.writeValueAsString(reactionMap);
-            this.update(new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Comment>()
-                .eq(Comment::getId, id)
-                .set(Comment::getReactions, json));
-            cacheInvalidationService.evictCommentCaches();
-            
-            // WebSocket 广播评论表情更新
-            Map<String, Object> broadcastData = new HashMap<>();
-            broadcastData.put("type", "COMMENT_REACTION_UPDATE");
-            broadcastData.put("data", Map.of("commentId", id, "messageId", comment.getMessageId(), "reactions", json));
-            WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
-        } catch (Exception e) {
-            log.error("Save comment reactions error: {}", e.getMessage());
+        synchronized (("cmt_react_" + id).intern()) {
+            Object oldEmojiObj = stringRedisTemplate.opsForHash().get(redisKey, userId);
+            String oldEmoji = oldEmojiObj != null ? oldEmojiObj.toString() : null;
+
+            if (oldEmoji != null) {
+                reactionMap.put(oldEmoji, Math.max(0, reactionMap.getOrDefault(oldEmoji, 0) - 1));
+                if (reactionMap.get(oldEmoji) == 0) reactionMap.remove(oldEmoji);
+            }
+
+            if (emoji.equals(oldEmoji)) {
+                // withdraw
+                stringRedisTemplate.opsForHash().delete(redisKey, userId);
+            } else {
+                // add or change
+                reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
+                stringRedisTemplate.opsForHash().put(redisKey, userId, emoji);
+            }
+
+            try {
+                String json = objectMapper.writeValueAsString(reactionMap);
+                this.update(new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Comment>()
+                    .eq(Comment::getId, id)
+                    .set(Comment::getReactions, json));
+                cacheInvalidationService.evictCommentCaches();
+                
+                // WebSocket 广播评论表情更新
+                Map<String, Object> broadcastData = new HashMap<>();
+                broadcastData.put("type", "COMMENT_REACTION_UPDATE");
+                broadcastData.put("data", Map.of("commentId", id, "messageId", comment.getMessageId(), "reactions", json));
+                WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
+            } catch (Exception e) {
+                log.error("Save comment reactions error: {}", e.getMessage());
+            }
         }
     }
 }

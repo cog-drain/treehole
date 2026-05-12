@@ -209,34 +209,27 @@ const parsedReactions = computed(() => {
   }
 })
 
-// Track which emojis this user has reacted with (localStorage per comment)
+// Track which emoji this user has reacted with (localStorage per comment)
 const reactedKey = computed(() => `treehole_cmt_reacted_${props.comment.id}`)
 
-const getReactedEmojis = () => {
-  try {
-    return JSON.parse(localStorage.getItem(reactedKey.value) || '[]')
-  } catch { return [] }
-}
+const getReactedEmoji = () => localStorage.getItem(reactedKey.value)
 
 const hasReacted = (emoji) => {
-  return getReactedEmojis().includes(emoji)
+  return getReactedEmoji() === emoji
 }
 
 const toggleReaction = async (emoji) => {
-  const reacted = getReactedEmojis()
-  const alreadyReacted = reacted.includes(emoji)
+  const currentEmoji = getReactedEmoji()
   
   try {
     await api.reactToComment(props.comment.id, emoji)
     
-    if (alreadyReacted) {
+    if (currentEmoji === emoji) {
       // Remove from local tracking
-      const updated = reacted.filter(e => e !== emoji)
-      localStorage.setItem(reactedKey.value, JSON.stringify(updated))
+      localStorage.removeItem(reactedKey.value)
     } else {
-      // Add to local tracking
-      reacted.push(emoji)
-      localStorage.setItem(reactedKey.value, JSON.stringify(reacted))
+      // Add or change local tracking
+      localStorage.setItem(reactedKey.value, emoji)
     }
   } catch (e) {
     console.error('Comment reaction error:', e)

@@ -110,21 +110,17 @@ const parsedReactions = computed(() => {
 })
 
 const reactedKey = computed(() => `treehole_msg_reacted_${props.msg.id}`)
-const getReactedEmojis = () => {
-  try { return JSON.parse(localStorage.getItem(reactedKey.value) || '[]') } catch { return [] }
-}
-const hasReacted = (emoji) => getReactedEmojis().includes(emoji)
+const getReactedEmoji = () => localStorage.getItem(reactedKey.value)
+const hasReacted = (emoji) => getReactedEmoji() === emoji
 
 const toggleReaction = async (emoji) => {
-  const reacted = getReactedEmojis()
-  const alreadyReacted = reacted.includes(emoji)
+  const currentEmoji = getReactedEmoji()
   try {
     await api.reactToMessage(props.msg.id, emoji)
-    if (alreadyReacted) {
-      localStorage.setItem(reactedKey.value, JSON.stringify(reacted.filter(e => e !== emoji)))
+    if (currentEmoji === emoji) {
+      localStorage.removeItem(reactedKey.value)
     } else {
-      reacted.push(emoji)
-      localStorage.setItem(reactedKey.value, JSON.stringify(reacted))
+      localStorage.setItem(reactedKey.value, emoji)
     }
   } catch (e) {
     console.error('Reaction error:', e)

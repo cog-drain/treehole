@@ -42,6 +42,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private final AIService aiService;
     private final ObjectMapper objectMapper;
     private final CacheInvalidationService cacheInvalidationService;
+    private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
 
     @Override
     public Map<String, Object> publish(Message message, String userId) {
@@ -236,7 +237,11 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void react(Long id, String emoji) {
+    public void react(Long id, String emoji, String userId) {
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+
         Message message = this.getById(id);
         if (message == null) return;
 
@@ -250,22 +255,41 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             log.error("Parse reactions error: {}", e.getMessage());
         }
 
-        reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
+        String redisKey = "treehole:react:msg:" + id;
+        
+        synchronized (("msg_react_" + id).intern()) {
+            Object oldEmojiObj = stringRedisTemplate.opsForHash().get(redisKey, userId);
+            String oldEmoji = oldEmojiObj != null ? oldEmojiObj.toString() : null;
 
-        try {
-            String json = objectMapper.writeValueAsString(reactionMap);
-            this.update(new LambdaUpdateWrapper<Message>()
-                .eq(Message::getId, id)
-                .set(Message::getReactions, json));
-            cacheInvalidationService.evictMessageListCaches();
-            
-            // WebSocket 广播表情更新
-            Map<String, Object> broadcastData = new HashMap<>();
-            broadcastData.put("type", "REACTION_UPDATE");
-            broadcastData.put("data", Map.of("messageId", id, "reactions", json));
-            WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
-        } catch (Exception e) {
-            log.error("Save reactions error: {}", e.getMessage());
+            if (oldEmoji != null) {
+                reactionMap.put(oldEmoji, Math.max(0, reactionMap.getOrDefault(oldEmoji, 0) - 1));
+                if (reactionMap.get(oldEmoji) == 0) reactionMap.remove(oldEmoji);
+            }
+
+            if (emoji.equals(oldEmoji)) {
+                // withdraw
+                stringRedisTemplate.opsForHash().delete(redisKey, userId);
+            } else {
+                // add or change
+                reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
+                stringRedisTemplate.opsForHash().put(redisKey, userId, emoji);
+            }
+
+            try {
+                String json = objectMapper.writeValueAsString(reactionMap);
+                this.update(new LambdaUpdateWrapper<Message>()
+                    .eq(Message::getId, id)
+                    .set(Message::getReactions, json));
+                cacheInvalidationService.evictMessageListCaches();
+                
+                // WebSocket 广播表情更新
+                Map<String, Object> broadcastData = new HashMap<>();
+                broadcastData.put("type", "REACTION_UPDATE");
+                broadcastData.put("data", Map.of("messageId", id, "reactions", json));
+                WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
+            } catch (Exception e) {
+                log.error("Save reactions error: {}", e.getMessage());
+            }
         }
     }
 }
