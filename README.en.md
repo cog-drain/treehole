@@ -2,22 +2,34 @@
 
 [中文](README.md) | [English](README.en.md)
 
-An anonymous expression and interaction platform with message posting, threaded comments, drift bottles, real-time echo (WebSocket), and AI-related capabilities.
+An immersive, anonymous expression and interaction platform. Here, your secrets are safe. The project features rich social interaction mechanics, real-time bidirectional communication, and AI-driven content organization.
 
-## Project Structure
+## ✨ Core Features
 
-- `backend/`: Spring Boot 3 + MyBatis-Plus + WebSocket
-- `frontend/`: Vue 3 + Vite + Pinia
+- **🌳 Anonymous Treehole & Threads**: A minimalist publishing experience supporting images, voice messages, and multi-level replies.
+- **🎨 Tone Modes**: Breaking the monotony of plain text with 5 special rendering effects ("Whisper", "Shout", "Dream", "Glitch", "Poetic") to convey emotions vividly.
+- **🌊 Cyber Drift Bottle**: Toss your thoughts into the sea or fish for a stranger's fleeting moment.
+- **🤖 AI Smart Tags**: Automated tag extraction and categorization based on LLM semantic analysis, powering the trending resonance wall.
+- **🛡️ Identity & Security**:
+  - **Identity Backup & Restore**: Seamlessly sync your cloud identity and records across devices using a unique recovery key.
+  - **Rate Limiting & Anti-Spam**: High-concurrency rate limiting backed by Redis (10s cooldown for posts, 5s for comments) to maintain a healthy community environment.
+- **⚡ Real-time Echo**: Full-duplex communication via WebSocket pushing likes, comments, and new messages to the client instantly.
+- **🧘 Edge Experience Enhancements**: Offline draft box (auto-resend upon network recovery) and a focused Zen Mode (white noise + immersive reading).
+
+## 📂 Project Structure
+
+- `backend/`: Spring Boot 3 + MyBatis-Plus + WebSocket + Redis
+- `frontend/`: Vue 3 + Vite + Pinia + Tailwind CSS
 - `database/`: Database initialization and test data scripts
 - `storage/`: Runtime uploads and log directories
-- `compose.yml`: One-command Docker orchestration (db/backend/frontend)
+- `compose.yml`: One-command Docker orchestration (db/backend/frontend/redis)
 
-## Tech Stack
+## 🛠 Tech Stack
 
-- Backend: Java 17, Spring Boot 3, MyBatis-Plus
-- Frontend: Vue 3, Vite, Element Plus, Tailwind CSS
-- Database: MariaDB 11 (MySQL-compatible syntax)
-- Realtime: WebSocket
+- **Backend**: Java 17, Spring Boot 3, MyBatis-Plus, Spring Data Redis
+- **Frontend**: Vue 3, Vite, Element Plus, Tailwind CSS, Pinia, Lucide Icons
+- **Database & Cache**: MariaDB 11, Redis 7
+- **Realtime**: WebSocket
 
 ## Quick Start (Docker, Recommended)
 

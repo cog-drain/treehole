@@ -57,6 +57,31 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         if (userId == null || userId.isBlank()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "身份标识不能为空");
         }
+
+        // 安全校验：字数与昵称长度限制
+        if (comment.getContent() == null || comment.getContent().length() > 500) {
+            throw new BusinessException(ErrorCode.CONTENT_TOO_LONG, "评论内容太长啦 (最多500字)");
+        }
+        if (comment.getAuthorAlias() != null && comment.getAuthorAlias().length() > 20) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "昵称太长啦 (最多20字)");
+        }
+
+        // 评论频率限流：同一用户 5 秒内只能发一条
+        String rateKey = "treehole:rate:cmt:id:" + userId;
+        Boolean isAllowed = stringRedisTemplate.opsForValue().setIfAbsent(rateKey, "1", java.time.Duration.ofSeconds(5));
+        if (Boolean.FALSE.equals(isAllowed)) {
+            throw new BusinessException(ErrorCode.FREQ_LIMIT, "评论太频繁啦，请休息片刻 (5秒冷却)");
+        }
+
+        // IP 双重限流：同一 IP 5 秒内只能发一条 (防刷)
+        if (comment.getIpAddress() != null && !comment.getIpAddress().isBlank()) {
+            String ipRateKey = "treehole:rate:cmt:ip:" + comment.getIpAddress();
+            Boolean ipAllowed = stringRedisTemplate.opsForValue().setIfAbsent(ipRateKey, "1", java.time.Duration.ofSeconds(5));
+            if (Boolean.FALSE.equals(ipAllowed)) {
+                throw new BusinessException(ErrorCode.FREQ_LIMIT, "该 IP 评论太频繁，请稍后再试");
+            }
+        }
+
         comment.setUserId(userId);
         comment.setAuthorAlias(null); 
 

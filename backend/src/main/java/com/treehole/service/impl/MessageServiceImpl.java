@@ -49,6 +49,31 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         if (userId == null || userId.isBlank()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "身份标识不能为空");
         }
+
+        // 安全校验：字数与昵称长度限制
+        if (message.getContent() == null || message.getContent().length() > 1000) {
+            throw new BusinessException(ErrorCode.CONTENT_TOO_LONG, "内容超出了树洞的承载范围 (最多1000字)");
+        }
+        if (message.getAuthorAlias() != null && message.getAuthorAlias().length() > 20) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "昵称太长啦 (最多20字)");
+        }
+
+        // 发帖频率限流：同一用户 10 秒内只能发一条
+        String rateKey = "treehole:rate:msg:id:" + userId;
+        Boolean isAllowed = stringRedisTemplate.opsForValue().setIfAbsent(rateKey, "1", java.time.Duration.ofSeconds(10));
+        if (Boolean.FALSE.equals(isAllowed)) {
+            throw new BusinessException(ErrorCode.FREQ_LIMIT, "发帖太频繁啦，请休息片刻 (10秒冷却)");
+        }
+
+        // IP 双重限流：同一 IP 10 秒内只能发一条 (防刷)
+        if (message.getIpAddress() != null && !message.getIpAddress().isBlank()) {
+            String ipRateKey = "treehole:rate:msg:ip:" + message.getIpAddress();
+            Boolean ipAllowed = stringRedisTemplate.opsForValue().setIfAbsent(ipRateKey, "1", java.time.Duration.ofSeconds(10));
+            if (Boolean.FALSE.equals(ipAllowed)) {
+                throw new BusinessException(ErrorCode.FREQ_LIMIT, "该 IP 发帖太频繁，请稍后再试");
+            }
+        }
+
         message.setUserId(userId);
 
         // --- AI 语义自动化：生成自动标签 ---
