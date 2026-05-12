@@ -2,6 +2,10 @@
   <div 
     class="min-h-screen transition-all duration-1000"
     :class="{ 'zen-active': isZenMode, 'offline-mode': !isOnline }"
+    @touchstart.capture="handleEdgeSwipeStart"
+    @touchmove.capture="handleEdgeSwipeMove"
+    @touchend.capture="handleEdgeSwipeEnd"
+    @touchcancel.capture="resetEdgeSwipe"
   >
     <CyberWatermark />
     <!-- Background Ambient Glow (Logic-controlled for total reliability) -->
@@ -89,16 +93,16 @@
           <!-- Media & Action Bar (Responsive Footer) -->
           <div class="flex flex-col gap-4 pt-6 border-t border-white/5">
             <!-- Row 1: Tools -->
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <label class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-200 cursor-pointer transition-all active:scale-95">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div class="flex flex-wrap items-center gap-2 min-w-0">
+                <label class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-200 cursor-pointer transition-all active:scale-95">
                   <ImagePlus :size="14" />
                   <span class="whitespace-nowrap">{{ imagePreview ? (isMobile ? '换图' : '更换图片') : '图片' }}</span>
                   <input type="file" accept="image/*" class="hidden" @change="onImageSelect" />
                 </label>
                 
                 <button 
-                  class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all active:scale-95"
+                  class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all active:scale-95"
                   @click="toggleVoicePanel" 
                   v-if="!recordedBlob && !isRecording"
                 >
@@ -107,12 +111,12 @@
                 </button>
 
                 <!-- Tone Selector (inline expand) -->
-                <div class="flex items-center" ref="toneSelectorRef">
+                <div class="relative flex items-center" ref="toneSelectorRef">
                   <!-- Collapsed: trigger button -->
                   <button 
                     v-if="!showTonePanel"
                     @click.stop="showTonePanel = true"
-                    class="flex items-center gap-1.5 px-3 py-2 rounded-full border border-white/10 text-[11px] transition-all active:scale-95"
+                    class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border border-white/10 text-[11px] transition-all active:scale-95"
                     :class="form.mood ? 'bg-blue-500/15 border-blue-500/30 text-blue-300' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200'"
                   >
                     <Sparkles :size="14" />
@@ -120,11 +124,11 @@
                   </button>
 
                   <!-- Expanded: emoji row -->
-                  <div v-else class="flex items-center gap-0.5 px-1 py-1 rounded-full bg-white/5 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                  <div v-else class="absolute left-0 bottom-full z-30 mb-2 flex max-w-[calc(100vw-3rem)] flex-wrap items-center gap-0.5 px-1 py-1 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-xl border border-slate-200 dark:border-white/10">
                     <button
                       v-for="(tone, key) in toneMap"
                       :key="key"
-                      class="w-8 h-8 flex items-center justify-center rounded-full transition-all hover:bg-slate-100 dark:hover:bg-white/10 active:scale-90"
+                      class="w-8 h-8 shrink-0 flex items-center justify-center rounded-full transition-all hover:bg-slate-100 dark:hover:bg-white/10 active:scale-90"
                       :class="form.mood === key ? 'bg-blue-100 dark:bg-blue-500/20 ring-1 ring-blue-400/40 scale-110' : 'opacity-60 hover:opacity-100'"
                       :title="tone.label + ' — ' + tone.desc"
                       @click="form.mood = form.mood === key ? '' : key"
@@ -142,7 +146,7 @@
               </div>
               
               <!-- Publish Button -->
-              <div class="flex items-center gap-3">
+              <div class="flex w-full sm:w-auto items-center gap-3">
                 <button 
                   v-if="offlineQueueCount > 0 || !isOnline" 
                   class="p-3 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all group/archive"
@@ -156,7 +160,7 @@
                 </button>
                 
                 <button 
-                  class="px-6 py-2.5 rounded-xl font-bold text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
+                  class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-bold text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
                   :class="isOnline ? 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white' : 'bg-slate-800 text-slate-400 border border-white/5'"
                   :disabled="publishing"
                   @click="publishMessage"
@@ -767,6 +771,46 @@ const isMobile = ref(window.innerWidth < 768)
 const nodeDetailVisible = ref(false)
 const selectedNodeMsg = ref(null)
 const checkMobile = () => { isMobile.value = window.innerWidth < 768 }
+const edgeSwipe = reactive({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 })
+const EDGE_SWIPE_ZONE = 28
+const EDGE_SWIPE_DISTANCE = 72
+const EDGE_SWIPE_MAX_VERTICAL = 80
+
+function resetEdgeSwipe() {
+  edgeSwipe.active = false
+  edgeSwipe.startX = 0
+  edgeSwipe.startY = 0
+  edgeSwipe.currentX = 0
+  edgeSwipe.currentY = 0
+}
+
+function handleEdgeSwipeStart(event) {
+  if (!isMobile.value || viewMode.value !== 'graph' || event.touches.length !== 1) return
+  const touch = event.touches[0]
+  if (touch.clientX > EDGE_SWIPE_ZONE) return
+  edgeSwipe.active = true
+  edgeSwipe.startX = touch.clientX
+  edgeSwipe.startY = touch.clientY
+  edgeSwipe.currentX = touch.clientX
+  edgeSwipe.currentY = touch.clientY
+}
+
+function handleEdgeSwipeMove(event) {
+  if (!edgeSwipe.active || event.touches.length !== 1) return
+  const touch = event.touches[0]
+  edgeSwipe.currentX = touch.clientX
+  edgeSwipe.currentY = touch.clientY
+}
+
+function handleEdgeSwipeEnd() {
+  if (!edgeSwipe.active) return
+  const deltaX = edgeSwipe.currentX - edgeSwipe.startX
+  const deltaY = Math.abs(edgeSwipe.currentY - edgeSwipe.startY)
+  if (deltaX >= EDGE_SWIPE_DISTANCE && deltaY <= EDGE_SWIPE_MAX_VERTICAL) {
+    viewMode.value = 'list'
+  }
+  resetEdgeSwipe()
+}
 
 // ── Feed State ──
 const messages = ref([])
