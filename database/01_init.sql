@@ -74,7 +74,8 @@ CREATE TABLE `comment` (
     `is_deleted` TINYINT DEFAULT 0,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_message` (`message_id`),
-    INDEX `idx_user` (`user_id`)
+    INDEX `idx_user` (`user_id`),
+    INDEX `idx_resonance` (`user_id`, `message_id`, `is_deleted`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 6. 标签相关表

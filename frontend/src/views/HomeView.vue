@@ -74,10 +74,12 @@
             <textarea
               class="w-full bg-transparent border-none text-lg leading-relaxed placeholder:text-slate-600 focus:outline-none resize-none min-h-[120px]"
               v-model="form.content"
-              placeholder="说点什么吧……你的秘密在这里很安全 🤫"
+              placeholder="说点什么吧……你的秘密在这里很安全 🤫 (支持 Ctrl+Enter 发送)"
               maxlength="500"
               rows="4"
               @paste="handlePaste"
+              @keydown.ctrl.enter="publishMessage"
+              @keydown.meta.enter="publishMessage"
             ></textarea>
             <div class="absolute bottom-0 right-0 text-[10px] font-mono text-slate-600 tracking-tighter">
               {{ form.content.length }} / 500
@@ -85,62 +87,85 @@
           </div>
 
           <!-- Media & Action Bar (Responsive Footer) -->
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 pt-6 border-t border-white/5">
-            <div class="flex flex-wrap items-center gap-3">
-              <label class="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] sm:text-xs text-slate-400 hover:bg-white/10 hover:text-slate-200 cursor-pointer transition-all active:scale-95">
-                <ImagePlus :size="14" />
-                <span class="whitespace-nowrap">{{ imagePreview ? (isMobile ? '换图' : '更换图片') : '图片' }}</span>
-                <input type="file" accept="image/*" class="hidden" @change="onImageSelect" />
-              </label>
-              
-              <button 
-                class="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] sm:text-xs text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all active:scale-95"
-                @click="toggleVoicePanel" 
-                v-if="!recordedBlob && !isRecording"
-              >
-                <Mic :size="14" />
-                <span class="whitespace-nowrap">{{ isMobile ? '语音' : '语音留言' }}</span>
-              </button>
-              
-              <!-- Mood Dots -->
-              <div class="flex items-center gap-1 sm:gap-2">
+          <div class="flex flex-col gap-4 pt-6 border-t border-white/5">
+            <!-- Row 1: Tools -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <label class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-200 cursor-pointer transition-all active:scale-95">
+                  <ImagePlus :size="14" />
+                  <span class="whitespace-nowrap">{{ imagePreview ? (isMobile ? '换图' : '更换图片') : '图片' }}</span>
+                  <input type="file" accept="image/*" class="hidden" @change="onImageSelect" />
+                </label>
+                
                 <button 
-                  v-for="(emoji, mood) in moodMap" 
-                  :key="mood"
-                  class="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 border border-transparent transition-all hover:border-white/20 active:scale-90"
-                  :class="{ 'bg-blue-500/20 border-blue-500/40 scale-110': form.mood === mood }"
-                  @click="form.mood = form.mood === mood ? '' : mood"
+                  class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all active:scale-95"
+                  @click="toggleVoicePanel" 
+                  v-if="!recordedBlob && !isRecording"
                 >
-                  <span class="text-sm sm:text-base grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all" :class="{ 'grayscale-0 opacity-100': form.mood === mood }">
-                    {{ emoji }}
-                  </span>
+                  <Mic :size="14" />
+                  <span class="whitespace-nowrap">{{ isMobile ? '语音' : '语音留言' }}</span>
+                </button>
+
+                <!-- Tone Selector (inline expand) -->
+                <div class="flex items-center" ref="toneSelectorRef">
+                  <!-- Collapsed: trigger button -->
+                  <button 
+                    v-if="!showTonePanel"
+                    @click.stop="showTonePanel = true"
+                    class="flex items-center gap-1.5 px-3 py-2 rounded-full border border-white/10 text-[11px] transition-all active:scale-95"
+                    :class="form.mood ? 'bg-blue-500/15 border-blue-500/30 text-blue-300' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200'"
+                  >
+                    <Sparkles :size="14" />
+                    <span class="whitespace-nowrap">{{ form.mood && toneMap[form.mood] ? toneMap[form.mood].emoji + ' ' + toneMap[form.mood].label : '语气' }}</span>
+                  </button>
+
+                  <!-- Expanded: emoji row -->
+                  <div v-else class="flex items-center gap-0.5 px-1 py-1 rounded-full bg-white/5 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                    <button
+                      v-for="(tone, key) in toneMap"
+                      :key="key"
+                      class="w-8 h-8 flex items-center justify-center rounded-full transition-all hover:bg-slate-100 dark:hover:bg-white/10 active:scale-90"
+                      :class="form.mood === key ? 'bg-blue-100 dark:bg-blue-500/20 ring-1 ring-blue-400/40 scale-110' : 'opacity-60 hover:opacity-100'"
+                      :title="tone.label + ' — ' + tone.desc"
+                      @click="form.mood = form.mood === key ? '' : key"
+                    >
+                      <span class="text-sm">{{ tone.emoji }}</span>
+                    </button>
+                    <button 
+                      @click="showTonePanel = false"
+                      class="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-all ml-0.5"
+                    >
+                      <X :size="12" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Publish Button -->
+              <div class="flex items-center gap-3">
+                <button 
+                  v-if="offlineQueueCount > 0 || !isOnline" 
+                  class="p-3 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all group/archive"
+                  @click="openOfflineBox"
+                  :title="isOnline ? '查看离线暂存箱' : '网络已断开，留言将暂存'"
+                >
+                  <div class="relative">
+                    <Archive :size="18" :class="{ 'animate-bounce': !isOnline && offlineQueueCount > 0 }" />
+                    <span v-if="offlineQueueCount > 0" class="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                  </div>
+                </button>
+                
+                <button 
+                  class="px-6 py-2.5 rounded-xl font-bold text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
+                  :class="isOnline ? 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white' : 'bg-slate-800 text-slate-400 border border-white/5'"
+                  :disabled="publishing"
+                  @click="publishMessage"
+                >
+                  <Loader2 v-if="publishing" class="animate-spin" :size="16" />
+                  <Send v-else :size="16" />
+                  <span class="whitespace-nowrap">{{ publishing ? '发射中' : (isOnline ? '投入树洞' : '封存胶囊') }}</span>
                 </button>
               </div>
-            </div>
-
-            <div class="flex items-center gap-3">
-              <button 
-                v-if="offlineQueueCount > 0 || !isOnline" 
-                class="p-3 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all group/archive"
-                @click="openOfflineBox"
-                :title="isOnline ? '查看离线暂存箱' : '网络已断开，留言将暂存'"
-              >
-                <div class="relative">
-                  <Archive :size="18" :class="{ 'animate-bounce': !isOnline && offlineQueueCount > 0 }" />
-                  <span v-if="offlineQueueCount > 0" class="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
-                </div>
-              </button>
-              
-              <button 
-                class="flex-1 sm:flex-none px-6 py-3 rounded-xl font-bold text-sm tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
-                :class="isOnline ? 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white' : 'bg-slate-800 text-slate-400 border border-white/5'"
-                :disabled="publishing"
-                @click="publishMessage"
-              >
-                <Loader2 v-if="publishing" class="animate-spin" :size="16" />
-                <Send v-else :size="16" />
-                <span class="whitespace-nowrap">{{ publishing ? '发射中' : (isOnline ? '投入树洞' : '封存胶囊') }}</span>
-              </button>
             </div>
           </div>
 
@@ -264,12 +289,12 @@
 
       <!-- Active Tag Banner -->
       <Transition name="page">
-        <div v-if="activeTag" class="flex items-center justify-between px-6 py-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+        <div v-if="activeTag" class="flex items-center justify-between px-6 py-4 rounded-2xl bg-blue-50/80 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 shadow-sm backdrop-blur-md">
           <div class="flex items-center gap-2">
-            <Hash :size="16" class="text-blue-400" />
-            <span class="text-sm font-medium text-blue-100">正在查看话题: {{ activeTag }}</span>
+            <Hash :size="16" class="text-blue-500 dark:text-blue-400" />
+            <span class="text-sm font-medium text-slate-700 dark:text-blue-100">正在查看话题: <span class="text-blue-600 dark:text-blue-300 font-bold">{{ activeTag }}</span></span>
           </div>
-          <button @click="clearTagFilter" class="text-xs text-blue-400 hover:underline">返回全域</button>
+          <button @click="clearTagFilter" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors">返回全域</button>
         </div>
       </Transition>
 
@@ -464,8 +489,8 @@
             <div class="space-y-3">
               <label class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase px-1">恢复密钥 / Recovery Key</label>
               <div v-if="recoveryKey" class="group relative flex items-center gap-2 p-5 bg-blue-500/5 rounded-2xl border border-blue-500/10 font-mono text-sm text-blue-600 transition-all hover:bg-blue-500/10">
-                <span class="truncate flex-1">{{ recoveryKey }}</span>
-                <button @click="copyKey" class="p-2 hover:bg-blue-500/20 rounded-xl transition-all active:scale-90 text-blue-500">
+                <span class="truncate flex-1 min-w-0 select-all">{{ recoveryKey }}</span>
+                <button @click="copyKey" class="p-2 hover:bg-blue-500/20 rounded-xl transition-all active:scale-90 text-blue-500 relative z-10 cursor-pointer flex-shrink-0">
                   <Copy :size="16" />
                 </button>
               </div>
@@ -501,9 +526,13 @@
           
           <div class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex gap-3 items-start relative z-10">
             <ShieldAlert class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <p class="text-[9px] text-amber-600/80 leading-relaxed font-medium">
-              密钥丢失后无法找回。请务必妥善保管您的唯一凭证，切勿泄露给第三方。
-            </p>
+            <div class="space-y-1.5 text-[10px] text-amber-600/80 leading-relaxed font-medium">
+              <p class="font-bold text-amber-600">密钥是您穿越树洞的唯一凭证，丢失后无法找回。</p>
+              <ul class="list-disc pl-3 space-y-0.5 opacity-90">
+                <li><span class="font-bold">可恢复（云端记录）：</span>身份标识、发布记录、历史互动、删除权限、漂流瓶记录。</li>
+                <li><span class="font-bold">不可恢复（本地缓存）：</span>能量余额与已购商品、离线暂存草稿、当前的匿名昵称与主题偏好。</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
@@ -778,7 +807,22 @@ const pwdForm = reactive({ oldPassword: '', newPassword: '' })
 
 // ── Form ──
 const form = reactive({ authorAlias: '', content: '', mood: '', theme: 'default' })
-const moodMap = { '开心': '😄', '难过': '😢', '愤怒': '😡', '平静': '😌', '迷茫': '🤔' }
+const showTonePanel = ref(false)
+const toneSelectorRef = ref(null)
+
+const handleClickOutside = (e) => {
+  if (showTonePanel.value && toneSelectorRef.value && !toneSelectorRef.value.contains(e.target)) {
+    showTonePanel.value = false
+  }
+}
+
+const toneMap = {
+  'whisper': { emoji: '🤫', label: '悄悄话', desc: '文字变淡，悬停才显现' },
+  'shout':   { emoji: '📢', label: '大声说', desc: '文字加粗放大' },
+  'dream':   { emoji: '💤', label: '梦话', desc: '模糊飘忽，像在梦境中' },
+  'glitch':  { emoji: '👾', label: '电波', desc: '赛博毛刺动画' },
+  'poetic':  { emoji: '🌙', label: '诗意', desc: '衬线体、加大行距' }
+}
 
 // ── Image Upload ──
 const imageFile = ref(null)
@@ -855,10 +899,37 @@ const handleBackup = async () => { try { const res = await backupIdentity(); rec
 const handleRestore = async () => {
   try {
     const res = await restoreIdentity(inputKey.value)
-    if (res.code === 200) { localStorage.setItem('treehole_identity', JSON.stringify({ userId: res.data, createdAt: Date.now() })); ElMessage.success('身份还原成功'); setTimeout(() => window.location.reload(), 1500) }
+    if (res.code === 0 || res.code === 200) { 
+      localStorage.setItem('treehole_identity', JSON.stringify({ userId: res.data, createdAt: Date.now() }))
+      ElMessage.success('身份还原成功，正在重载...')
+      setTimeout(() => window.location.reload(), 1500) 
+    }
   } catch {}
 }
-const copyKey = () => { navigator.clipboard.writeText(recoveryKey.value); ElMessage.success('已复制') }
+const copyKey = () => {
+  const text = recoveryKey.value
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text)
+      .then(() => ElMessage.success('已复制'))
+      .catch(() => ElMessage.error('复制失败'))
+  } else {
+    const textArea = document.createElement("textarea")
+    textArea.value = text
+    textArea.style.position = "fixed"
+    textArea.style.opacity = "0"
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+    const successful = document.execCommand("copy")
+    textArea.remove()
+    
+    if (successful) {
+      ElMessage.success('已复制')
+    } else {
+      ElMessage.error('复制失败')
+    }
+  }
+}
 
 // ── Drift Bottle ──
 const bottleVisible = ref(false)
@@ -1133,6 +1204,8 @@ const { connect: connectWS, disconnect: disconnectWS } = useWebSocket({
 
 // ── Lifecycle ──
 onMounted(() => {
+  window.addEventListener('click', handleClickOutside)
+  appStore.init() 
   offlineQueue.init() 
   checkMobile()
   window.addEventListener('resize', checkMobile)
@@ -1160,6 +1233,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('click', handleClickOutside)
   disconnectWS()
   if (themeObserver) themeObserver.disconnect()
   window.removeEventListener('resize', checkMobile)

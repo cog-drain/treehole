@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM crpi-onmxp6b3ekynwo40.cn-shenzhen.personal.cr.aliyuncs.com/stale-sewer/maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
 # 先复制 pom.xml 单独下载依赖，利用 Docker 层缓存
@@ -29,7 +29,7 @@ RUN mvn clean package -DskipTests -s /root/.m2/settings.xml -q && \
     rm target/*-original.jar || true
 
 # Stage 2: Run — 使用 JRE 而非 JDK，镜像更小
-FROM eclipse-temurin:17-jre-alpine
+FROM crpi-onmxp6b3ekynwo40.cn-shenzhen.personal.cr.aliyuncs.com/stale-sewer/eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # 1. 替换 Alpine 软件源（加速运行环境下的包安装）

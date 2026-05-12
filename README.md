@@ -2,22 +2,35 @@
 
 [中文](README.md) | [English](README.en.md)
 
-一个匿名表达与互动平台，包含留言树洞、评论楼中楼、漂流瓶、实时回响（WebSocket）和 AI 相关能力。
+一个沉浸式的匿名表达与互动平台。在这里，你的秘密很安全。项目包含丰富的社交互动机制、实时双向通信以及基于 AI 的内容整理能力。
 
-## 项目结构
+## ✨ 核心功能 (Core Features)
 
-- `backend/`: Spring Boot 3 + MyBatis-Plus + WebSocket
-- `frontend/`: Vue 3 + Vite + Pinia
+- **🌳 匿名树洞 & 楼中楼**：极简的发布体验，支持图片、语音留言，以及多层级回复。
+- **🎨 语气模式 (Tone Modes)**：打破单调的文字，支持「悄悄话、大声说、梦话、电波、诗意」5 种特殊渲染效果，情绪传达更生动。
+- **🌊 赛博漂流瓶**：扔出你的心事，或者捞起陌生人的瞬间。
+- **🤖 AI 智能标签**：基于大语言模型的语义分析，自动提取留言标签并归类，支持热门共鸣墙。
+- **🛡️ 身份与安全机制**：
+  - **身份备份与恢复**：通过唯一恢复密钥，在不同设备间无缝同步云端身份与记录。
+  - **防御性频控策略**：基于 Redis 的 `ID + IP` 双重高并发限流（发帖 10 秒冷却，评论 5 秒冷却），彻底杜绝脚本换号刷屏。
+  - **内容硬拦截**：严格的留言（1000字）与评论（500字）长度拦截，防止恶意长文本耗尽服务器内存及 AI 计费 Token。
+- **⚡ 实时回响**：基于 WebSocket 的全双工通信，点赞、评论、新留言实时推送到客户端。
+- **🧘 边缘体验增强**：断网离线暂存箱（网络恢复后自动重发）、专注禅定模式（白噪音+沉浸式阅读）。
+
+## 📂 项目结构
+
+- `backend/`: Spring Boot 3 + MyBatis-Plus + WebSocket + Redis
+- `frontend/`: Vue 3 + Vite + Pinia + Tailwind CSS
 - `database/`: 数据库初始化与测试数据脚本
 - `storage/`: 运行时上传与日志目录
-- `compose.yml`: Docker 一键编排（db/backend/frontend）
+- `compose.yml`: Docker 一键编排（db/backend/frontend/redis）
 
-## 技术栈
+## 🛠 技术栈
 
-- Backend: Java 17, Spring Boot 3, MyBatis-Plus
-- Frontend: Vue 3, Vite, Element Plus, Tailwind CSS
-- Database: MariaDB 11（兼容 MySQL 语法）
-- Realtime: WebSocket
+- **Backend**: Java 17, Spring Boot 3, MyBatis-Plus, Spring Data Redis
+- **Frontend**: Vue 3, Vite, Element Plus, Tailwind CSS, Pinia, Lucide Icons
+- **Database & Cache**: MariaDB 11, Redis 7
+- **Realtime**: WebSocket
 
 ## 快速启动（Docker，推荐）
 
@@ -35,6 +48,7 @@ AI_API_KEY=your_api_key
 FRONTEND_PORT=443
 BACKEND_PORT=24191
 DB_PORT=3306
+REDIS_PORT=6379
 ```
 
 ### 2. 启动服务
@@ -55,6 +69,24 @@ docker compose up -d --build
 docker compose ps
 docker compose logs -f backend
 docker compose logs -f db
+docker compose logs -f redis
+```
+
+### 5. 缓存演示验证
+
+启动后可用下面这组命令快速演示 Redis 缓存已生效：
+
+```bash
+# 先访问一次热门标签、留言列表或图谱接口，触发缓存写入
+curl -k https://127.0.0.1/api/tags/trending?limit=5
+curl -k 'https://127.0.0.1/api/messages?pageNum=1&pageSize=5'
+curl -k https://127.0.0.1/api/graph/data
+
+# 查看 Redis 中的缓存键
+docker compose exec redis redis-cli KEYS 'treehole::*'
+
+# 查看缓存剩余 TTL（示例）
+docker compose exec redis redis-cli TTL 'treehole::graphData::latest'
 ```
 
 ## 测试数据导入
@@ -168,6 +200,9 @@ docker compose down
 
 # 仅重建后端
 docker compose up -d --build backend
+
+# 启动缓存演示所需服务
+docker compose up -d --build redis backend frontend
 
 # 仅重启前端
 docker compose restart frontend

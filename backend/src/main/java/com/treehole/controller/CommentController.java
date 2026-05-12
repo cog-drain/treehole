@@ -54,8 +54,11 @@ public class CommentController {
 
     @Operation(summary = "评论回响", description = "发送 Emoji 回响")
     @PostMapping("/{id}/reactions")
-    public Result<Void> react(@PathVariable Long id, @RequestParam String emoji) {
-        commentService.react(id, emoji);
+    public Result<Void> react(@PathVariable Long id, @RequestParam String emoji,
+                              @RequestHeader(value = "X-User-Id", required = false) String userId,
+                              @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String finalUserId = extractUserId(userId, authorization);
+        commentService.react(id, emoji, finalUserId);
         return Result.success();
     }
 

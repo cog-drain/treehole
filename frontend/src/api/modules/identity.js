@@ -3,9 +3,9 @@ import request from '../request'
 export const identityApi = {
   // --- 用户身份 (Identity) ---
   // 备份身份
-  backup: () => request.get('/identity/backup'),
+  backup: () => request.get('/user/backup'),
   // 恢复身份
-  restore: (key) => request.post('/identity/restore', { key }),
+  restore: (recoveryKey) => request.post('/user/restore', { recoveryKey }),
 
   // --- 管理员 (Admin) ---
   // 登录

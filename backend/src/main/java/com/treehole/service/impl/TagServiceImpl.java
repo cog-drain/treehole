@@ -7,8 +7,10 @@ import com.treehole.entity.MessageTag;
 import com.treehole.entity.Tag;
 import com.treehole.mapper.MessageTagMapper;
 import com.treehole.mapper.TagMapper;
+import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.TagService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ import java.util.regex.Pattern;
 public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagService {
 
     private final MessageTagMapper messageTagMapper;
+    private final CacheInvalidationService cacheInvalidationService;
 
     // 匹配 # 后接非空白字符和#的正则
     private static final Pattern HASHTAG_PATTERN = Pattern.compile("#([^\\s#]+)");
@@ -67,6 +70,8 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
             // 保存关联关系
             messageTagMapper.insert(new MessageTag(messageId, existingTag.getId()));
         }
+
+        cacheInvalidationService.evictMessageStructureCaches();
     }
 
     @Override
@@ -88,9 +93,11 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
 
         // 删除关联记录
         messageTagMapper.delete(mtWrapper);
+        cacheInvalidationService.evictMessageStructureCaches();
     }
 
     @Override
+    @Cacheable(cacheNames = "trendingTags", key = "#limit")
     public List<Tag> getTrendingTags(int limit) {
         LambdaQueryWrapper<Tag> wrapper = new LambdaQueryWrapper<>();
         wrapper.gt(Tag::getUsageCount, 0); // 只查使用次数 > 0 的

@@ -37,6 +37,7 @@ public interface CommentService extends IService<Comment> {
      * 更新评论表情回响
      * @param id 评论ID
      * @param emoji 表情符号
+     * @param userId 用户身份标识
      */
-    void react(Long id, String emoji);
+    void react(Long id, String emoji, String userId);
 }

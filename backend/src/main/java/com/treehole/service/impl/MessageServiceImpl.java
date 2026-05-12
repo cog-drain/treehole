@@ -11,6 +11,7 @@ import com.treehole.entity.Comment;
 import com.treehole.entity.Message;
 import com.treehole.mapper.CommentMapper;
 import com.treehole.mapper.MessageMapper;
+import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.MessageService;
 import com.treehole.service.TagService;
 import com.treehole.service.AIService;
@@ -19,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.treehole.websocket.WebSocketServer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,12 +41,39 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private final TagService tagService;
     private final AIService aiService;
     private final ObjectMapper objectMapper;
+    private final CacheInvalidationService cacheInvalidationService;
+    private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
 
     @Override
     public Map<String, Object> publish(Message message, String userId) {
         if (userId == null || userId.isBlank()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "身份标识不能为空");
         }
+
+        // 安全校验：字数与昵称长度限制
+        if (message.getContent() == null || message.getContent().length() > 1000) {
+            throw new BusinessException(ErrorCode.CONTENT_TOO_LONG, "内容超出了树洞的承载范围 (最多1000字)");
+        }
+        if (message.getAuthorAlias() != null && message.getAuthorAlias().length() > 20) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "昵称太长啦 (最多20字)");
+        }
+
+        // 发帖频率限流：同一用户 10 秒内只能发一条
+        String rateKey = "treehole:rate:msg:id:" + userId;
+        Boolean isAllowed = stringRedisTemplate.opsForValue().setIfAbsent(rateKey, "1", java.time.Duration.ofSeconds(10));
+        if (Boolean.FALSE.equals(isAllowed)) {
+            throw new BusinessException(ErrorCode.FREQ_LIMIT, "发帖太频繁啦，请休息片刻 (10秒冷却)");
+        }
+
+        // IP 双重限流：同一 IP 10 秒内只能发一条 (防刷)
+        if (message.getIpAddress() != null && !message.getIpAddress().isBlank()) {
+            String ipRateKey = "treehole:rate:msg:ip:" + message.getIpAddress();
+            Boolean ipAllowed = stringRedisTemplate.opsForValue().setIfAbsent(ipRateKey, "1", java.time.Duration.ofSeconds(10));
+            if (Boolean.FALSE.equals(ipAllowed)) {
+                throw new BusinessException(ErrorCode.FREQ_LIMIT, "该 IP 发帖太频繁，请稍后再试");
+            }
+        }
+
         message.setUserId(userId);
 
         // --- AI 语义自动化：生成自动标签 ---
@@ -52,7 +81,13 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         List<String> aiTags = aiService.generateTags(message.getContent());
         if (!aiTags.isEmpty()) {
             String tagString = String.join(" ", aiTags);
-            message.setContent(message.getContent() + "\n\n" + tagString);
+            String contentStr = message.getContent().trim();
+            // 如果用户最后一段话已经是标签了，直接用空格拼接在同一行
+            if (contentStr.matches("(?s).*#[^\\s]+$")) {
+                message.setContent(contentStr + " " + tagString);
+            } else {
+                message.setContent(contentStr + "\n\n" + tagString);
+            }
         }
 
         if (message.getLikes() == null) {
@@ -67,6 +102,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         this.save(message);
         tagService.extractAndSaveTags(message.getId(), message.getContent());
+        cacheInvalidationService.evictMessageStructureCaches();
 
         // 核心：通过 WebSocket 广播新留言
         try {
@@ -103,6 +139,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 this.update(new LambdaUpdateWrapper<Message>()
                     .eq(Message::getId, message.getId())
                     .setSql("comment_count = comment_count + 1"));
+                cacheInvalidationService.evictCommentAndMessageListCaches();
 
                 // 通过 WebSocket 广播这条“温暖的回响”
                 Map<String, Object> commentData = new HashMap<>();
@@ -122,6 +159,10 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
+    @Cacheable(
+            cacheNames = "messagePage",
+            key = "T(String).format('%d:%d:%s', #pageNum, #pageSize, #viewerId == null ? '' : #viewerId)"
+    )
     public IPage<Message> listByPage(int pageNum, int pageSize, String viewerId) {
         Page<Message> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Message> wrapper = new LambdaQueryWrapper<>();
@@ -132,6 +173,10 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
+    @Cacheable(
+            cacheNames = "messageTagPage",
+            key = "T(String).format('%s:%d:%d:%s', #tagName, #pageNum, #pageSize, #viewerId == null ? '' : #viewerId)"
+    )
     public IPage<Message> listByTag(String tagName, int pageNum, int pageSize, String viewerId) {
         Page<Message> page = new Page<>(pageNum, pageSize);
         
@@ -196,6 +241,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         wrapper.eq(Message::getId, id)
                .setSql("likes = likes + 1");
         this.update(wrapper);
+        cacheInvalidationService.evictMessageListCaches();
     }
 
     @Override
@@ -216,11 +262,17 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         tagService.decrementTagsForMessage(id);
         this.removeById(id);
+        cacheInvalidationService.evictMessageStructureCaches();
+        cacheInvalidationService.evictCommentCaches();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void react(Long id, String emoji) {
+    public void react(Long id, String emoji, String userId) {
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+
         Message message = this.getById(id);
         if (message == null) return;
 
@@ -234,21 +286,41 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             log.error("Parse reactions error: {}", e.getMessage());
         }
 
-        reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
+        String redisKey = "treehole:react:msg:" + id;
+        
+        synchronized (("msg_react_" + id).intern()) {
+            Object oldEmojiObj = stringRedisTemplate.opsForHash().get(redisKey, userId);
+            String oldEmoji = oldEmojiObj != null ? oldEmojiObj.toString() : null;
 
-        try {
-            String json = objectMapper.writeValueAsString(reactionMap);
-            this.update(new LambdaUpdateWrapper<Message>()
-                .eq(Message::getId, id)
-                .set(Message::getReactions, json));
-            
-            // WebSocket 广播表情更新
-            Map<String, Object> broadcastData = new HashMap<>();
-            broadcastData.put("type", "REACTION_UPDATE");
-            broadcastData.put("data", Map.of("messageId", id, "reactions", json));
-            WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
-        } catch (Exception e) {
-            log.error("Save reactions error: {}", e.getMessage());
+            if (oldEmoji != null) {
+                reactionMap.put(oldEmoji, Math.max(0, reactionMap.getOrDefault(oldEmoji, 0) - 1));
+                if (reactionMap.get(oldEmoji) == 0) reactionMap.remove(oldEmoji);
+            }
+
+            if (emoji.equals(oldEmoji)) {
+                // withdraw
+                stringRedisTemplate.opsForHash().delete(redisKey, userId);
+            } else {
+                // add or change
+                reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
+                stringRedisTemplate.opsForHash().put(redisKey, userId, emoji);
+            }
+
+            try {
+                String json = objectMapper.writeValueAsString(reactionMap);
+                this.update(new LambdaUpdateWrapper<Message>()
+                    .eq(Message::getId, id)
+                    .set(Message::getReactions, json));
+                cacheInvalidationService.evictMessageListCaches();
+                
+                // WebSocket 广播表情更新
+                Map<String, Object> broadcastData = new HashMap<>();
+                broadcastData.put("type", "REACTION_UPDATE");
+                broadcastData.put("data", Map.of("messageId", id, "reactions", json));
+                WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
+            } catch (Exception e) {
+                log.error("Save reactions error: {}", e.getMessage());
+            }
         }
     }
 }

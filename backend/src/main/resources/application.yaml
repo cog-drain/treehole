@@ -4,6 +4,14 @@ spring:
     active: dev
   application:
     name: treehole-backend
+  cache:
+    type: redis
+    cache-names:
+      - messagePage
+      - messageTagPage
+      - trendingTags
+      - graphData
+      - commentList
   sql:
     init:
       mode: never # 禁止启动时自动执行 SQL 脚本（防止 DROP TABLE）

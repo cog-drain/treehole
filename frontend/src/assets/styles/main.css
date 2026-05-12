@@ -7,12 +7,24 @@
 
 :root {
   color-scheme: light;
-  --color-bg: #e2e8f0; /* 稍微压深背景以突出白色卡片 */
+  --color-bg: #e2e8f0;
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
   --color-card-bg: rgba(255, 255, 255, 0.8);
-  --color-border: rgba(0, 0, 0, 0.05); /* 切换为深色描边以产生切割感 */
+  --color-border: rgba(0, 0, 0, 0.05);
   --glass-blur: 12px;
+  /* Comment Section */
+  --cmt-accent: #3b82f6;
+  --cmt-hover-bg: rgba(0, 0, 0, 0.03);
+  --cmt-pill-bg: rgba(0, 0, 0, 0.03);
+  --cmt-pill-hover: rgba(0, 0, 0, 0.06);
+  --cmt-collapsed-line: #cbd5e1;
+  /* Thread line depth colors */
+  --thread-color-0: #3b82f6;
+  --thread-color-1: #8b5cf6;
+  --thread-color-2: #06b6d4;
+  --thread-color-3: #f59e0b;
+  --thread-color-4: #ef4444;
 }
 
 .dark {
@@ -23,6 +35,18 @@
   --color-card-bg: rgba(255, 255, 255, 0.07);
   --color-border: rgba(255, 255, 255, 0.15);
   --glass-blur: 40px;
+  /* Comment Section */
+  --cmt-accent: #60a5fa;
+  --cmt-hover-bg: rgba(255, 255, 255, 0.04);
+  --cmt-pill-bg: rgba(255, 255, 255, 0.05);
+  --cmt-pill-hover: rgba(255, 255, 255, 0.1);
+  --cmt-collapsed-line: rgba(255, 255, 255, 0.12);
+  /* Thread line depth colors */
+  --thread-color-0: #60a5fa;
+  --thread-color-1: #a78bfa;
+  --thread-color-2: #22d3ee;
+  --thread-color-3: #fbbf24;
+  --thread-color-4: #f87171;
 }
 
 body {
@@ -421,4 +445,38 @@ body {
 .dark .observer-notification {
   background: rgba(0, 0, 0, 0.7) !important;
   box-shadow: 0 0 30px rgba(34, 197, 94, 0.1);
+}
+
+/* ── Reaction Popover (Global, used in MessageCard + CommentItem) ── */
+.reaction-popover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  padding: 4px !important;
+}
+
+.dark .reaction-popover {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+.reaction-popover .el-popover__title {
+  display: none !important;
+}
+
+/* Also style the existing cyber-popover used in CommentItem */
+.cyber-popover {
+  background: rgba(15, 23, 42, 0.9) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4) !important;
+  padding: 4px !important;
 }

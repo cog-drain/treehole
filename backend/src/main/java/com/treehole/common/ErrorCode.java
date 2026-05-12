@@ -30,7 +30,8 @@ public enum ErrorCode {
     // 互动类
     ALREADY_REACTED(3001, "你已经对此产生过回响了"),
     BOTTLE_NOT_FOUND(3002, "这个瓶子已经漂向深海，找不到了"),
-    BOTTLE_PICK_LIMIT(3003, "今日打捞次数已达上限");
+    BOTTLE_PICK_LIMIT(3003, "今日打捞次数已达上限"),
+    FREQ_LIMIT(3004, "操作太频繁啦，请休息片刻");
 
     private final int code;
     private final String message;
