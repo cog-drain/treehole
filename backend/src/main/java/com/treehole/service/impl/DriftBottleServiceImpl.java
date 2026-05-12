@@ -8,11 +8,13 @@ import com.treehole.common.ErrorCode;
 import com.treehole.entity.DriftBottle;
 import com.treehole.mapper.DriftBottleMapper;
 import com.treehole.service.DriftBottleService;
+import com.treehole.service.RedisRealtimeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 /**
  * 漂流瓶 Service 实现类 (Local Identity 模型)
@@ -20,6 +22,8 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, DriftBottle> implements DriftBottleService {
+
+    private final RedisRealtimeService redisRealtimeService;
 
     @Override
     @Transactional
@@ -30,6 +34,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
         bottle.setUserId(userId);
         bottle.setState(0); // 漂流中
         this.save(bottle);
+        redisRealtimeService.addBottleToPool(bottle.getId());
     }
 
     @Override
@@ -41,34 +46,75 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
         
         // 1. 自动回收：释放超过 5 分钟未处理的“僵尸瓶”
         LocalDateTime timeout = LocalDateTime.now().minusMinutes(5);
+        java.util.List<DriftBottle> staleBottles = this.list(new LambdaQueryWrapper<DriftBottle>()
+                .eq(DriftBottle::getState, 1)
+                .lt(DriftBottle::getUpdateTime, timeout));
         LambdaUpdateWrapper<DriftBottle> reclaim = new LambdaUpdateWrapper<>();
         reclaim.eq(DriftBottle::getState, 1)
                .lt(DriftBottle::getUpdateTime, timeout) // 使用更新时间判定超时，确保打捞后有充足的回复时间
                .set(DriftBottle::getState, 0)
                .set(DriftBottle::getPickerId, null);
         this.update(reclaim);
+        staleBottles.forEach(b -> redisRealtimeService.addBottleToPool(b.getId()));
 
-        // 2. 随机捞一个不属于自己且在海里的瓶子，且避开刚被自己扔掉的
+        // 2. 优先从 Redis 候选池随机抽样，避免数据库 ORDER BY RAND() 成为热路径
+        DriftBottle bottle = pickFromRedisPool(userId);
+        if (bottle != null) {
+            return bottle;
+        }
+
+        // 3. 兜底：池为空或池中候选都无效时，回退数据库随机查询并修复 Redis 池
         LambdaQueryWrapper<DriftBottle> query = new LambdaQueryWrapper<>();
         query.eq(DriftBottle::getState, 0)
              .ne(DriftBottle::getUserId, userId)
              .and(w -> w.ne(DriftBottle::getLastPickerId, userId).or().isNull(DriftBottle::getLastPickerId))
              .last("ORDER BY RAND() LIMIT 1");
         
-        DriftBottle bottle = this.getOne(query);
+        bottle = this.getOne(query);
         if (bottle != null) {
-            // 精准更新，不触碰 content 字段，防止因映射问题导致内容被擦除
-            LambdaUpdateWrapper<DriftBottle> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(DriftBottle::getId, bottle.getId())
-                         .set(DriftBottle::getState, 1)
-                         .set(DriftBottle::getPickerId, userId);
-            this.update(updateWrapper);
-            
-            // 同步更新本地对象的内存状态返回给前端
-            bottle.setState(1);
-            bottle.setPickerId(userId);
+            reserveBottle(bottle, userId);
         }
         return bottle;
+    }
+
+    private DriftBottle pickFromRedisPool(String userId) {
+        Set<String> candidates = redisRealtimeService.sampleBottleIds(10);
+        if (candidates == null || candidates.isEmpty()) return null;
+
+        for (String candidate : candidates) {
+            Long bottleId;
+            try {
+                bottleId = Long.valueOf(candidate);
+            } catch (NumberFormatException e) {
+                continue;
+            }
+
+            DriftBottle bottle = this.getById(bottleId);
+            if (bottle == null || bottle.getState() == null || bottle.getState() != 0) {
+                redisRealtimeService.removeBottleFromPool(bottleId);
+                continue;
+            }
+            if (userId.equals(bottle.getUserId()) || userId.equals(bottle.getLastPickerId())) {
+                continue;
+            }
+
+            reserveBottle(bottle, userId);
+            return bottle;
+        }
+        return null;
+    }
+
+    private void reserveBottle(DriftBottle bottle, String userId) {
+        LambdaUpdateWrapper<DriftBottle> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(DriftBottle::getId, bottle.getId())
+                     .eq(DriftBottle::getState, 0)
+                     .set(DriftBottle::getState, 1)
+                     .set(DriftBottle::getPickerId, userId);
+        this.update(updateWrapper);
+        redisRealtimeService.removeBottleFromPool(bottle.getId());
+
+        bottle.setState(1);
+        bottle.setPickerId(userId);
     }
 
     @Override
@@ -87,6 +133,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
         bottle.setReplyTime(LocalDateTime.now());
         bottle.setState(2); // 已归还/完成
         this.updateById(bottle);
+        redisRealtimeService.removeBottleFromPool(id);
 
         // 实时通知原作者
         try {
@@ -112,6 +159,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
         bottle.setPickerId(null);
         bottle.setLastPickerId(userId); // 标记此用户已看过并放回
         this.updateById(bottle);
+        redisRealtimeService.addBottleToPool(id);
     }
 
     @Override

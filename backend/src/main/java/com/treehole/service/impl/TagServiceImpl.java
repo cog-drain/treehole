@@ -8,6 +8,7 @@ import com.treehole.entity.Tag;
 import com.treehole.mapper.MessageTagMapper;
 import com.treehole.mapper.TagMapper;
 import com.treehole.service.CacheInvalidationService;
+import com.treehole.service.RedisRealtimeService;
 import com.treehole.service.TagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -26,6 +27,7 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
 
     private final MessageTagMapper messageTagMapper;
     private final CacheInvalidationService cacheInvalidationService;
+    private final RedisRealtimeService redisRealtimeService;
 
     // 匹配 # 后接非空白字符和#的正则
     private static final Pattern HASHTAG_PATTERN = Pattern.compile("#([^\\s#]+)");
@@ -69,6 +71,7 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
 
             // 保存关联关系
             messageTagMapper.insert(new MessageTag(messageId, existingTag.getId()));
+            redisRealtimeService.incrementTagRank(tagName, 1);
         }
 
         cacheInvalidationService.evictMessageStructureCaches();
@@ -89,6 +92,8 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
                      .gt(Tag::getUsageCount, 0)
                      .setSql("usage_count = usage_count - 1");
             this.update(tagUpdate);
+            Tag tag = this.getById(mt.getTagId());
+            if (tag != null) redisRealtimeService.incrementTagRank(tag.getName(), -1);
         }
 
         // 删除关联记录
@@ -103,6 +108,6 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
         wrapper.gt(Tag::getUsageCount, 0); // 只查使用次数 > 0 的
         wrapper.orderByDesc(Tag::getUsageCount);
         wrapper.last("LIMIT " + limit);
-        return this.list(wrapper);
+        return redisRealtimeService.mergeTagRank(this.list(wrapper), limit);
     }
 }

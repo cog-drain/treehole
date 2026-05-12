@@ -13,6 +13,7 @@ import com.treehole.mapper.CommentMapper;
 import com.treehole.mapper.MessageMapper;
 import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.MessageService;
+import com.treehole.service.RedisRealtimeService;
 import com.treehole.service.TagService;
 import com.treehole.service.AIService;
 import com.treehole.entity.Tag;
@@ -42,6 +43,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private final AIService aiService;
     private final ObjectMapper objectMapper;
     private final CacheInvalidationService cacheInvalidationService;
+    private final RedisRealtimeService redisRealtimeService;
     private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
 
     @Override
@@ -102,6 +104,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         this.save(message);
         tagService.extractAndSaveTags(message.getId(), message.getContent());
+        redisRealtimeService.incrementMessageRank(message.getId(), 5);
         cacheInvalidationService.evictMessageStructureCaches();
 
         // 核心：通过 WebSocket 广播新留言
@@ -139,6 +142,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 this.update(new LambdaUpdateWrapper<Message>()
                     .eq(Message::getId, message.getId())
                     .setSql("comment_count = comment_count + 1"));
+                redisRealtimeService.incrementMessageRank(message.getId(), 3);
                 cacheInvalidationService.evictCommentAndMessageListCaches();
 
                 // 通过 WebSocket 广播这条“温暖的回响”
@@ -241,6 +245,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         wrapper.eq(Message::getId, id)
                .setSql("likes = likes + 1");
         this.update(wrapper);
+        redisRealtimeService.incrementMessageRank(id, 2);
         cacheInvalidationService.evictMessageListCaches();
     }
 
@@ -262,6 +267,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         tagService.decrementTagsForMessage(id);
         this.removeById(id);
+        redisRealtimeService.removeMessageRank(id);
         cacheInvalidationService.evictMessageStructureCaches();
         cacheInvalidationService.evictCommentCaches();
     }
@@ -276,41 +282,14 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         Message message = this.getById(id);
         if (message == null) return;
 
-        Map<String, Integer> reactionMap = new HashMap<>();
-        try {
-            if (message.getReactions() != null && !message.getReactions().isBlank()) {
-                reactionMap = objectMapper.readValue(message.getReactions(), 
-                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Integer>>() {});
-            }
-        } catch (Exception e) {
-            log.error("Parse reactions error: {}", e.getMessage());
-        }
-
-        String redisKey = "treehole:react:msg:" + id;
-        
         synchronized (("msg_react_" + id).intern()) {
-            Object oldEmojiObj = stringRedisTemplate.opsForHash().get(redisKey, userId);
-            String oldEmoji = oldEmojiObj != null ? oldEmojiObj.toString() : null;
-
-            if (oldEmoji != null) {
-                reactionMap.put(oldEmoji, Math.max(0, reactionMap.getOrDefault(oldEmoji, 0) - 1));
-                if (reactionMap.get(oldEmoji) == 0) reactionMap.remove(oldEmoji);
-            }
-
-            if (emoji.equals(oldEmoji)) {
-                // withdraw
-                stringRedisTemplate.opsForHash().delete(redisKey, userId);
-            } else {
-                // add or change
-                reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
-                stringRedisTemplate.opsForHash().put(redisKey, userId, emoji);
-            }
-
             try {
-                String json = objectMapper.writeValueAsString(reactionMap);
+                Map<String, Integer> reactionMap = redisRealtimeService.updateReaction("msg", id, userId, emoji, message.getReactions());
+                String json = redisRealtimeService.toReactionJson(reactionMap);
                 this.update(new LambdaUpdateWrapper<Message>()
                     .eq(Message::getId, id)
                     .set(Message::getReactions, json));
+                redisRealtimeService.incrementMessageRank(id, 1);
                 cacheInvalidationService.evictMessageListCaches();
                 
                 // WebSocket 广播表情更新

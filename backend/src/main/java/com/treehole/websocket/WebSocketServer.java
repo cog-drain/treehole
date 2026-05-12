@@ -1,10 +1,12 @@
 package com.treehole.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.treehole.service.RedisRealtimeService;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -21,15 +23,22 @@ public class WebSocketServer {
     
     // 用户 ID -> Session 的映射
     private static final Map<String, Session> USER_SESSIONS = new ConcurrentHashMap<>();
+    private static RedisRealtimeService redisRealtimeService;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
             .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+    @Autowired
+    public void setRedisRealtimeService(RedisRealtimeService redisRealtimeService) {
+        WebSocketServer.redisRealtimeService = redisRealtimeService;
+    }
 
     @OnOpen
     public void onOpen(Session session, @PathParam("userId") String userId) {
         if (userId != null && !userId.isBlank()) {
             USER_SESSIONS.put(userId, session);
-            log.info("User {} connected, total online: {}", userId, USER_SESSIONS.size());
+            if (redisRealtimeService != null) redisRealtimeService.markUserOnline(userId);
+            log.info("User {} connected, total online: {}", userId, getOnlineCount());
         }
     }
 
@@ -37,8 +46,14 @@ public class WebSocketServer {
     public void onClose(Session session, @PathParam("userId") String userId) {
         if (userId != null) {
             USER_SESSIONS.remove(userId);
-            log.info("User {} disconnected, total online: {}", userId, USER_SESSIONS.size());
+            if (redisRealtimeService != null) redisRealtimeService.markUserOffline(userId);
+            log.info("User {} disconnected, total online: {}", userId, getOnlineCount());
         }
+    }
+
+    @OnMessage
+    public void onMessage(String message, @PathParam("userId") String userId) {
+        if (redisRealtimeService != null) redisRealtimeService.markUserOnline(userId);
     }
 
     @OnError
@@ -75,5 +90,9 @@ public class WebSocketServer {
                 }
             }
         });
+    }
+
+    public static long getOnlineCount() {
+        return redisRealtimeService == null ? USER_SESSIONS.size() : redisRealtimeService.countOnlineUsers();
     }
 }

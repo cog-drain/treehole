@@ -9,6 +9,7 @@ import com.treehole.mapper.CommentMapper;
 import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.CommentService;
 import com.treehole.service.MessageService;
+import com.treehole.service.RedisRealtimeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     private MessageService messageService;
     private final CacheInvalidationService cacheInvalidationService;
+    private final RedisRealtimeService redisRealtimeService;
     
     @Autowired
     private ObjectMapper objectMapper;
@@ -42,8 +44,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
 
-    public CommentServiceImpl(CacheInvalidationService cacheInvalidationService) {
+    public CommentServiceImpl(CacheInvalidationService cacheInvalidationService, RedisRealtimeService redisRealtimeService) {
         this.cacheInvalidationService = cacheInvalidationService;
+        this.redisRealtimeService = redisRealtimeService;
     }
 
     @Autowired
@@ -89,6 +92,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         messageService.update().setSql("comment_count = comment_count + 1")
                 .eq("id", comment.getMessageId()).update();
+        redisRealtimeService.incrementMessageRank(comment.getMessageId(), 3);
         cacheInvalidationService.evictCommentAndMessageListCaches();
 
         // 核心：广播新评论
@@ -177,6 +181,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         this.removeById(id);
         messageService.update().setSql("comment_count = CASE WHEN comment_count > 0 THEN comment_count - 1 ELSE 0 END")
                 .eq("id", comment.getMessageId()).update();
+        redisRealtimeService.incrementMessageRank(comment.getMessageId(), -3);
         cacheInvalidationService.evictCommentAndMessageListCaches();
     }
 
@@ -190,41 +195,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         Comment comment = this.getById(id);
         if (comment == null) return;
 
-        Map<String, Integer> reactionMap = new HashMap<>();
-        try {
-            if (comment.getReactions() != null && !comment.getReactions().isBlank()) {
-                reactionMap = objectMapper.readValue(comment.getReactions(), 
-                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Integer>>() {});
-            }
-        } catch (Exception e) {
-            log.error("Parse comment reactions error: {}", e.getMessage());
-        }
-
-        String redisKey = "treehole:react:cmt:" + id;
-
         synchronized (("cmt_react_" + id).intern()) {
-            Object oldEmojiObj = stringRedisTemplate.opsForHash().get(redisKey, userId);
-            String oldEmoji = oldEmojiObj != null ? oldEmojiObj.toString() : null;
-
-            if (oldEmoji != null) {
-                reactionMap.put(oldEmoji, Math.max(0, reactionMap.getOrDefault(oldEmoji, 0) - 1));
-                if (reactionMap.get(oldEmoji) == 0) reactionMap.remove(oldEmoji);
-            }
-
-            if (emoji.equals(oldEmoji)) {
-                // withdraw
-                stringRedisTemplate.opsForHash().delete(redisKey, userId);
-            } else {
-                // add or change
-                reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
-                stringRedisTemplate.opsForHash().put(redisKey, userId, emoji);
-            }
-
             try {
-                String json = objectMapper.writeValueAsString(reactionMap);
+                Map<String, Integer> reactionMap = redisRealtimeService.updateReaction("cmt", id, userId, emoji, comment.getReactions());
+                String json = redisRealtimeService.toReactionJson(reactionMap);
                 this.update(new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Comment>()
                     .eq(Comment::getId, id)
                     .set(Comment::getReactions, json));
+                redisRealtimeService.incrementMessageRank(comment.getMessageId(), 1);
                 cacheInvalidationService.evictCommentCaches();
                 
                 // WebSocket 广播评论表情更新
