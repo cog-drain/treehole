@@ -56,7 +56,13 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         List<String> aiTags = aiService.generateTags(message.getContent());
         if (!aiTags.isEmpty()) {
             String tagString = String.join(" ", aiTags);
-            message.setContent(message.getContent() + "\n\n" + tagString);
+            String contentStr = message.getContent().trim();
+            // 如果用户最后一段话已经是标签了，直接用空格拼接在同一行
+            if (contentStr.matches("(?s).*#[^\\s]+$")) {
+                message.setContent(contentStr + " " + tagString);
+            } else {
+                message.setContent(contentStr + "\n\n" + tagString);
+            }
         }
 
         if (message.getLikes() == null) {

@@ -72,7 +72,14 @@ const commentTree = computed(() => {
 })
 
 // --- Local UI State ---
-const moodMap = { '开心': '😄', '难过': '😢', '愤怒': '😡', '平静': '😌', '迷茫': '🤔' }
+const toneMap = {
+  'whisper': { emoji: '🤫', label: '悄悄话', class: 'tone-whisper' },
+  'shout':   { emoji: '📢', label: '大声说', class: 'tone-shout' },
+  'dream':   { emoji: '💤', label: '梦话', class: 'tone-dream' },
+  'glitch':  { emoji: '👾', label: '电波', class: 'tone-glitch' },
+  'poetic':  { emoji: '🌙', label: '诗意', class: 'tone-poetic' }
+}
+const toneInfo = computed(() => props.msg.mood && toneMap[props.msg.mood] ? toneMap[props.msg.mood] : null)
 function generateDiceBearAvatar(seed) {
   return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9`
 }
@@ -199,7 +206,9 @@ const safeAudioUrl = computed(() => {
         <div class="flex flex-col min-w-0">
           <div class="flex items-center gap-2">
             <span class="text-sm font-bold tracking-tight text-slate-200 truncate max-w-[120px] sm:max-w-none">{{ msg.authorAlias || '匿名用户' }}</span>
-            <span class="text-lg" v-if="msg.mood && moodMap[msg.mood]">{{ moodMap[msg.mood] }}</span>
+            <span v-if="toneInfo" class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-slate-400 flex items-center gap-0.5">
+              <span class="text-xs">{{ toneInfo.emoji }}</span>{{ toneInfo.label }}
+            </span>
           </div>
           <span class="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{{ formatTime(msg.createTime) }}</span>
         </div>
@@ -225,7 +234,7 @@ const safeAudioUrl = computed(() => {
 
     <!-- Msg Content -->
     <div class="space-y-6">
-      <div class="text-lg leading-relaxed text-slate-200/90 whitespace-pre-wrap break-words font-light">
+      <div class="text-lg leading-relaxed text-slate-200/90 whitespace-pre-wrap break-words font-light" :class="toneInfo?.class">
         <template v-for="(part, index) in parseContent(msg.content)" :key="index">
           <span v-if="part.isTag" class="text-blue-400 font-bold hover:underline cursor-pointer" @click.stop="$emit('tag-click', part.text.substring(1))">{{ part.text }}</span>
           <span v-else>{{ part.text }}</span>
@@ -393,6 +402,7 @@ const safeAudioUrl = computed(() => {
             :placeholder="replyTarget ? `回复 ${replyTarget.authorAlias}...` : '写下你的回响...'" 
             rows="1"
             @keyup.enter.ctrl="() => $emit('publish-comment', msg)"
+            @keyup.enter.meta="() => $emit('publish-comment', msg)"
           ></textarea>
         </div>
         <button 
@@ -942,5 +952,63 @@ const safeAudioUrl = computed(() => {
 .comment-send-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ── Tone Effects ── */
+
+/* 🤫 悄悄话：文字缩小、半透明，悬停显现 */
+.tone-whisper {
+  font-size: 0.85rem !important;
+  opacity: 0.45;
+  filter: blur(0.5px);
+  transition: all 0.4s ease;
+  cursor: default;
+}
+.tone-whisper:hover {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* 📢 大声说：文字加粗加大 */
+.tone-shout {
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em;
+}
+
+/* 💤 梦话：模糊飘忽，悬停聚焦 */
+.tone-dream {
+  filter: blur(1.5px);
+  opacity: 0.7;
+  font-style: italic;
+  transition: all 0.6s ease;
+}
+.tone-dream:hover {
+  filter: blur(0);
+  opacity: 1;
+}
+
+/* 👾 电波：赛博毛刺感 */
+.tone-glitch {
+  font-family: 'Courier New', monospace;
+  text-shadow: 
+    1px 0 rgba(255, 0, 80, 0.4),
+    -1px 0 rgba(0, 255, 200, 0.4);
+  animation: glitch-text 4s infinite;
+}
+@keyframes glitch-text {
+  0%, 95%, 100% { text-shadow: 1px 0 rgba(255, 0, 80, 0.4), -1px 0 rgba(0, 255, 200, 0.4); }
+  96% { text-shadow: -2px 0 rgba(255, 0, 80, 0.7), 2px 0 rgba(0, 255, 200, 0.7); transform: translateX(1px); }
+  97% { text-shadow: 2px 0 rgba(255, 0, 80, 0.7), -2px 0 rgba(0, 255, 200, 0.7); transform: translateX(-1px); }
+  98% { text-shadow: 0 0 rgba(255, 0, 80, 0.4), 0 0 rgba(0, 255, 200, 0.4); transform: translateX(0); }
+}
+
+/* 🌙 诗意：优雅衬线体 + 柔光 */
+.tone-poetic {
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  line-height: 2.2 !important;
+  text-shadow: 0 0 20px rgba(147, 130, 220, 0.15);
 }
 </style>
