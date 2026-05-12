@@ -8,12 +8,6 @@
     @touchcancel.capture="resetEdgeSwipe"
   >
     <CyberWatermark />
-    <!-- Background Ambient Glow (Logic-controlled for total reliability) -->
-    <div v-if="isDarkGlobal" class="fixed inset-0 overflow-hidden pointer-events-none transition-opacity duration-1000">
-      <div class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-blue-500/20 blur-[150px] rounded-full animate-pulse"></div>
-      <div class="absolute top-[20%] -right-[10%] w-[40%] h-[40%] bg-purple-600/15 blur-[150px] rounded-full"></div>
-    </div>
-
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-24 space-y-8 sm:space-y-12">
       <!-- ... Offline Banner ... -->
 
@@ -49,7 +43,7 @@
             <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
               <div class="flex items-center p-1.5 gap-3">
                 <button 
-                  v-for="t in filteredThemes" 
+                  v-for="t in themesList"
                   :key="t.value"
                   class="group/dot relative flex items-center justify-center transition-all duration-500"
                   @click="form.theme = t.value"
@@ -116,20 +110,20 @@
                   <button 
                     v-if="!showTonePanel"
                     @click.stop="showTonePanel = true"
-                    class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border border-white/10 text-[11px] transition-all active:scale-95"
-                    :class="form.mood ? 'bg-blue-500/15 border-blue-500/30 text-blue-300' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200'"
+                    class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border border-slate-200 text-[11px] transition-all active:scale-95"
+                    :class="form.mood ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white/70 text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
                   >
                     <Sparkles :size="14" />
                     <span class="whitespace-nowrap">{{ form.mood && toneMap[form.mood] ? toneMap[form.mood].emoji + ' ' + toneMap[form.mood].label : '语气' }}</span>
                   </button>
 
                   <!-- Expanded: emoji row -->
-                  <div v-else class="absolute left-0 bottom-full z-30 mb-2 flex max-w-[calc(100vw-3rem)] flex-wrap items-center gap-0.5 px-1 py-1 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-xl border border-slate-200 dark:border-white/10">
+                  <div v-else class="absolute left-0 bottom-full z-30 mb-2 flex max-w-[calc(100vw-3rem)] flex-wrap items-center gap-0.5 px-1 py-1 rounded-full bg-white/90 backdrop-blur-xl shadow-xl border border-slate-200">
                     <button
                       v-for="(tone, key) in toneMap"
                       :key="key"
-                      class="w-8 h-8 shrink-0 flex items-center justify-center rounded-full transition-all hover:bg-slate-100 dark:hover:bg-white/10 active:scale-90"
-                      :class="form.mood === key ? 'bg-blue-100 dark:bg-blue-500/20 ring-1 ring-blue-400/40 scale-110' : 'opacity-60 hover:opacity-100'"
+                      class="w-8 h-8 shrink-0 flex items-center justify-center rounded-full transition-all hover:bg-slate-100 active:scale-90"
+                      :class="form.mood === key ? 'bg-blue-100 ring-1 ring-blue-400/40 scale-110' : 'opacity-60 hover:opacity-100'"
                       :title="tone.label + ' — ' + tone.desc"
                       @click="form.mood = form.mood === key ? '' : key"
                     >
@@ -137,7 +131,7 @@
                     </button>
                     <button 
                       @click="showTonePanel = false"
-                      class="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-all ml-0.5"
+                      class="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all ml-0.5"
                     >
                       <X :size="12" />
                     </button>
@@ -263,7 +257,7 @@
       <div v-if="trendingTags.length > 0 && !activeTag" class="space-y-4">
         <div class="flex items-center gap-2 ml-1">
           <h3 class="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">热门共鸣</h3>
-          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/70 px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-emerald-600 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
+          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/70 px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-emerald-600">
             Redis Rank
           </span>
         </div>
@@ -293,7 +287,7 @@
             <span v-if="viewMode === m" class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
           </button>
         </div>
-        <div class="inline-flex w-full sm:w-auto items-center justify-between sm:justify-start gap-3 rounded-full border border-slate-200 bg-white/60 px-3 py-2 text-slate-500 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+        <div class="inline-flex w-full sm:w-auto items-center justify-between sm:justify-start gap-3 rounded-full border border-slate-200 bg-white/60 px-3 py-2 text-slate-500 shadow-sm backdrop-blur-xl">
           <div class="flex items-center gap-2">
             <span class="relative flex h-2.5 w-2.5">
               <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50"></span>
@@ -303,20 +297,20 @@
             <span class="text-[9px] font-bold uppercase tracking-[0.18em]">Online</span>
           </div>
           <div class="flex items-baseline gap-2">
-            <span class="font-mono text-sm font-bold text-slate-800 dark:text-white">{{ onlineCount }}</span>
-            <span class="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">Redis ZSet</span>
+            <span class="font-mono text-sm font-bold text-slate-800">{{ onlineCount }}</span>
+            <span class="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-400">Redis ZSet</span>
           </div>
         </div>
       </div>
 
       <!-- Active Tag Banner -->
       <Transition name="page">
-        <div v-if="activeTag" class="flex items-center justify-between px-6 py-4 rounded-2xl bg-blue-50/80 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 shadow-sm backdrop-blur-md">
+        <div v-if="activeTag" class="flex items-center justify-between px-6 py-4 rounded-2xl bg-blue-50/80 border border-blue-200 shadow-sm backdrop-blur-md">
           <div class="flex items-center gap-2">
-            <Hash :size="16" class="text-blue-500 dark:text-blue-400" />
-            <span class="text-sm font-medium text-slate-700 dark:text-blue-100">正在查看话题: <span class="text-blue-600 dark:text-blue-300 font-bold">{{ activeTag }}</span></span>
+            <Hash :size="16" class="text-blue-500" />
+            <span class="text-sm font-medium text-slate-700">正在查看话题: <span class="text-blue-600 font-bold">{{ activeTag }}</span></span>
           </div>
-          <button @click="clearTagFilter" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors">返回全域</button>
+          <button @click="clearTagFilter" class="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors">返回全域</button>
         </div>
       </Transition>
 
@@ -521,9 +515,9 @@
               </button>
             </div>
             <div class="relative py-2 flex items-center">
-              <div class="flex-grow border-t border-slate-200 dark:border-white/5"></div>
+              <div class="flex-grow border-t border-slate-200"></div>
               <span class="flex-shrink mx-4 text-[9px] text-slate-400 font-bold uppercase tracking-[0.3em]">OR</span>
-              <div class="flex-grow border-t border-slate-200 dark:border-white/5"></div>
+              <div class="flex-grow border-t border-slate-200"></div>
             </div>
 
             <div class="space-y-3">
@@ -532,13 +526,13 @@
                 <input 
                   v-model="inputKey" 
                   type="text" 
-                  class="flex-1 bg-black/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-400" 
+                  class="flex-1 bg-black/5 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-400"
                   placeholder="treehole-xxx" 
                 />
                 <button 
                   @click="handleRestore" 
                   :disabled="!inputKey" 
-                  class="px-6 rounded-2xl bg-slate-900 dark:bg-white/10 text-white dark:text-slate-200 font-bold text-[10px] uppercase tracking-widest hover:bg-black dark:hover:bg-white/20 transition-all disabled:opacity-30"
+                  class="px-6 rounded-2xl bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all disabled:opacity-30"
                 >
                   还原
                 </button>
@@ -907,18 +901,11 @@ function handlePaste(event) {
 
 // ── Theme System ──
 const themesList = [
-  { value: 'default', mode: 'both' },
-  { value: 'autumn', mode: 'dark' }, { value: 'starry', mode: 'dark' }, { value: 'retro', mode: 'dark' },
-  { value: 'dawn', mode: 'light' }, { value: 'sakura', mode: 'light' }, { value: 'spring', mode: 'light' }
+  { value: 'default' },
+  { value: 'dawn' },
+  { value: 'sakura' },
+  { value: 'spring' }
 ]
-const isDarkGlobal = ref(document.documentElement.classList.contains('dark'))
-const filteredThemes = computed(() => themesList.filter(t => t.mode === 'both' || (isDarkGlobal.value ? t.mode === 'dark' : t.mode === 'light')))
-
-let themeObserver = null
-
-watch(isDarkGlobal, () => {
-  if (!filteredThemes.value.some(t => t.value === form.theme)) form.theme = 'default'
-})
 
 // ── Admin State ──
 const isAdmin = ref(!!localStorage.getItem('treehole_admin_token'))
@@ -1228,7 +1215,7 @@ const loadParticles = (theme) => {
     spring: { particles: { number: { value: 12 }, color: { value: '#22c55e' }, shape: { type: 'circle' }, opacity: { value: 0.3 }, size: { value: { min: 5, max: 15 } }, move: { enable: true, speed: 1, direction: 'top', outModes: { default: 'out' } } } },
     aurora: { particles: { number: { value: 3 }, color: { value: ['#e0e7ff', '#f3e8ff', '#ecfdf5'] }, shape: { type: 'circle' }, opacity: { value: 0.25 }, size: { value: { min: 600, max: 1200 } }, move: { enable: true, speed: 0.3, direction: 'none', random: true, straight: false, outModes: { default: 'out' } } } }
   }
-  window.tsParticles.load('tsparticles', configs[theme] || (isDarkGlobal.value ? { particles: { number: { value: 0 } } } : configs.aurora))
+  window.tsParticles.load('tsparticles', configs[theme] || configs.aurora)
 }
 watch(() => form.theme, loadParticles)
 
@@ -1286,30 +1273,25 @@ onMounted(() => {
   userStore.init()
   form.authorAlias = userStore.alias
 
-  // 2. 主题观察器
-  themeObserver = new MutationObserver((muts) => muts.forEach(m => { if (m.attributeName === 'class') isDarkGlobal.value = document.documentElement.classList.contains('dark') }))
-  themeObserver.observe(document.documentElement, { attributes: true })
-
-  // 3. WebSocket
+  // 2. WebSocket
   connectWS(userStore.userId)
 
-  // 4. 数据加载
+  // 3. 数据加载
   setTimeout(() => { fetchMessages(); fetchTrending() }, 300)
   fetchOnlineStats()
   onlineStatsTimer = window.setInterval(fetchOnlineStats, 30000)
 
-  // 5. 网络状态
+  // 4. 网络状态
   window.addEventListener('online', handleOnline)
   window.addEventListener('offline', handleOffline)
 
-  // 6. 粒子
+  // 5. 粒子
   setTimeout(() => loadParticles(form.theme), 1000)
 })
 
 onUnmounted(() => {
   window.removeEventListener('click', handleClickOutside)
   disconnectWS()
-  if (themeObserver) themeObserver.disconnect()
   window.removeEventListener('resize', checkMobile)
   window.removeEventListener('online', handleOnline)
   window.removeEventListener('offline', handleOffline)

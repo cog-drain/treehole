@@ -222,11 +222,6 @@ const buyItem = (id, cost) => {
   background: rgba(99, 102, 241, 0.5);
 }
 
-:global(.dark) .store-card {
-  background: rgba(15, 23, 42, 0.8);
-  color: white;
-}
-
 .store-header {
   display: flex;
   justify-content: space-between;
@@ -289,19 +284,9 @@ const buyItem = (id, cost) => {
   color: #475569;
 }
 
-:global(.dark) .earn-btn {
-  background: rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
-  border-color: rgba(255, 255, 255, 0.05);
-}
-
 .earn-btn:hover {
   transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.8);
-}
-
-:global(.dark) .earn-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
 }
 
 .ad-btn {
@@ -310,21 +295,12 @@ const buyItem = (id, cost) => {
   color: #db2777;
 }
 
-:global(.dark) .ad-btn {
-  color: #f472b6;
-}
-
 .store-item {
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 20px;
   padding: 20px;
   transition: all 0.3s;
-}
-
-:global(.dark) .store-item {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.05);
 }
 
 .lain-intro-preview {

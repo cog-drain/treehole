@@ -71,7 +71,6 @@
             placement="top"
             :width="200"
             trigger="click"
-            effect="dark"
             popper-class="cyber-popover"
           >
             <template #reference>
@@ -258,10 +257,6 @@ const toggleReaction = async (emoji) => {
   background: var(--cmt-hover-bg, rgba(0, 0, 0, 0.03));
 }
 
-:global(.dark) .collapsed-bar:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .thread-line-collapsed {
   width: 2px;
   height: 100%;
@@ -270,10 +265,6 @@ const toggleReaction = async (emoji) => {
   border-radius: 1px;
   flex-shrink: 0;
   margin-left: 14px;
-}
-
-:global(.dark) .thread-line-collapsed {
-  background: rgba(255, 255, 255, 0.12);
 }
 
 .collapsed-content {
@@ -363,14 +354,6 @@ const toggleReaction = async (emoji) => {
   transform: scaleX(1.5);
 }
 
-:global(.dark) .thread-line {
-  opacity: 0.15;
-}
-
-:global(.dark) .thread-col:hover .thread-line {
-  opacity: 0.5;
-}
-
 /* ── Comment Body ── */
 .comment-body {
   flex: 1;
@@ -417,21 +400,12 @@ const toggleReaction = async (emoji) => {
   backdrop-filter: blur(8px);
 }
 
-:global(.dark) .resonance-badge {
-  background: rgba(251, 191, 36, 0.1);
-  border-color: rgba(251, 191, 36, 0.2);
-}
-
 .resonance-badge span {
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.1em;
   color: #7c2d12;
   text-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
-}
-
-:global(.dark) .resonance-badge span {
-  color: #fbbf24;
 }
 
 .comment-time {
@@ -493,28 +467,14 @@ const toggleReaction = async (emoji) => {
   background: var(--cmt-pill-bg, rgba(0, 0, 0, 0.03));
 }
 
-:global(.dark) .reaction-pill {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
 .reaction-pill:hover {
   background: var(--cmt-pill-hover, rgba(0, 0, 0, 0.06));
   transform: scale(1.05);
 }
 
-:global(.dark) .reaction-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
 .reaction-pill.is-own {
   border-color: var(--cmt-accent, #3b82f6);
   background: rgba(59, 130, 246, 0.08);
-}
-
-:global(.dark) .reaction-pill.is-own {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.4);
 }
 
 .reaction-pill:active {

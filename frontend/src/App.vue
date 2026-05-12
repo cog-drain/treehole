@@ -1,14 +1,8 @@
 <template>
   <LainIntro v-if="shouldShowLain()" />
   
-  <div 
-    class="app-wrapper transition-all duration-1000"
-    :class="{ 'is-dark': appStore.isDark }"
-  >
+  <div class="app-wrapper transition-all duration-1000">
     <header class="app-header">
-      <button class="theme-switch" @click="toggleDark" :title="appStore.isDark ? '切换到白天模式' : '切换到夜间模式'">
-        {{ appStore.isDark ? '🌙' : '☀️' }}
-      </button>
       <div class="header-content">
         <h1>🌳 树洞留言板</h1>
         <p>在这里，匿名说出你的心声</p>
@@ -162,9 +156,6 @@ const handleResonanceBoom = () => {
   }
 }
 
-function toggleDark() {
-  appStore.toggleDark()
-}
 </script>
 
 
@@ -183,53 +174,11 @@ function toggleDark() {
     url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
 }
 
-.app-wrapper.is-dark {
-  background-color: #030712;
-  background-image: none;
-}
-
 .app-header {
   padding: 40px 20px 30px;
   text-align: center;
   position: relative;
   z-index: 10;
-}
-
-.theme-switch {
-  position: absolute;
-  top: 24px;
-  right: 24px;
-  width: 48px; height: 48px;
-  border-radius: 16px;
-  /* 关键：使用极高透明度，让底色透出来 */
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  /* 边框也采用半透明，形成边缘微光 */
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  font-size: 1.4rem;
-  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-  z-index: 100;
-}
-
-:global(.dark) .theme-switch {
-  background: rgba(15, 23, 42, 0.3);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-.theme-switch:hover { 
-  transform: translateY(-2px) scale(1.05);
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(0, 0, 0, 0.15);
-}
-
-:global(.dark) .theme-switch:hover {
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .header-content h1 {

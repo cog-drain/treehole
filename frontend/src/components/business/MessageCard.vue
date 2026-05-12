@@ -427,10 +427,6 @@ const safeAudioUrl = computed(() => {
   animation: thermoptic-camo 8s infinite;
 }
 
-:global(.dark) .camo-effect {
-  filter: saturate(0.6) contrast(1.2) brightness(1.3);
-}
-
 .camo-effect::before {
   content: "";
   position: absolute;
@@ -440,10 +436,6 @@ const safeAudioUrl = computed(() => {
   z-index: 10;
   opacity: 0.7;
   animation: scanline-shift 10s linear infinite;
-}
-
-:global(.dark) .camo-effect::before {
-  background: repeating-linear-gradient(transparent, transparent 2px, rgba(167, 139, 250, 0.15) 3px, rgba(167, 139, 250, 0.2) 4px);
 }
 
 .camo-effect::after {
@@ -463,11 +455,6 @@ const safeAudioUrl = computed(() => {
   pointer-events: none;
   mix-blend-mode: hard-light;
   animation: camo-glare 6s infinite ease-in-out;
-}
-
-:global(.dark) .camo-effect::after {
-  background: linear-gradient(45deg, transparent 40%, rgba(139, 92, 246, 0.2) 45%, rgba(139, 92, 246, 0.5) 50%, rgba(139, 92, 246, 0.2) 55%, transparent 60%);
-  mix-blend-mode: color-dodge;
 }
 
 @keyframes thermoptic-camo {
@@ -502,10 +489,6 @@ const safeAudioUrl = computed(() => {
   gap: 8px;
 }
 
-:global(.dark) .action-bar {
-  border-top-color: rgba(255, 255, 255, 0.05);
-}
-
 .action-bar-left {
   display: flex;
   align-items: center;
@@ -530,18 +513,9 @@ const safeAudioUrl = computed(() => {
   background: rgba(0, 0, 0, 0.02);
 }
 
-:global(.dark) .reaction-pill {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
 .reaction-pill:hover {
   background: rgba(0, 0, 0, 0.05);
   transform: translateY(-1px);
-}
-
-:global(.dark) .reaction-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
 }
 
 .reaction-pill:active {
@@ -551,11 +525,6 @@ const safeAudioUrl = computed(() => {
 .reaction-pill.is-own {
   border-color: var(--cmt-accent, #3b82f6);
   background: rgba(59, 130, 246, 0.08);
-}
-
-:global(.dark) .reaction-pill.is-own {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.35);
 }
 
 .reaction-emoji {
@@ -583,10 +552,6 @@ const safeAudioUrl = computed(() => {
   cursor: pointer;
   transition: all 0.2s;
   opacity: 0.4;
-}
-
-:global(.dark) .add-reaction-trigger {
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .action-bar:hover .add-reaction-trigger {
@@ -652,18 +617,9 @@ const safeAudioUrl = computed(() => {
   flex-shrink: 0;
 }
 
-:global(.dark) .comment-toggle-btn {
-  background: rgba(255, 255, 255, 0.05);
-}
-
 .comment-toggle-btn:hover {
   background: rgba(0, 0, 0, 0.06);
   color: var(--color-text-primary);
-}
-
-:global(.dark) .comment-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
 }
 
 .comment-toggle-btn:active {
@@ -707,11 +663,6 @@ const safeAudioUrl = computed(() => {
   animation: comment-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-:global(.dark) .comment-section {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
 @keyframes comment-slide-in {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -724,10 +675,6 @@ const safeAudioUrl = computed(() => {
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-:global(.dark) .comment-section-header {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 .comment-section-title {
@@ -746,10 +693,6 @@ const safeAudioUrl = computed(() => {
   border-radius: 8px;
 }
 
-:global(.dark) .comment-sort-group {
-  background: rgba(255, 255, 255, 0.05);
-}
-
 .comment-sort-btn {
   padding: 3px 10px;
   border-radius: 6px;
@@ -766,20 +709,10 @@ const safeAudioUrl = computed(() => {
   background: rgba(0, 0, 0, 0.04);
 }
 
-:global(.dark) .comment-sort-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
 .comment-sort-btn.is-active {
   background: white;
   color: var(--color-text-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-:global(.dark) .comment-sort-btn.is-active {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .comment-empty {
@@ -813,10 +746,6 @@ const safeAudioUrl = computed(() => {
   background: rgba(59, 130, 246, 0.06);
   border-radius: 10px;
   animation: quote-slide 0.25s ease;
-}
-
-:global(.dark) .reply-quote-bar {
-  background: rgba(59, 130, 246, 0.08);
 }
 
 @keyframes quote-slide {
@@ -885,10 +814,6 @@ const safeAudioUrl = computed(() => {
   border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-:global(.dark) .comment-input-row {
-  border-top-color: rgba(255, 255, 255, 0.06);
-}
-
 .comment-input-wrap {
   flex: 1;
   position: relative;
@@ -907,18 +832,9 @@ const safeAudioUrl = computed(() => {
   transition: all 0.2s;
 }
 
-:global(.dark) .comment-input {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
 .comment-input:focus {
   border-color: rgba(59, 130, 246, 0.5);
   background: rgba(0, 0, 0, 0.01);
-}
-
-:global(.dark) .comment-input:focus {
-  background: rgba(255, 255, 255, 0.07);
 }
 
 .comment-input::placeholder {

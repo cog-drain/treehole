@@ -195,9 +195,9 @@ function toggleLinks() {
 function getNodeColor(theme) {
   const colors = {
     'default': '#ffffff',
-    'autumn': '#eab308',
-    'starry': '#a855f7',
-    'retro': '#94a3b8'
+    'dawn': '#38bdf8',
+    'sakura': '#fb7185',
+    'spring': '#34d399'
   }
   return colors[theme] || '#3b82f6'
 }

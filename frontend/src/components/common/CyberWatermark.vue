@@ -27,9 +27,7 @@ const createWatermark = () => {
   ctx.font = '12px Courier New'
   
   // 关键：使用极低透明度的颜色，肉眼几乎不可见
-  // 在暗色模式下使用亮色，亮色模式下使用暗色
-  const isDark = document.documentElement.classList.contains('dark')
-  ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.006)' : 'rgba(0, 0, 0, 0.006)'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.006)'
   
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'

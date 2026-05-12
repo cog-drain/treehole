@@ -27,28 +27,6 @@
   --thread-color-4: #ef4444;
 }
 
-.dark {
-  color-scheme: dark;
-  --color-bg: #030712;
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-card-bg: rgba(255, 255, 255, 0.07);
-  --color-border: rgba(255, 255, 255, 0.15);
-  --glass-blur: 40px;
-  /* Comment Section */
-  --cmt-accent: #60a5fa;
-  --cmt-hover-bg: rgba(255, 255, 255, 0.04);
-  --cmt-pill-bg: rgba(255, 255, 255, 0.05);
-  --cmt-pill-hover: rgba(255, 255, 255, 0.1);
-  --cmt-collapsed-line: rgba(255, 255, 255, 0.12);
-  /* Thread line depth colors */
-  --thread-color-0: #60a5fa;
-  --thread-color-1: #a78bfa;
-  --thread-color-2: #22d3ee;
-  --thread-color-3: #fbbf24;
-  --thread-color-4: #f87171;
-}
-
 body {
   background-color: var(--color-bg);
   background-image: 
@@ -74,14 +52,6 @@ body {
     inset 0 1px 1px rgba(255, 255, 255, 0.8); /* 模拟玻璃边缘高光 */
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   @apply rounded-[2.5rem] p-6 sm:p-8 md:p-10;
-}
-
-.dark .glass-card {
-  background: rgba(255, 255, 255, 0.08); /* 激进提亮：在纯黑背景上产生显著灰阶 */
-  border: 1px solid rgba(255, 255, 255, 0.2); /* 银色边框：绝对清晰的轮廓 */
-  box-shadow: 
-    0 30px 60px -12px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0px rgba(6, 182, 212, 0.3); /* 顶部青色环境光：既是美化也是“修改生效”的视觉验证码 */
 }
 
 /* Resonance Special Glow */
@@ -157,18 +127,6 @@ body {
   background-color: #94a3b8;
 }
 
-.theme-dot-autumn {
-  background-color: #f97316;
-}
-
-.theme-dot-starry {
-  background-color: #8b5cf6;
-}
-
-.theme-dot-retro {
-  background-color: #a8a29e;
-}
-
 .theme-dot-dawn {
   background-color: #7dd3fc;
 }
@@ -185,157 +143,9 @@ body {
   box-shadow: 0 0 15px rgba(15, 23, 42, 0.4);
 }
 
-.dark .theme-dot-active {
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-}
-
 /* ==========================================
    PREMIUM SKINS SYSTEM (v2.0)
    ========================================== */
-
-/* --- 🍯 琥珀之境 (Amber Realm - Rebuilt for Dark) --- */
-.theme-autumn {
-  --theme-primary: #d97706;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(217, 119, 6, 0.1)), #ffffff !important;
-  border: 1px solid rgba(217, 119, 6, 0.3) !important;
-  box-shadow: 0 10px 30px rgba(217, 119, 6, 0.05) !important;
-}
-
-.dark .theme-autumn {
-  background: #1a140f !important; /* 深琥珀基色，优雅且沉稳 */
-  border: 1px solid rgba(251, 191, 36, 0.25) !important;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
-}
-
-/* 金沙图层：细微粒子 */
-.dark .theme-autumn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, #f59e0b 0.5px, transparent 1px);
-  background-size: 40px 40px;
-  opacity: 0.15;
-  animation: amber-dust 15s linear infinite;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* 丝绸流光：斜向反光 */
-.dark .theme-autumn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(125deg, transparent 40%, rgba(251, 191, 36, 0.05) 50%, transparent 60%);
-  background-size: 200% 100%;
-  animation: amber-sheen 8s ease-in-out infinite;
-  z-index: 2;
-  pointer-events: none; /* 关键修复：防止背景层拦截按钮点击 */
-}
-
-@keyframes amber-dust {
-  from { background-position: 0 0; }
-  to { background-position: 40px -80px; }
-}
-
-@keyframes amber-sheen {
-  0%, 100% { background-position: -100% 0; }
-  50% { background-position: 100% 0; }
-}
-
-.theme-autumn .text-slate-200, .theme-autumn .text-slate-300, .theme-autumn p {
-  color: #92400e !important;
-}
-
-.dark .theme-autumn .text-slate-200, .dark .theme-autumn p {
-  color: #fde68a !important; /* 香槟金文字 */
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-  position: relative;
-  z-index: 10;
-}
-
-/* --- 🌸 樱花 (Sakura / Midnight Petals) --- */
-.theme-sakura {
-  background: linear-gradient(135deg, #fff5f7, #fdf2f8) !important;
-  border: 1px solid rgba(244, 114, 182, 0.2) !important;
-}
-
-.dark .theme-sakura {
-  background: linear-gradient(135deg, #2d1b24, #1a0f14) !important;
-  border: 1px solid rgba(244, 114, 182, 0.3) !important;
-}
-
-.theme-sakura .text-slate-300, .theme-sakura p {
-  color: #be185d !important;
-}
-
-.dark .theme-sakura .text-slate-200, .dark .theme-sakura p {
-  color: #fda4af !important;
-}
-
-/* --- 🍃 清泉 (Spring / Deep Forest) --- */
-.theme-spring {
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7) !important;
-  border: 1px solid rgba(34, 197, 94, 0.2) !important;
-}
-
-.dark .theme-spring {
-  background: linear-gradient(135deg, #064e3b, #022c22) !important;
-  border: 1px solid rgba(52, 211, 153, 0.3) !important;
-}
-
-.theme-spring .text-slate-300, .theme-spring p {
-  color: #15803d !important;
-}
-
-.dark .theme-spring .text-slate-200, .dark .theme-spring p {
-  color: #6ee7b7 !important;
-}
-
-/* --- 📻 复古 (Retro) --- */
-.theme-retro {
-  --theme-primary: #78350f;
-  background: #fdf6e3 !important;
-  border: 2px solid #586e75 !important;
-  box-shadow: 6px 6px 0px #586e75 !important;
-  image-rendering: pixelated;
-}
-
-.dark .theme-retro {
-  background: #073642 !important;
-  border-color: #93a1a1 !important;
-  box-shadow: 6px 6px 0px #93a1a1 !important;
-}
-
-.theme-retro::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 2px);
-  z-index: 10;
-}
-
-.theme-retro .text-slate-200,
-.theme-retro .text-slate-200\/90 {
-  color: #586e75 !important;
-  font-family: "Courier New", Courier, monospace;
-  font-weight: bold;
-}
-
-.dark .theme-retro .text-slate-200 {
-  color: #93a1a1 !important;
-}
-
-.theme-retro .bg-blue-600 {
-  background-color: #268bd2 !important;
-  border-radius: 0 !important;
-}
-
-.dark .theme-retro .bg-blue-600 {
-  background-color: #2aa198 !important;
-}
 
 /* --- 🌅 破晓 (Dawn) --- */
 .theme-dawn {
@@ -442,11 +252,6 @@ body {
   font-size: 0.95rem;
 }
 
-.dark .observer-notification {
-  background: rgba(0, 0, 0, 0.7) !important;
-  box-shadow: 0 0 30px rgba(34, 197, 94, 0.1);
-}
-
 /* ── Reaction Popover (Global, used in MessageCard + CommentItem) ── */
 .reaction-popover {
   background: rgba(255, 255, 255, 0.95) !important;
@@ -457,14 +262,6 @@ body {
     0 4px 24px rgba(0, 0, 0, 0.08),
     0 1px 4px rgba(0, 0, 0, 0.04) !important;
   padding: 4px !important;
-}
-
-.dark .reaction-popover {
-  background: rgba(15, 23, 42, 0.9) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
 
 .reaction-popover .el-popover__title {

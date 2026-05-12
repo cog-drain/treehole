@@ -4,12 +4,9 @@
  * 替代 App.vue 中 7 个分散的 localStorage 调用
  */
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 export const useAppStore = defineStore('app', () => {
-  // ── 主题 ──
-  const isDark = ref(false)
-
   // ── 能量商店 ──
   const energy = ref(1000)
   const ownedItems = ref([])
@@ -23,8 +20,8 @@ export const useAppStore = defineStore('app', () => {
 
   // ── 初始化 ──
   function init() {
-    isDark.value = localStorage.getItem('theme') === 'dark'
-    if (isDark.value) document.documentElement.classList.add('dark')
+    document.documentElement.classList.remove('dark')
+    localStorage.removeItem('theme')
 
     energy.value = parseInt(localStorage.getItem('treehole_energy') || '1000')
     ownedItems.value = JSON.parse(localStorage.getItem('treehole_owned_items') || '[]')
@@ -44,18 +41,6 @@ export const useAppStore = defineStore('app', () => {
     localStorage.setItem('treehole_p5_aoa_enabled', p5AoaEnabled.value.toString())
     localStorage.setItem('treehole_alter_ego_enabled', alterEgoEnabled.value.toString())
     localStorage.setItem('treehole_camo_enabled', camoEnabled.value.toString())
-  }
-
-  // ── 切换主题 ──
-  function toggleDark() {
-    isDark.value = !isDark.value
-    if (isDark.value) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
-    }
   }
 
   // ── 增加能量 ──
@@ -97,8 +82,8 @@ export const useAppStore = defineStore('app', () => {
   }
 
   return {
-    isDark, energy, ownedItems,
+    energy, ownedItems,
     lainEnabled, p5EffectEnabled, p5AoaEnabled, alterEgoEnabled, camoEnabled,
-    init, toggleDark, addEnergy, buy, toggle, persist
+    init, addEnergy, buy, toggle, persist
   }
 })
