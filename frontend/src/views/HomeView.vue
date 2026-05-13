@@ -261,7 +261,12 @@
 
       <!-- Trending Section -->
       <div v-if="trendingTags.length > 0 && !activeTag" class="space-y-4">
-        <h3 class="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold ml-1">热门共鸣</h3>
+        <div class="flex items-center gap-2 ml-1">
+          <h3 class="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">热门共鸣</h3>
+          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/70 px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-emerald-600 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
+            Redis Rank
+          </span>
+        </div>
         <div class="flex flex-wrap gap-2">
           <button 
             v-for="t in trendingTags" :key="t.id" 
@@ -276,7 +281,7 @@
       </div>
 
       <!-- Feed Header -->
-      <div class="flex items-center justify-between pt-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-8">
         <div class="flex items-center gap-6">
           <button 
             v-for="m in ['list', 'graph']" :key="m"
@@ -288,7 +293,20 @@
             <span v-if="viewMode === m" class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
           </button>
         </div>
-        
+        <div class="inline-flex w-full sm:w-auto items-center justify-between sm:justify-start gap-3 rounded-full border border-slate-200 bg-white/60 px-3 py-2 text-slate-500 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50"></span>
+              <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+            </span>
+            <Activity :size="14" class="text-emerald-500" />
+            <span class="text-[9px] font-bold uppercase tracking-[0.18em]">Online</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-mono text-sm font-bold text-slate-800 dark:text-white">{{ onlineCount }}</span>
+            <span class="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">Redis ZSet</span>
+          </div>
+        </div>
       </div>
 
       <!-- Active Tag Banner -->
@@ -710,7 +728,7 @@ import api, {
   saveToken, getToken, removeToken, hasMsgToken, hasCmtToken, MSG_TOKEN_KEY, CMT_TOKEN_KEY,
   getTrendingTags, getMessagesByTag,
   throwBottle, pickBottle, replyBottle, returnBottle,
-  backupIdentity, restoreIdentity
+  backupIdentity, restoreIdentity, getOnlineStats
 } from '@/api'
 import MessageCard from '@/components/business/MessageCard.vue'
 import MindGraph from '@/components/business/MindGraph.vue'
@@ -719,7 +737,7 @@ import ZenGarden from '@/components/zen/ZenGarden.vue'
 import DriftBottleDialog from '@/components/business/DriftBottleDialog.vue'
 import {
   Dices, Fingerprint, ImagePlus, Mic, Archive, Send, Loader2, Sparkles, Hash, Copy, Waves, Volume2, Moon, Trash2, Plus, X,
-  LogOut, ShieldAlert, Users, Lock, ChevronLeft, ChevronRight, Play, Pause, Zap, Edit2
+  LogOut, ShieldAlert, Users, Lock, ChevronLeft, ChevronRight, Play, Pause, Zap, Edit2, Activity
 } from 'lucide-vue-next'
 import { formatTime } from '@/utils/time.js'
 import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
@@ -821,6 +839,8 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 const trendingTags = ref([])
 const activeTag = ref('')
 const publishing = ref(false)
+const onlineCount = ref(0)
+let onlineStatsTimer = null
 
 // ── Interaction State ──
 const likedIds = reactive(new Set(JSON.parse(localStorage.getItem('treehole_likes') || '[]')))
@@ -1019,6 +1039,13 @@ async function handleReturnBottle() { try { await returnBottle(pickedBottle.valu
 
 // ── Feed CRUD ──
 async function fetchTrending() { try { const res = await getTrendingTags(12); trendingTags.value = res.data || [] } catch {} }
+
+async function fetchOnlineStats() {
+  try {
+    const res = await getOnlineStats()
+    onlineCount.value = Number(res.data?.online || 0)
+  } catch {}
+}
 
 async function fetchMessages() {
   try {
@@ -1267,6 +1294,8 @@ onMounted(() => {
 
   // 4. 数据加载
   setTimeout(() => { fetchMessages(); fetchTrending() }, 300)
+  fetchOnlineStats()
+  onlineStatsTimer = window.setInterval(fetchOnlineStats, 30000)
 
   // 5. 网络状态
   window.addEventListener('online', handleOnline)
@@ -1283,6 +1312,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
   window.removeEventListener('online', handleOnline)
   window.removeEventListener('offline', handleOffline)
+  if (onlineStatsTimer) window.clearInterval(onlineStatsTimer)
 })
 
 /** 打开离线暂存箱 */
