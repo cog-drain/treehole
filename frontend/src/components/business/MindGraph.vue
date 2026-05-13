@@ -48,7 +48,7 @@ let THREE = null
 async function init3DGraph() {
   loading.value = true
   try {
-    const res = await api.get('/graph/data')
+    const res = await api.getGraphData()
     const data = res.data
 
     if (!data.nodes || data.nodes.length === 0) {

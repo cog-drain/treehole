@@ -1163,7 +1163,7 @@ function handlePublishButtonClick() {
 async function likeMessage(msg) {
   if (likedIds.has(msg.id)) { ElMessage.info('已经点过赞啦 ❤️'); return }
   try { 
-    await api.put(`/message/like/${msg.id}`); 
+    await api.likeMessage(msg.id);
     likedIds.add(msg.id); 
     msg.likes = (msg.likes || 0) + 1 
     ElMessage.success('产生共鸣 ✨ (获得 2 ⚡)')

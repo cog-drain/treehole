@@ -46,7 +46,7 @@ public class WebSocketServer {
     @OnClose
     public void onClose(Session session, @PathParam("userId") String userId) {
         if (userId != null) {
-            USER_SESSIONS.remove(userId);
+            USER_SESSIONS.remove(userId, session);
             if (redisRealtimeService != null) redisRealtimeService.markUserOffline(userId);
             log.info("User {} disconnected, total online: {}", userId, getOnlineCount());
             broadcastOnlineStats();
@@ -71,10 +71,10 @@ public class WebSocketServer {
         if (session != null && session.isOpen()) {
             try {
                 String json = OBJECT_MAPPER.writeValueAsString(data);
-                session.getBasicRemote().sendText(json);
+                sendText(session, json, "Failed to send message to user " + userId);
                 log.info("Sent private message to user {}: {}", userId, json);
             } catch (IOException e) {
-                log.error("Failed to send message to user {}: {}", userId, e.getMessage());
+                log.error("Failed to serialize message for user {}: {}", userId, e.getMessage());
             }
         }
     }
@@ -84,14 +84,27 @@ public class WebSocketServer {
      */
     public static void broadcast(String message) {
         USER_SESSIONS.values().forEach(session -> {
-            if (session.isOpen()) {
-                try {
-                    session.getBasicRemote().sendText(message);
-                } catch (IOException e) {
-                    log.error("Broadcast failed: {}", e.getMessage());
-                }
-            }
+            sendText(session, message, "Broadcast failed for session " + session.getId());
         });
+    }
+
+    /**
+     * BasicRemote 不支持并发写入，同一个 Session 的消息必须串行发送。
+     */
+    private static void sendText(Session session, String message, String errorPrefix) {
+        if (session == null || !session.isOpen()) {
+            return;
+        }
+        synchronized (session) {
+            if (!session.isOpen()) {
+                return;
+            }
+            try {
+                session.getBasicRemote().sendText(message);
+            } catch (IOException | IllegalStateException e) {
+                log.error("{}: {}", errorPrefix, e.getMessage());
+            }
+        }
     }
 
     private static void broadcastOnlineStats() {

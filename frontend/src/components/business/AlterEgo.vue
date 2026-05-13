@@ -103,9 +103,7 @@ const generateQuote = async () => {
   currentMessage.value = "Scanning neural frequencies... Syncing with DeepSeek node..."
   
   try {
-    const res = await api.post('/ai/chat', { 
-      content: props.lastMessage?.content || "告诉我关于希望的事情" 
-    })
+    const res = await api.chatWithAI(props.lastMessage?.content || "告诉我关于希望的事情")
     currentMessage.value = res.data
   } catch (e) {
     currentMessage.value = "[SYSTEM NOTICE] AI node timeout. Hope remains within you, regardless."

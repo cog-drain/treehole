@@ -7,6 +7,7 @@
 ## ✨ 核心功能 (Core Features)
 
 - **🌳 匿名树洞 & 楼中楼**：极简的发布体验，支持图片、语音留言，以及多层级回复。
+- **🕯️ 赛博告解亭**：发布 24 小时后自动熄灭的告解帖，关闭评论，改为独立「点燃蜡烛」见证，并由 AI 赛博神父给出无条件回应。
 - **🎨 语气模式 (Tone Modes)**：打破单调的文字，支持「悄悄话、大声说、梦话、电波、诗意」5 种特殊渲染效果，情绪传达更生动。
 - **🌊 赛博漂流瓶**：扔出你的心事，或者捞起陌生人的瞬间。
 - **🤖 AI 智能标签**：基于大语言模型的语义分析，自动提取留言标签并归类，支持热门共鸣墙。
@@ -15,6 +16,7 @@
   - **防御性频控策略**：基于 Redis 的 `ID + IP` 双重高并发限流（发帖 10 秒冷却，评论 5 秒冷却），彻底杜绝脚本换号刷屏。
   - **内容硬拦截**：严格的留言（1000字）与评论（500字）长度拦截，防止恶意长文本耗尽服务器内存及 AI 计费 Token。
 - **⚡ 实时回响**：基于 WebSocket 的全双工通信，点赞、评论、新留言实时推送到客户端。
+- **📡 Redis 实时状态**：Redis 负责高频缓存、在线人数 ZSet、热度排行、漂流瓶池、表情回响统计与告解见证计数，WebSocket 推送实时在线与互动变化。
 - **🧘 边缘体验增强**：断网离线暂存箱（网络恢复后自动重发）、专注禅定模式（白噪音+沉浸式阅读）。
 
 ## 📂 项目结构
@@ -104,6 +106,27 @@ docker compose exec -T db sh -lc 'MYSQL_PWD="$DB_USER_PASSWORD" mariadb -u"$DB_U
 
 ```bash
 docker compose exec -T db sh -lc 'MYSQL_PWD="$DB_ROOT_PASSWORD" mariadb -uroot "$DB_NAME"' < database/02_test_data.sql
+```
+
+## 现有数据库升级
+
+如果你已经有旧数据库卷，只改 `database/01_init.sql` 不会自动修改现有表。升级到告解亭功能需要执行：
+
+```sql
+ALTER TABLE `message`
+  ADD COLUMN `message_type` VARCHAR(20) DEFAULT 'normal' AFTER `theme`,
+  ADD COLUMN `expires_at` DATETIME DEFAULT NULL AFTER `message_type`,
+  ADD INDEX `idx_message_type_expires` (`message_type`, `expires_at`);
+
+CREATE TABLE IF NOT EXISTS `confession_witness` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `message_id` BIGINT NOT NULL,
+  `user_id` VARCHAR(36) NOT NULL,
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uk_confession_witness_user` (`message_id`, `user_id`),
+  INDEX `idx_confession_witness_message` (`message_id`),
+  INDEX `idx_confession_witness_user` (`user_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 ```
 
 ## 本地开发

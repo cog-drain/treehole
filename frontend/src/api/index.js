@@ -5,6 +5,8 @@ import { commentApi } from './modules/comment'
 import { identityApi } from './modules/identity'
 import { fileApi } from './modules/file'
 import { statsApi } from './modules/stats'
+import { aiApi } from './modules/ai'
+import { graphApi } from './modules/graph'
 
 // ── localStorage Token 管理工具 ──
 const MSG_TOKEN_KEY = 'treehole_msg_tokens'
@@ -82,7 +84,11 @@ const api = {
   uploadFile: fileApi.upload,
 
   // Stats 模块
-  getOnlineStats: statsApi.getOnlineStats
+  getOnlineStats: statsApi.getOnlineStats,
+
+  // AI / Graph 模块
+  chatWithAI: aiApi.chat,
+  getGraphData: graphApi.getGraphData
 }
 
 export default api
@@ -95,5 +101,5 @@ export const {
   throwBottle, pickBottle, replyBottle, returnBottle, getMyBottles,
   backupIdentity, restoreIdentity,
   adminLogin, resetAdminPassword, banIP, unbanIP, getBlacklist, adminDeleteMessage, adminDeleteComment,
-  uploadFile, getOnlineStats
+  uploadFile, getOnlineStats, chatWithAI, getGraphData
 } = api

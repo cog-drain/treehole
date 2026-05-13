@@ -75,7 +75,7 @@ export const offlineQueue = {
         // 增加一个 300ms 的微小延迟，防止网络刚恢复时的瞬时拥堵
         await new Promise(resolve => setTimeout(resolve, 300))
         
-        await api.post('/messages', payload)
+        await api.publishMessage(payload)
       } catch (err) {
         console.error('Offline sync failed for item:', item, err)
         // 如果还是失败（比如后端挂了而非网络问题），则保留在队列中
