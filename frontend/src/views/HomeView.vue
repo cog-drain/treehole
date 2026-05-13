@@ -722,7 +722,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { defineAsyncComponent, ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import api, {
   saveToken, getToken, removeToken, hasMsgToken, hasCmtToken, MSG_TOKEN_KEY, CMT_TOKEN_KEY,
@@ -731,16 +731,17 @@ import api, {
   backupIdentity, restoreIdentity, getOnlineStats
 } from '@/api'
 import MessageCard from '@/components/business/MessageCard.vue'
-import MindGraph from '@/components/business/MindGraph.vue'
 import CyberWatermark from '@/components/common/CyberWatermark.vue'
-import ZenGarden from '@/components/zen/ZenGarden.vue'
-import DriftBottleDialog from '@/components/business/DriftBottleDialog.vue'
 import {
   Dices, Fingerprint, ImagePlus, Mic, Archive, Send, Loader2, Sparkles, Hash, Copy, Waves, Volume2, Moon, Trash2, Plus, X,
   LogOut, ShieldAlert, Users, Lock, ChevronLeft, ChevronRight, Play, Pause, Zap, Edit2, Activity
 } from 'lucide-vue-next'
 import { formatTime } from '@/utils/time.js'
 import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
+
+const MindGraph = defineAsyncComponent(() => import('@/components/business/MindGraph.vue'))
+const ZenGarden = defineAsyncComponent(() => import('@/components/zen/ZenGarden.vue'))
+const DriftBottleDialog = defineAsyncComponent(() => import('@/components/business/DriftBottleDialog.vue'))
 
 // ── Stores & Composables ──
 import { useUserStore } from '@/stores/user'
@@ -1364,7 +1365,7 @@ async function syncOfflineQueue() {
   --el-pagination-button-bg-color: transparent !important;
 }
 
-.cyber-pagination :deep(.el-pager li) {
+.cyber-pagination .el-pager li {
   width: 40px !important;
   height: 40px !important;
   background: rgba(255, 255, 255, 0.03) !important;
@@ -1377,7 +1378,7 @@ async function syncOfflineQueue() {
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 
-.cyber-pagination :deep(.el-pager li.is-active) {
+.cyber-pagination .el-pager li.is-active {
   background: rgba(59, 130, 246, 0.15) !important;
   color: #60a5fa !important;
   border: 1px solid rgba(59, 130, 246, 0.5) !important;
@@ -1385,15 +1386,15 @@ async function syncOfflineQueue() {
   transform: translateY(-4px) scale(1.1) !important;
 }
 
-.cyber-pagination :deep(.el-pager li:not(.is-active):hover) {
+.cyber-pagination .el-pager li:not(.is-active):hover {
   background: rgba(255, 255, 255, 0.08) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
   color: #fff !important;
   transform: translateY(-2px) !important;
 }
 
-.cyber-pagination :deep(button.btn-prev), 
-.cyber-pagination :deep(button.btn-next) {
+.cyber-pagination button.btn-prev, 
+.cyber-pagination button.btn-next {
   width: 40px !important;
   height: 40px !important;
   background: rgba(255, 255, 255, 0.03) !important;
@@ -1403,7 +1404,7 @@ async function syncOfflineQueue() {
   transition: all 0.3s !important;
 }
 
-.cyber-pagination :deep(button:not(:disabled):hover) {
+.cyber-pagination button:not(:disabled):hover {
   background: rgba(255, 255, 255, 0.08) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
   color: #fff !important;

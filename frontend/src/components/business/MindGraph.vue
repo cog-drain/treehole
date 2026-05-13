@@ -28,9 +28,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import ForceGraph3D from '3d-force-graph'
-import * as THREE from 'three'
-import { Target, Share2, Play } from 'lucide-vue-next'
+import { Target, Share2 } from 'lucide-vue-next'
 import api from '@/api'
 
 const props = defineProps({
@@ -44,6 +42,8 @@ const loading = ref(true)
 const showLinks = ref(true)
 let Graph = null
 let resizeObserver = null
+let ForceGraph3D = null
+let THREE = null
 
 async function init3DGraph() {
   loading.value = true
@@ -56,7 +56,7 @@ async function init3DGraph() {
       return
     }
 
-    render3D(data)
+    await render3D(data)
   } catch (e) {
     console.error('3D Graph fetch failed', e)
   } finally {
@@ -64,9 +64,17 @@ async function init3DGraph() {
   }
 }
 
-function render3D(data) {
+async function render3D(data) {
   const elem = document.getElementById('mind-graph-3d')
   if (!elem) return
+  if (!ForceGraph3D || !THREE) {
+    const [forceGraphModule, threeModule] = await Promise.all([
+      import('3d-force-graph'),
+      import('three')
+    ])
+    ForceGraph3D = forceGraphModule.default
+    THREE = threeModule
+  }
 
   Graph = ForceGraph3D()(elem)
     .graphData(data)
@@ -319,7 +327,7 @@ onUnmounted(() => {
   to { transform: rotate(360deg); }
 }
 
-:deep(.node-tooltip) {
+.node-tooltip {
   background: #1a1a1a;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;

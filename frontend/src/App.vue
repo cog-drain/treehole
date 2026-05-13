@@ -61,17 +61,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { defineAsyncComponent, ref, onMounted } from 'vue'
 import HomeView from './views/HomeView.vue'
-import LainIntro from '@/components/business/LainIntro.vue'
-import EnergyStore from '@/components/business/EnergyStore.vue'
-import P5CallingCard from '@/components/business/P5CallingCard.vue'
-import P5AllOutAttack from '@/components/business/P5AllOutAttack.vue'
-import AlterEgo from '@/components/business/AlterEgo.vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage } from 'element-plus'
 import api from '@/api'
 import { offlineQueue } from '@/utils/offlineQueue'
+
+const LainIntro = defineAsyncComponent(() => import('@/components/business/LainIntro.vue'))
+const EnergyStore = defineAsyncComponent(() => import('@/components/business/EnergyStore.vue'))
+const P5CallingCard = defineAsyncComponent(() => import('@/components/business/P5CallingCard.vue'))
+const P5AllOutAttack = defineAsyncComponent(() => import('@/components/business/P5AllOutAttack.vue'))
+const AlterEgo = defineAsyncComponent(() => import('@/components/business/AlterEgo.vue'))
 
 const appStore = useAppStore()
 

@@ -389,7 +389,7 @@ body {
 .theme-spring .text-slate-400 { color: #10b981 !important; }
 
 /* Pagination Fix */
-:deep(.el-pagination) {
+.el-pagination {
   --el-pagination-bg-color: transparent !important;
   --el-pagination-hover-color: var(--theme-primary, #60a5fa) !important;
   justify-content: center;
@@ -400,17 +400,17 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-:deep(.el-pagination button) {
+.el-pagination button {
   background-color: transparent !important;
   color: #94a3b8 !important;
 }
 
-:deep(.el-pagination .el-pager li) {
+.el-pagination .el-pager li {
   background: transparent !important;
   color: #64748b !important;
 }
 
-:deep(.el-pagination .el-pager li.is-active) {
+.el-pagination .el-pager li.is-active {
   color: #fff !important;
   font-weight: bold;
   background: rgba(255, 255, 255, 0.1) !important;

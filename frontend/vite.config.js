@@ -34,6 +34,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         }
       }
+    },
+    build: {
+      // After lazy-loading heavy feature surfaces, the remaining main bundle is
+      // dominated by shared UI/runtime dependencies. Keep the warning above the
+      // measured app baseline so future regressions are still visible.
+      chunkSizeWarningLimit: 1100
     }
   }
 })
