@@ -76,6 +76,10 @@ export function useWebSocket(callbacks = {}) {
           case 'COMMENT_REACTION_UPDATE':
             callbacks.onReactionUpdate?.(type, data)
             break
+
+          case 'ONLINE_STATS_UPDATE':
+            callbacks.onOnlineStatsUpdate?.(data)
+            break
         }
       } catch (e) {
         console.error('WebSocket: Parse error', e)

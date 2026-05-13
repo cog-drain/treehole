@@ -39,6 +39,7 @@ public class WebSocketServer {
             USER_SESSIONS.put(userId, session);
             if (redisRealtimeService != null) redisRealtimeService.markUserOnline(userId);
             log.info("User {} connected, total online: {}", userId, getOnlineCount());
+            broadcastOnlineStats();
         }
     }
 
@@ -48,6 +49,7 @@ public class WebSocketServer {
             USER_SESSIONS.remove(userId);
             if (redisRealtimeService != null) redisRealtimeService.markUserOffline(userId);
             log.info("User {} disconnected, total online: {}", userId, getOnlineCount());
+            broadcastOnlineStats();
         }
     }
 
@@ -90,6 +92,18 @@ public class WebSocketServer {
                 }
             }
         });
+    }
+
+    private static void broadcastOnlineStats() {
+        try {
+            String json = OBJECT_MAPPER.writeValueAsString(Map.of(
+                    "type", "ONLINE_STATS_UPDATE",
+                    "data", Map.of("online", getOnlineCount())
+            ));
+            broadcast(json);
+        } catch (Exception e) {
+            log.error("Broadcast online stats failed: {}", e.getMessage());
+        }
     }
 
     public static long getOnlineCount() {

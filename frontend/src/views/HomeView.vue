@@ -110,15 +110,19 @@
                   <button 
                     v-if="!showTonePanel"
                     @click.stop="showTonePanel = true"
-                    class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border border-slate-200 text-[11px] transition-all active:scale-95"
-                    :class="form.mood ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white/70 text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
+                    class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border text-[11px] transition-all active:scale-95"
+                    :class="form.mood ? 'bg-blue-500/10 border-blue-500/25 text-blue-500 hover:bg-blue-500/15' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200'"
                   >
                     <Sparkles :size="14" />
                     <span class="whitespace-nowrap">{{ form.mood && toneMap[form.mood] ? toneMap[form.mood].emoji + ' ' + toneMap[form.mood].label : '语气' }}</span>
                   </button>
 
                   <!-- Expanded: emoji row -->
-                  <div v-else class="absolute left-0 bottom-full z-30 mb-2 flex max-w-[calc(100vw-3rem)] flex-wrap items-center gap-0.5 px-1 py-1 rounded-full bg-white/90 backdrop-blur-xl shadow-xl border border-slate-200">
+                  <div
+                    v-else
+                    class="z-30 flex items-center gap-0.5 px-1 py-1 rounded-full bg-white/90 backdrop-blur-xl shadow-xl border border-slate-200"
+                    :class="isMobile ? 'absolute left-0 bottom-full mb-2 max-w-[calc(100vw-3rem)] flex-wrap' : 'relative max-w-none flex-nowrap'"
+                  >
                     <button
                       v-for="(tone, key) in toneMap"
                       :key="key"
@@ -1258,6 +1262,9 @@ const { connect: connectWS, disconnect: disconnectWS } = useWebSocket({
     if (!target) return
     if (type === 'COMMENT_REACTION_UPDATE') { const c = target._comments?.find(c => c.id === data.commentId); if (c) c.reactions = data.reactions }
     else target.reactions = data.reactions
+  },
+  onOnlineStatsUpdate(data) {
+    onlineCount.value = Number(data?.online || 0)
   }
 })
 
@@ -1279,7 +1286,7 @@ onMounted(() => {
   // 3. 数据加载
   setTimeout(() => { fetchMessages(); fetchTrending() }, 300)
   fetchOnlineStats()
-  onlineStatsTimer = window.setInterval(fetchOnlineStats, 30000)
+  onlineStatsTimer = window.setInterval(fetchOnlineStats, 5000)
 
   // 4. 网络状态
   window.addEventListener('online', handleOnline)
