@@ -69,6 +69,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             throw new BusinessException(ErrorCode.PARAM_ERROR, "昵称太长啦 (最多20字)");
         }
 
+        Message targetMessage = messageService.getById(comment.getMessageId());
+        if (targetMessage == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "留言不存在");
+        }
+        if ("confession".equals(targetMessage.getMessageType())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "告解只能被见证，不能被评论");
+        }
+
         // 评论频率限流：同一用户 5 秒内只能发一条
         String rateKey = "treehole:rate:cmt:id:" + userId;
         Boolean isAllowed = stringRedisTemplate.opsForValue().setIfAbsent(rateKey, "1", java.time.Duration.ofSeconds(5));

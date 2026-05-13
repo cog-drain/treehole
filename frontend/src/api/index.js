@@ -52,6 +52,7 @@ const api = {
   getRandomMessage: messageApi.getRandom,
   getTrendingTags: messageApi.getTrendingTags,
   reactToMessage: messageApi.reactToMessage,
+  witnessMessage: messageApi.witnessMessage,
 
   // Comment 模块
   getComments: commentApi.getComments,
@@ -89,7 +90,7 @@ export default api
 // ── 导出具名函数供解构使用 ──
 export const { 
   publishMessage, getMessages, getMessagesByTag, likeMessage, deleteMessage, 
-  getRandomMessage, getTrendingTags, reactToMessage,
+  getRandomMessage, getTrendingTags, reactToMessage, witnessMessage,
   getComments, publishComment, deleteComment, reactToComment,
   throwBottle, pickBottle, replyBottle, returnBottle, getMyBottles,
   backupIdentity, restoreIdentity,

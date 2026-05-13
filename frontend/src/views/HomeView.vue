@@ -16,6 +16,7 @@
         class="glass-card group relative animate__animated animate__backInUp"
         :class="[
           'theme-' + form.theme,
+          isConfessionMode ? 'confession-compose' : '',
           { 'opacity-20 blur-[20px] pointer-events-none scale-95': isZenMode || adminLoginVisible }
         ]"
       >
@@ -72,7 +73,7 @@
             <textarea
               class="w-full bg-transparent border-none text-lg leading-relaxed placeholder:text-slate-600 focus:outline-none resize-none min-h-[120px]"
               v-model="form.content"
-              placeholder="说点什么吧……你的秘密在这里很安全 🤫 (支持 Ctrl+Enter 发送)"
+              :placeholder="isConfessionMode ? '这里只有神父能听见...' : '说点什么吧……你的秘密在这里很安全 🤫 (支持 Ctrl+Enter 发送)'"
               maxlength="500"
               rows="4"
               @paste="handlePaste"
@@ -141,6 +142,16 @@
                     </button>
                   </div>
                 </div>
+
+                <button
+                  class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border text-[11px] transition-all active:scale-95"
+                  :class="isConfessionMode ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 shadow-sm shadow-amber-500/10' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200'"
+                  :title="isMidnight ? '深夜了，有什么话想说吗？' : '切换告解模式'"
+                  @click="isConfessionMode = !isConfessionMode"
+                >
+                  <span class="text-sm">🕯️</span>
+                  <span class="whitespace-nowrap">告解</span>
+                </button>
               </div>
               
               <!-- Publish Button -->
@@ -159,13 +170,15 @@
                 
                 <button 
                   class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-bold text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
-                  :class="isOnline ? 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white' : 'bg-slate-800 text-slate-400 border border-white/5'"
+                  :class="isConfessionMode && isOnline ? 'bg-amber-600 hover:bg-amber-500 shadow-lg shadow-amber-600/20 text-white' : (isOnline ? 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white' : 'bg-slate-800 text-slate-400 border border-white/5')"
                   :disabled="publishing"
-                  @click="publishMessage"
+                  @click="handlePublishButtonClick"
+                  :title="isMidnight && !isConfessionMode ? '深夜了，有什么话想说吗？' : ''"
                 >
                   <Loader2 v-if="publishing" class="animate-spin" :size="16" />
+                  <span v-else-if="isConfessionMode || isMidnight" class="text-base leading-none">🕯️</span>
                   <Send v-else :size="16" />
-                  <span class="whitespace-nowrap">{{ publishing ? '发射中' : (isOnline ? '投入树洞' : '封存胶囊') }}</span>
+                  <span class="whitespace-nowrap">{{ publishing ? '发射中' : (isConfessionMode ? '忏悔' : (isOnline ? '投入树洞' : '封存胶囊')) }}</span>
                 </button>
               </div>
             </div>
@@ -840,6 +853,13 @@ const activeTag = ref('')
 const publishing = ref(false)
 const onlineCount = ref(0)
 let onlineStatsTimer = null
+const isConfessionMode = ref(false)
+const clockNow = ref(new Date())
+let clockTimer = null
+const isMidnight = computed(() => {
+  const hour = clockNow.value.getHours()
+  return hour >= 0 && hour < 4
+})
 
 // ── Interaction State ──
 const likedIds = reactive(new Set(JSON.parse(localStorage.getItem('treehole_likes') || '[]')))
@@ -1056,7 +1076,7 @@ async function fetchMessages() {
 }
 
 function saveToOfflineQueue() {
-  offlineQueue.push({ ...form })
+  offlineQueue.push({ ...form, messageType: isConfessionMode.value ? 'confession' : 'normal' })
   form.content = ''; clearImage(); clearAudio()
 }
 
@@ -1065,10 +1085,12 @@ async function publishMessage() {
   if (!isOnline.value) { saveToOfflineQueue(); return }
   publishing.value = true
 
-  const localContent = form.content, localAlias = form.authorAlias, localMood = form.mood, localTheme = form.theme
+  const localContent = form.content, localAlias = form.authorAlias, localMood = form.mood, localTheme = form.theme, localMessageType = isConfessionMode.value ? 'confession' : 'normal'
   // 提前准备乐观更新数据，将作用域提升到 try-catch 之外
   const optimisticMessage = {
-    id: Date.now(), content: localContent, authorAlias: localAlias || '访客', mood: localMood, theme: localTheme,
+    id: Date.now(), content: localContent, authorAlias: localAlias || '访客', mood: localMood, theme: localTheme, messageType: localMessageType,
+    expiresAt: localMessageType === 'confession' ? new Date(Date.now() + 86400000).toISOString() : null,
+    witnessCount: 0, witnessedByMe: false, confessorReply: '',
     imageUrl: '', audioUrl: '', likes: 0, commentCount: 0, createTime: new Date().toISOString(),
     isOwner: true, isOptimistic: true, _showComments: false, _comments: [], _commentText: '', _commentImage: null, _replyToId: null, _commenting: false, _read: false
   }
@@ -1086,7 +1108,7 @@ async function publishMessage() {
     optimisticMessage.imageUrl = imageUrl
     optimisticMessage.audioUrl = audioUrl
 
-    const res = await api.publishMessage({ ...form, imageUrl, audioUrl })
+    const res = await api.publishMessage({ ...form, imageUrl, audioUrl, messageType: localMessageType })
 
     // 如果断网被拦截进入离线胶囊，直接终止（拦截器内已提示）
     if (res && res.code === 202) {
@@ -1107,7 +1129,7 @@ async function publishMessage() {
     } : null
 
     // 网络请求真正成功后，触发动画并更新 Feed 流
-    ElMessage.success('留言已投入星空 🌌 (获得 10 ⚡)')
+    ElMessage.success(localMessageType === 'confession' ? '告解已投入烛光 🕯️ (获得 10 ⚡)' : '留言已投入星空 🌌 (获得 10 ⚡)')
     appStore.addEnergy(10)
     emit('publish-success', normalizedServerMessage || optimisticMessage)
     
@@ -1121,13 +1143,21 @@ async function publishMessage() {
       messages.value = feedBase
     }
 
-    form.content = ''; clearImage(); clearAudio()
+    form.content = ''; clearImage(); clearAudio(); isConfessionMode.value = false
     setTimeout(() => { fetchMessages(); fetchTrending() }, 3000)
   } catch (e) { 
     // 发生真实错误（如上传图片失败或服务器 500）
     if (!navigator.onLine) saveToOfflineQueue() 
   }
   finally { publishing.value = false }
+}
+
+function handlePublishButtonClick() {
+  if (isMidnight.value && !isConfessionMode.value) {
+    isConfessionMode.value = true
+    return
+  }
+  publishMessage()
 }
 
 async function likeMessage(msg) {
@@ -1265,6 +1295,14 @@ const { connect: connectWS, disconnect: disconnectWS } = useWebSocket({
   },
   onOnlineStatsUpdate(data) {
     onlineCount.value = Number(data?.online || 0)
+  },
+  onConfessorReply(data) {
+    const target = messages.value.find(m => m.id === data.messageId)
+    if (target) target.confessorReply = data.reply
+  },
+  onConfessionWitnessUpdate(data) {
+    const target = messages.value.find(m => m.id === data.messageId)
+    if (target) target.witnessCount = Number(data.witnessCount || 0)
   }
 })
 
@@ -1275,6 +1313,7 @@ onMounted(() => {
   offlineQueue.init() 
   checkMobile()
   window.addEventListener('resize', checkMobile)
+  clockTimer = window.setInterval(() => { clockNow.value = new Date() }, 60000)
 
   // 1. 身份初始化
   userStore.init()
@@ -1303,6 +1342,7 @@ onUnmounted(() => {
   window.removeEventListener('online', handleOnline)
   window.removeEventListener('offline', handleOffline)
   if (onlineStatsTimer) window.clearInterval(onlineStatsTimer)
+  if (clockTimer) window.clearInterval(clockTimer)
 })
 
 /** 打开离线暂存箱 */
@@ -1347,6 +1387,13 @@ async function syncOfflineQueue() {
 }
 .glass-dialog .el-dialog__header { display: none; }
 .glass-dialog .el-dialog__body { padding: 2rem !important; color: var(--color-slate-200); }
+
+.confession-compose {
+  border-color: rgba(201, 149, 42, 0.45) !important;
+  box-shadow:
+    0 26px 60px -24px rgba(201, 149, 42, 0.45),
+    inset 0 1px 0 rgba(255, 238, 178, 0.55) !important;
+}
 
 .cyber-pagination {
   margin-top: 2rem !important;

@@ -27,6 +27,9 @@ export const messageApi = {
   // 表情回应
   reactToMessage: (id, emoji) => request.post(`/messages/${id}/reactions`, null, { params: { emoji } }),
 
+  // 告解见证
+  witnessMessage: (id) => request.post(`/messages/${id}/witness`),
+
   // 随机获取一条 (灵感/禅)
   getRandom: () => request.get('/messages/random'),
 

@@ -8,8 +8,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.treehole.common.BusinessException;
 import com.treehole.common.ErrorCode;
 import com.treehole.entity.Comment;
+import com.treehole.entity.ConfessionWitness;
 import com.treehole.entity.Message;
 import com.treehole.mapper.CommentMapper;
+import com.treehole.mapper.ConfessionWitnessMapper;
 import com.treehole.mapper.MessageMapper;
 import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.MessageService;
@@ -22,13 +24,17 @@ import com.treehole.websocket.WebSocketServer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 留言 Service 实现类
@@ -45,6 +51,11 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private final CacheInvalidationService cacheInvalidationService;
     private final RedisRealtimeService redisRealtimeService;
     private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+    private final ConfessionWitnessMapper confessionWitnessMapper;
+
+    private static final String MESSAGE_TYPE_CONFESSION = "confession";
+    private static final String MESSAGE_TYPE_NORMAL = "normal";
+    private static final String CONFESSOR_USER_ID = "confessor_ai";
 
     @Override
     public Map<String, Object> publish(Message message, String userId) {
@@ -76,12 +87,21 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             }
         }
 
+        String messageType = normalizeMessageType(message.getMessageType());
+        message.setMessageType(messageType);
         message.setUserId(userId);
+
+        boolean confession = MESSAGE_TYPE_CONFESSION.equals(messageType);
+        if (confession) {
+            message.setExpiresAt(LocalDateTime.now().plusHours(24));
+        } else {
+            message.setExpiresAt(null);
+        }
 
         // --- AI 语义自动化：生成自动标签 ---
         // 1. 生成语义标签
-        List<String> aiTags = aiService.generateTags(message.getContent());
-        if (!aiTags.isEmpty()) {
+        List<String> aiTags = confession ? List.of() : aiService.generateTags(message.getContent());
+        if (!confession && !aiTags.isEmpty()) {
             String tagString = String.join(" ", aiTags);
             String contentStr = message.getContent().trim();
             // 如果用户最后一段话已经是标签了，直接用空格拼接在同一行
@@ -103,8 +123,10 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         }
 
         this.save(message);
-        tagService.extractAndSaveTags(message.getId(), message.getContent());
-        redisRealtimeService.incrementMessageRank(message.getId(), 5);
+        if (!confession) {
+            tagService.extractAndSaveTags(message.getId(), message.getContent());
+            redisRealtimeService.incrementMessageRank(message.getId(), 5);
+        }
         cacheInvalidationService.evictMessageStructureCaches();
 
         // 核心：通过 WebSocket 广播新留言
@@ -121,6 +143,11 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         result.put("message", message);
         message.setIsOwner(true);
         result.put("userId", userId);
+
+        if (confession) {
+            triggerConfessorReply(message);
+            return result;
+        }
 
         // --- 异步触发：守望者的“心灵感应”回复 ---
         java.util.concurrent.CompletableFuture.runAsync(() -> {
@@ -162,6 +189,43 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         return result;
     }
 
+    private String normalizeMessageType(String messageType) {
+        if (messageType == null || messageType.isBlank()) return MESSAGE_TYPE_NORMAL;
+        if (MESSAGE_TYPE_CONFESSION.equals(messageType) || MESSAGE_TYPE_NORMAL.equals(messageType)) return messageType;
+        throw new BusinessException(ErrorCode.PARAM_ERROR, "未知留言类型");
+    }
+
+    private void triggerConfessorReply(Message message) {
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                Thread.sleep(1500 + (long)(Math.random() * 2500));
+                String replyContent = aiService.generateConfessorReply(message.getContent());
+
+                Comment confessorComment = new Comment();
+                confessorComment.setMessageId(message.getId());
+                confessorComment.setContent(replyContent);
+                confessorComment.setAuthorAlias("赛博神父");
+                confessorComment.setUserId(CONFESSOR_USER_ID);
+
+                commentMapper.insert(confessorComment);
+                this.update(new LambdaUpdateWrapper<Message>()
+                        .eq(Message::getId, message.getId())
+                        .setSql("comment_count = comment_count + 1"));
+                cacheInvalidationService.evictCommentAndMessageListCaches();
+
+                Map<String, Object> broadcastData = new HashMap<>();
+                broadcastData.put("type", "CONFESSOR_REPLY");
+                broadcastData.put("data", Map.of(
+                        "messageId", message.getId(),
+                        "reply", replyContent
+                ));
+                WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
+            } catch (Exception e) {
+                log.error("Confessor AI reply failed: {}", e.getMessage());
+            }
+        });
+    }
+
     @Override
     @Cacheable(
             cacheNames = "messagePage",
@@ -170,9 +234,10 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     public IPage<Message> listByPage(int pageNum, int pageSize, String viewerId) {
         Page<Message> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Message> wrapper = new LambdaQueryWrapper<>();
+        applyVisibleMessageFilter(wrapper);
         wrapper.orderByDesc(Message::getCreateTime);
         IPage<Message> resultPage = this.page(page, wrapper);
-        injectResonance(resultPage.getRecords(), viewerId);
+        hydrateMessageExtras(resultPage.getRecords(), viewerId);
         return resultPage;
     }
 
@@ -193,11 +258,66 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         LambdaQueryWrapper<Message> wrapper = new LambdaQueryWrapper<>();
         wrapper.inSql(Message::getId, "SELECT message_id FROM message_tag WHERE tag_id = " + tag.getId());
+        applyVisibleMessageFilter(wrapper);
         wrapper.orderByDesc(Message::getCreateTime);
         
         IPage<Message> resultPage = this.page(page, wrapper);
-        injectResonance(resultPage.getRecords(), viewerId);
+        hydrateMessageExtras(resultPage.getRecords(), viewerId);
         return resultPage;
+    }
+
+    private void applyVisibleMessageFilter(LambdaQueryWrapper<Message> wrapper) {
+        wrapper.and(w -> w
+                .eq(Message::getMessageType, MESSAGE_TYPE_NORMAL)
+                .or()
+                .isNull(Message::getMessageType)
+                .or(x -> x.eq(Message::getMessageType, MESSAGE_TYPE_CONFESSION)
+                        .gt(Message::getExpiresAt, LocalDateTime.now())));
+    }
+
+    private void hydrateMessageExtras(List<Message> messages, String viewerId) {
+        injectResonance(messages, viewerId);
+        injectConfessionExtras(messages, viewerId);
+    }
+
+    private void injectConfessionExtras(List<Message> messages, String viewerId) {
+        List<Message> confessions = messages.stream()
+                .filter(m -> MESSAGE_TYPE_CONFESSION.equals(m.getMessageType()))
+                .toList();
+        if (confessions.isEmpty()) return;
+
+        List<Long> ids = confessions.stream().map(Message::getId).toList();
+        Map<Long, Long> witnessCounts = new HashMap<>();
+        for (Map<String, Object> row : confessionWitnessMapper.countByMessageIds(ids)) {
+            Object id = row.get("message_id");
+            if (id == null) id = row.get("MESSAGE_ID");
+            Object count = row.get("witness_count");
+            if (count == null) count = row.get("WITNESS_COUNT");
+            if (id instanceof Number && count instanceof Number) {
+                witnessCounts.put(((Number) id).longValue(), ((Number) count).longValue());
+            }
+        }
+
+        Set<Long> witnessedIds = new HashSet<>();
+        if (viewerId != null && !viewerId.isBlank()) {
+            witnessedIds.addAll(confessionWitnessMapper.findWitnessedMessageIds(viewerId, ids));
+        }
+
+        LambdaQueryWrapper<Comment> replyWrapper = new LambdaQueryWrapper<>();
+        replyWrapper.in(Comment::getMessageId, ids)
+                .eq(Comment::getUserId, CONFESSOR_USER_ID)
+                .orderByAsc(Comment::getCreateTime);
+        List<Comment> replies = commentMapper.selectList(replyWrapper);
+        Map<Long, String> replyByMessage = new HashMap<>();
+        for (Comment reply : replies) {
+            replyByMessage.putIfAbsent(reply.getMessageId(), reply.getContent());
+        }
+
+        for (Message message : confessions) {
+            message.setWitnessCount(witnessCounts.getOrDefault(message.getId(), 0L));
+            message.setWitnessedByMe(witnessedIds.contains(message.getId()));
+            message.setConfessorReply(replyByMessage.get(message.getId()));
+        }
     }
 
     private void injectResonance(List<Message> messages, String viewerId) {
@@ -301,5 +421,71 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 log.error("Save reactions error: {}", e.getMessage());
             }
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> witness(Long id, String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "身份标识不能为空");
+        }
+
+        Message message = this.getById(id);
+        if (message == null || !MESSAGE_TYPE_CONFESSION.equals(message.getMessageType())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "告解不存在");
+        }
+        if (message.getExpiresAt() != null && !message.getExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "告解已熄灭");
+        }
+
+        LambdaQueryWrapper<ConfessionWitness> existingWrapper = new LambdaQueryWrapper<>();
+        existingWrapper.eq(ConfessionWitness::getMessageId, id)
+                .eq(ConfessionWitness::getUserId, userId);
+        Long existing = confessionWitnessMapper.selectCount(existingWrapper);
+        if (existing == null || existing == 0) {
+            ConfessionWitness witness = new ConfessionWitness();
+            witness.setMessageId(id);
+            witness.setUserId(userId);
+            try {
+                confessionWitnessMapper.insert(witness);
+            } catch (DuplicateKeyException ignored) {
+                // Another tab or retry already witnessed this confession.
+            }
+            cacheInvalidationService.evictMessageListCaches();
+        }
+
+        LambdaQueryWrapper<ConfessionWitness> countWrapper = new LambdaQueryWrapper<>();
+        countWrapper.eq(ConfessionWitness::getMessageId, id);
+        long witnessCount = confessionWitnessMapper.selectCount(countWrapper);
+
+        try {
+            Map<String, Object> broadcastData = new HashMap<>();
+            broadcastData.put("type", "CONFESSION_WITNESS_UPDATE");
+            broadcastData.put("data", Map.of("messageId", id, "witnessCount", witnessCount));
+            WebSocketServer.broadcast(objectMapper.writeValueAsString(broadcastData));
+        } catch (Exception e) {
+            log.error("Witness broadcast error: {}", e.getMessage());
+        }
+
+        return Map.of("witnessCount", witnessCount, "witnessedByMe", true);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int cleanupExpiredConfessions() {
+        LambdaQueryWrapper<Message> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Message::getMessageType, MESSAGE_TYPE_CONFESSION)
+                .le(Message::getExpiresAt, LocalDateTime.now());
+        List<Message> expired = this.list(wrapper);
+        if (expired.isEmpty()) return 0;
+
+        for (Message message : expired) {
+            tagService.decrementTagsForMessage(message.getId());
+            redisRealtimeService.removeMessageRank(message.getId());
+        }
+        this.removeBatchByIds(expired.stream().map(Message::getId).toList());
+        cacheInvalidationService.evictMessageStructureCaches();
+        cacheInvalidationService.evictCommentCaches();
+        return expired.size();
     }
 }

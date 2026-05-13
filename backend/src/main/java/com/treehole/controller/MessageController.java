@@ -84,6 +84,15 @@ public class MessageController {
         return Result.success();
     }
 
+    @Operation(summary = "见证告解", description = "为告解帖点燃一支蜡烛，每个身份只能见证一次")
+    @PostMapping("/{id}/witness")
+    public Result<Map<String, Object>> witness(@PathVariable Long id,
+                                               @RequestHeader(value = "X-User-Id", required = false) String userId,
+                                               @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String finalUserId = extractUserId(userId, authorization);
+        return Result.success(messageService.witness(id, finalUserId));
+    }
+
 
     /**
      * 提取身份标识：优先认 X-User-Id，兼容 Authorization

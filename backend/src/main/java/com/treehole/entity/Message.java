@@ -49,6 +49,12 @@ public class Message {
     /** 信纸皮肤 */
     private String theme;
 
+    /** 留言类型：normal / confession */
+    private String messageType;
+
+    /** 告解帖过期时间 */
+    private LocalDateTime expiresAt;
+
     @TableLogic
     private Integer isDeleted;
 
@@ -69,4 +75,16 @@ public class Message {
     @TableField(exist = false)
     @com.fasterxml.jackson.annotation.JsonProperty("coFrequency")
     private Boolean coFrequency = false;
+
+    /** 告解帖见证数 (非持久化字段) */
+    @TableField(exist = false)
+    private Long witnessCount = 0L;
+
+    /** 当前用户是否已见证 (非持久化字段) */
+    @TableField(exist = false)
+    private Boolean witnessedByMe = false;
+
+    /** AI 告解回应 (非持久化字段) */
+    @TableField(exist = false)
+    private String confessorReply;
 }

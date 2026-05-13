@@ -98,6 +98,35 @@ public class AIService {
     }
 
     /**
+     * 生成告解模式下的无条件见证回应
+     */
+    public String generateConfessorReply(String content) {
+        try {
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("Authorization", "Bearer " + API_KEY);
+            headers.set("Content-Type", "application/json");
+
+            Map<String, Object> systemMessage = Map.of(
+                    "role", "system",
+                    "content", "你是赛博告解亭里的‘守夜神父’，不是现实宗教神职人员。你的任务是见证、接纳、安放用户的告解。回复必须使用中文，温柔、克制、无条件接纳，不评判、不说教、不提供医疗或法律承诺，不使用拉丁文或强宗教仪式口吻。80字以内。");
+            Map<String, Object> userMessage = Map.of("role", "user", "content", content);
+
+            Map<String, Object> request = Map.of(
+                    "model", MODEL_NAME,
+                    "messages", List.of(systemMessage, userMessage),
+                    "stream", false);
+
+            org.springframework.http.HttpEntity<Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(request, headers);
+            String response = restTemplate.postForObject(API_URL, entity, String.class);
+            JsonNode root = objectMapper.readTree(response);
+            return root.path("choices").get(0).path("message").path("content").asText();
+        } catch (Exception e) {
+            log.error("Confessor AI Failed: ", e);
+            return "我听见了。此刻你不必解释，也不必被审判。愿这点烛光替你守住这一刻。";
+        }
+    }
+
+    /**
      * 生成 Alter Ego 的专业深度回复
      */
     public String generateAlterEgoReply(String context) {

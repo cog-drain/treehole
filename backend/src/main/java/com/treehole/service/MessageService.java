@@ -57,4 +57,14 @@ public interface MessageService extends IService<Message> {
      * @param userId 用户身份标识
      */
     void react(Long id, String emoji, String userId);
+
+    /**
+     * 见证一条告解帖。
+     */
+    Map<String, Object> witness(Long id, String userId);
+
+    /**
+     * 清理已过期告解帖。
+     */
+    int cleanupExpiredConfessions();
 }

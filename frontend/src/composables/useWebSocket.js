@@ -80,6 +80,14 @@ export function useWebSocket(callbacks = {}) {
           case 'ONLINE_STATS_UPDATE':
             callbacks.onOnlineStatsUpdate?.(data)
             break
+
+          case 'CONFESSOR_REPLY':
+            callbacks.onConfessorReply?.(data)
+            break
+
+          case 'CONFESSION_WITNESS_UPDATE':
+            callbacks.onConfessionWitnessUpdate?.(data)
+            break
         }
       } catch (e) {
         console.error('WebSocket: Parse error', e)

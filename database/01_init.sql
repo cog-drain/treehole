@@ -48,6 +48,8 @@ CREATE TABLE `message` (
     `image_url` VARCHAR(500),
     `audio_url` VARCHAR(500),
     `theme` VARCHAR(50) DEFAULT 'default',
+    `message_type` VARCHAR(20) DEFAULT 'normal',
+    `expires_at` DATETIME DEFAULT NULL,
     `likes` INT DEFAULT 0,
     `comment_count` INT DEFAULT 0,
     `ip_address` VARCHAR(50),
@@ -55,7 +57,8 @@ CREATE TABLE `message` (
     `is_deleted` TINYINT DEFAULT 0,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_user` (`user_id`),
-    INDEX `idx_create_time` (`create_time`)
+    INDEX `idx_create_time` (`create_time`),
+    INDEX `idx_message_type_expires` (`message_type`, `expires_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 5. 评论表
@@ -96,7 +99,20 @@ CREATE TABLE `message_tag` (
     PRIMARY KEY (`message_id`, `tag_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- 7. 漂流瓶表 (补全)
+-- 7. 告解见证表
+DROP TABLE IF EXISTS `confession_witness`;
+
+CREATE TABLE `confession_witness` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `message_id` BIGINT NOT NULL,
+    `user_id` VARCHAR(36) NOT NULL,
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_confession_witness_user` (`message_id`, `user_id`),
+    INDEX `idx_confession_witness_message` (`message_id`),
+    INDEX `idx_confession_witness_user` (`user_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 8. 漂流瓶表 (补全)
 DROP TABLE IF EXISTS `drift_bottle`;
 
 CREATE TABLE `drift_bottle` (
