@@ -35,6 +35,9 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
+    test: {
+      setupFiles: ['./src/tests/setup.ts']
+    },
     build: {
       // After lazy-loading heavy feature surfaces, the remaining main bundle is
       // dominated by shared UI/runtime dependencies. Keep the warning above the
