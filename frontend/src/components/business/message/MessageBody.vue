@@ -83,7 +83,6 @@ const openImage = (url) => window.open(url, '_blank')
         :src="safeAudioUrl"
         @timeupdate="onTimeUpdate"
         @ended="onEnded"
-        @error="() => console.log('Audio suppressed or unreachable')"
         class="hidden"
       ></audio>
 

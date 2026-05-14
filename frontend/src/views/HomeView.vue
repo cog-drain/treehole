@@ -295,11 +295,9 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { defineAsyncComponent, ref, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import api, {
-  throwBottle, pickBottle, returnBottle
-} from '@/api'
+import api from '@/api'
 import MessageCard from '@/components/business/MessageCard.vue'
 import AdminDock from '@/components/home/admin/AdminDock.vue'
 import AdminLoginModal from '@/components/home/admin/AdminLoginModal.vue'
@@ -327,9 +325,12 @@ import { useZenMode } from '@/composables/useZenMode'
 import { useRecorder } from '@/composables/useRecorder'
 import { useAdminPanel } from '@/composables/useAdminPanel'
 import { useComposeForm } from '@/composables/useComposeForm'
+import { useDriftBottle } from '@/composables/useDriftBottle'
 import { useFeedMessages } from '@/composables/useFeedMessages'
 import { useHomeRealtime } from '@/composables/useHomeRealtime'
 import { useIdentityVault } from '@/composables/useIdentityVault'
+import { useMobileEdgeSwipe } from '@/composables/useMobileEdgeSwipe'
+import { useOfflineQueueDialog } from '@/composables/useOfflineQueueDialog'
 import { ACTIVITY_EVENTS, ACTIVITY_MODULES } from '@/constants/activityEvents'
 import { TONE_MODES } from '@/constants/toneModes'
 import { CARD_THEMES } from '@/constants/themes'
@@ -339,8 +340,8 @@ const appStore = useAppStore()
 const zen = useZenMode()
 const recorder = useRecorder()
 const compose = useComposeForm()
-const identityVault = useIdentityVault()
 const adminPanel = useAdminPanel()
+const identityVault = useIdentityVault()
 
 const props = defineProps({
   storeVisible: {
@@ -423,46 +424,6 @@ const isMobile = ref(window.innerWidth < 768)
 const nodeDetailVisible = ref(false)
 const selectedNodeMsg = ref(null)
 const checkMobile = () => { isMobile.value = window.innerWidth < 768 }
-const edgeSwipe = reactive({ active: false, startX: 0, startY: 0, currentX: 0, currentY: 0 })
-const EDGE_SWIPE_ZONE = 28
-const EDGE_SWIPE_DISTANCE = 72
-const EDGE_SWIPE_MAX_VERTICAL = 80
-
-function resetEdgeSwipe() {
-  edgeSwipe.active = false
-  edgeSwipe.startX = 0
-  edgeSwipe.startY = 0
-  edgeSwipe.currentX = 0
-  edgeSwipe.currentY = 0
-}
-
-function handleEdgeSwipeStart(event) {
-  if (!isMobile.value || viewMode.value !== 'graph' || event.touches.length !== 1) return
-  const touch = event.touches[0]
-  if (touch.clientX > EDGE_SWIPE_ZONE) return
-  edgeSwipe.active = true
-  edgeSwipe.startX = touch.clientX
-  edgeSwipe.startY = touch.clientY
-  edgeSwipe.currentX = touch.clientX
-  edgeSwipe.currentY = touch.clientY
-}
-
-function handleEdgeSwipeMove(event) {
-  if (!edgeSwipe.active || event.touches.length !== 1) return
-  const touch = event.touches[0]
-  edgeSwipe.currentX = touch.clientX
-  edgeSwipe.currentY = touch.clientY
-}
-
-function handleEdgeSwipeEnd() {
-  if (!edgeSwipe.active) return
-  const deltaX = edgeSwipe.currentX - edgeSwipe.startX
-  const deltaY = Math.abs(edgeSwipe.currentY - edgeSwipe.startY)
-  if (deltaX >= EDGE_SWIPE_DISTANCE && deltaY <= EDGE_SWIPE_MAX_VERTICAL) {
-    setViewMode('list')
-  }
-  resetEdgeSwipe()
-}
 
 let onlineStatsTimer = null
 let clockTimer = null
@@ -471,10 +432,8 @@ let disconnectWS = () => {}
 let setActivityModule = () => {}
 let trackActivity = () => {}
 
-// ── Offline State ──
+// ── Network State ──
 const isOnline = ref(navigator.onLine)
-const offlineList = ref([]) // 用于弹窗显示的列表数据
-const offlineDialogVisible = ref(false)
 
 const toneMap = TONE_MODES
 
@@ -528,9 +487,41 @@ const {
   handlePageChange
 } = feed
 
+const driftBottle = useDriftBottle({ userStore, appStore, form })
+const {
+  bottleVisible,
+  pickedBottle,
+  openBottleCenter,
+  handleThrowBottle,
+  handlePickBottle,
+  handleReplyBottle,
+  handleReturnBottle
+} = driftBottle
+
+const offlineBox = useOfflineQueueDialog({ form, userStore })
+const {
+  offlineList,
+  offlineDialogVisible,
+  openOfflineBox,
+  editOfflineItem,
+  removeOfflineItem,
+  syncOfflineQueue
+} = offlineBox
+
 function handlePublishButtonClick() {
   handleFeedPublishButtonClick(isMidnight.value)
 }
+
+const {
+  resetEdgeSwipe,
+  handleEdgeSwipeStart,
+  handleEdgeSwipeMove,
+  handleEdgeSwipeEnd
+} = useMobileEdgeSwipe({
+  isMobile,
+  getMode: () => viewMode.value,
+  setMode: (mode) => setViewMode(mode)
+})
 
 watch(() => form.content, (val) => {
   handleAdminCommand(val, () => { form.content = '' })
@@ -559,48 +550,6 @@ const handleOffline = () => {
   isOnline.value = false
   ElMessage.warning('你已进入离线回声舱') 
 }
-
-// ── Drift Bottle ──
-const bottleVisible = ref(false)
-const bottleState = ref('init')
-const newBottleContent = ref('')
-const pickedBottle = ref(null)
-const replyContent = ref('')
-const replied = ref(false)
-
-function openBottleCenter() { bottleVisible.value = true; bottleState.value = 'init'; newBottleContent.value = ''; replyContent.value = ''; replied.value = false }
-
-async function handleThrowBottle(content) {
-  try {
-    await throwBottle({ content: content || newBottleContent.value, authorAlias: userStore.alias, theme: form.theme || 'default' })
-    ElMessage.success('瓶子已随海浪飘向远方... (获得 5 ⚡)')
-    appStore.addEnergy(5)
-    bottleVisible.value = false
-  } catch {}
-}
-
-async function handlePickBottle() {
-  bottleState.value = 'picking'
-  try {
-    await new Promise(r => setTimeout(r, 1500))
-    const res = await pickBottle()
-    if (res.data) { pickedBottle.value = res.data; bottleState.value = 'picked' }
-    else { ElMessage.info('海面上空荡荡的'); bottleState.value = 'init' }
-  } catch { bottleState.value = 'init' }
-}
-
-async function handleReplyBottle(content) {
-  const finalContent = content || replyContent.value
-  if (!finalContent?.trim()) return
-  try {
-    await api.replyBottle(pickedBottle.value.id, finalContent, userStore.alias)
-    ElMessage.success('你的回信已顺着海流出发 ✨ (获得 5 ⚡)')
-    appStore.addEnergy(5)
-    bottleVisible.value = false
-  } catch {}
-}
-
-async function handleReturnBottle() { try { await returnBottle(pickedBottle.value.id); ElMessage.success('瓶子已重回大海的怀抱'); bottleVisible.value = false } catch {} }
 
 function showNodeDetail(msg) { selectedNodeMsg.value = msg; nodeDetailVisible.value = true }
 
@@ -698,35 +647,6 @@ onUnmounted(() => {
   if (clockTimer) window.clearInterval(clockTimer)
 })
 
-/** 打开离线暂存箱 */
-function openOfflineBox() {
-  offlineList.value = offlineQueue.get()
-  offlineDialogVisible.value = true
-}
-
-/** 载入并编辑离线任务 */
-function editOfflineItem(item) {
-  form.content = item.content || ''
-  form.theme = item.theme || 'default'
-  form.mood = item.mood || '0'
-  form.authorAlias = item.authorAlias || userStore.alias
-  removeOfflineItem(item.id)
-  ElMessage.success('已载入编辑区，修改后可再次发送')
-}
-
-/** 手动删除离线任务 */
-function removeOfflineItem(id) {
-  offlineQueue.remove(id)
-  offlineList.value = offlineQueue.get()
-  if (offlineList.value.length === 0) offlineDialogVisible.value = false
-}
-
-/** 手动触发同步 */
-async function syncOfflineQueue() {
-  await offlineQueue.sync(api)
-  offlineList.value = offlineQueue.get()
-  if (offlineList.value.length === 0) offlineDialogVisible.value = false
-}
 </script>
 
 <style>

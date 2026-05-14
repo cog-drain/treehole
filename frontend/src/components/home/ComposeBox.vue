@@ -1,5 +1,7 @@
 <script setup>
-import { Archive, Dices, ImagePlus, Loader2, Mic, Pause, Play, Send, Sparkles, Trash2, X } from 'lucide-vue-next'
+import { Archive, Dices, ImagePlus, Loader2, Mic, Send } from 'lucide-vue-next'
+import ToneSelector from '@/components/home/compose/ToneSelector.vue'
+import VoicePanel from '@/components/home/compose/VoicePanel.vue'
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -54,18 +56,6 @@ const emit = defineEmits([
   'seek-preview'
 ])
 
-function bindToneSelector(el) {
-  if (props.toneSelectorRef) props.toneSelectorRef.value = el
-}
-
-function bindAudioPreview(el) {
-  if (props.audioPreviewRef) props.audioPreviewRef.value = el
-}
-
-function setVoiceEffect(effectId) {
-  emit('set-voice-effect', effectId)
-  emit('reapply-voice-mask')
-}
 </script>
 
 <template>
@@ -154,40 +144,15 @@ function setVoiceEffect(effectId) {
               <span class="whitespace-nowrap">{{ isMobile ? '语音' : '语音留言' }}</span>
             </button>
 
-            <div class="relative flex items-center" :ref="bindToneSelector">
-              <button
-                v-if="!showTonePanel"
-                @click.stop="$emit('toggle-tone-panel', true)"
-                class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border text-[11px] transition-all active:scale-95"
-                :class="form.mood ? 'bg-blue-500/10 border-blue-500/25 text-blue-500 hover:bg-blue-500/15' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200'"
-              >
-                <Sparkles :size="14" />
-                <span class="whitespace-nowrap">{{ form.mood && toneMap[form.mood] ? toneMap[form.mood].emoji + ' ' + toneMap[form.mood].label : '语气' }}</span>
-              </button>
-
-              <div
-                v-else
-                class="z-30 flex items-center gap-0.5 px-1 py-1 rounded-full bg-white/90 backdrop-blur-xl shadow-xl border border-slate-200"
-                :class="isMobile ? 'absolute left-0 bottom-full mb-2 max-w-[calc(100vw-3rem)] flex-wrap' : 'relative max-w-none flex-nowrap'"
-              >
-                <button
-                  v-for="(tone, key) in toneMap"
-                  :key="key"
-                  class="w-8 h-8 shrink-0 flex items-center justify-center rounded-full transition-all hover:bg-slate-100 active:scale-90"
-                  :class="form.mood === key ? 'bg-blue-100 ring-1 ring-blue-400/40 scale-110' : 'opacity-60 hover:opacity-100'"
-                  :title="tone.label + ' — ' + tone.desc"
-                  @click="$emit('set-tone', form.mood === key ? '' : key)"
-                >
-                  <span class="text-sm">{{ tone.emoji }}</span>
-                </button>
-                <button
-                  @click="$emit('toggle-tone-panel', false)"
-                  class="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all ml-0.5"
-                >
-                  <X :size="12" />
-                </button>
-              </div>
-            </div>
+            <ToneSelector
+              :form="form"
+              :tone-map="toneMap"
+              :show-tone-panel="showTonePanel"
+              :tone-selector-ref="toneSelectorRef"
+              :is-mobile="isMobile"
+              @toggle-tone-panel="$emit('toggle-tone-panel', $event)"
+              @set-tone="$emit('set-tone', $event)"
+            />
 
             <button
               class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border text-[11px] transition-all active:scale-95"
@@ -235,78 +200,30 @@ function setVoiceEffect(effectId) {
           <button @click="$emit('clear-image')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs opacity-0 group-hover/img:opacity-100 transition-opacity">✕</button>
         </div>
 
-        <div v-if="showVoicePanel || isRecording || recordedBlob" key="voice" class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
-          <div v-if="!recordedBlob" class="flex flex-col items-center gap-4">
-            <button
-              class="w-full py-3 rounded-xl transition-all font-medium text-sm border border-dashed border-white/20 hover:border-blue-500/50 hover:bg-blue-500/5"
-              :class="{ 'animate-pulse text-red-400 border-red-500/50 bg-red-500/5': isRecording }"
-              @click="$emit('toggle-recording')"
-            >
-              {{ isRecording ? `⏹ 停止录音 (${recordingTime}s)` : '⏺ 点击开始录制 (60s)' }}
-            </button>
-          </div>
-          <div v-else class="space-y-4">
-            <div class="flex items-center justify-between px-2">
-              <div class="flex gap-2">
-                <button
-                  v-for="eff in voiceEffects"
-                  :key="eff.id"
-                  @click="setVoiceEffect(eff.id)"
-                  class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all"
-                  :class="voiceEffect === eff.id ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'"
-                >
-                  <span class="text-lg">{{ eff.icon }}</span>
-                  <span class="text-[9px] font-bold uppercase tracking-tighter">{{ eff.name }}</span>
-                </button>
-              </div>
-              <button @click="$emit('clear-audio')" class="p-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all">
-                <Trash2 :size="18" />
-              </button>
-            </div>
-
-            <div class="flex items-center gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 relative overflow-hidden group/player max-w-md mx-auto">
-              <audio
-                :ref="bindAudioPreview"
-                :src="maskedAudioUrl || rawAudioUrl"
-                @timeupdate="$emit('preview-time-update')"
-                @ended="$emit('preview-ended')"
-                class="hidden"
-              ></audio>
-
-              <button
-                @click="$emit('toggle-preview-playback')"
-                class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 active:scale-90 transition-all"
-              >
-                <Play v-if="!isPlayingPreview" :size="18" fill="currentColor" />
-                <Pause v-else :size="18" fill="currentColor" />
-              </button>
-
-              <div class="flex-1 space-y-1">
-                <div class="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                  <span>{{ formatDuration(previewCurrentTime) }}</span>
-                  <div class="flex gap-0.5 items-center">
-                    <div
-                      v-for="i in 12"
-                      :key="i"
-                      class="w-0.5 bg-blue-500/30 rounded-full transition-all"
-                      :class="{ 'animate-[bounce_0.8s_infinite]': isPlayingPreview }"
-                      :style="{ height: Math.random() * 12 + 4 + 'px', animationDelay: (i * 0.1) + 's', opacity: isPlayingPreview ? 0.8 : 0.2 }"
-                    ></div>
-                  </div>
-                  <span>{{ formatDuration(previewDuration || 0) }}</span>
-                </div>
-                <el-slider
-                  :model-value="previewCurrentTime"
-                  :max="previewDuration || 1"
-                  :show-tooltip="false"
-                  @update:model-value="$emit('seek-preview', $event)"
-                  size="small"
-                  class="cyber-slider"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <VoicePanel
+          key="voice"
+          :show-voice-panel="showVoicePanel"
+          :is-recording="isRecording"
+          :recording-time="recordingTime"
+          :recorded-blob="recordedBlob"
+          :raw-audio-url="rawAudioUrl"
+          :masked-audio-url="maskedAudioUrl"
+          :is-playing-preview="isPlayingPreview"
+          :preview-current-time="previewCurrentTime"
+          :preview-duration="previewDuration"
+          :audio-preview-ref="audioPreviewRef"
+          :voice-effect="voiceEffect"
+          :voice-effects="voiceEffects"
+          :format-duration="formatDuration"
+          @toggle-recording="$emit('toggle-recording')"
+          @set-voice-effect="$emit('set-voice-effect', $event)"
+          @reapply-voice-mask="$emit('reapply-voice-mask')"
+          @clear-audio="$emit('clear-audio')"
+          @toggle-preview-playback="$emit('toggle-preview-playback')"
+          @preview-time-update="$emit('preview-time-update')"
+          @preview-ended="$emit('preview-ended')"
+          @seek-preview="$emit('seek-preview', $event)"
+        />
       </TransitionGroup>
     </div>
   </section>

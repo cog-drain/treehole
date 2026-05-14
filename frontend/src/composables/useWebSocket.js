@@ -7,6 +7,10 @@
 import { onUnmounted } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
 
+const debugLog = (...args) => {
+  if (import.meta.env.DEV) console.debug(...args)
+}
+
 export function useWebSocket(callbacks = {}) {
   let ws = null
   let reconnectTimer = null
@@ -76,7 +80,7 @@ export function useWebSocket(callbacks = {}) {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsUrl = `${protocol}//${window.location.host}/ws/treehole/${userId}`
-    console.log('🌌 WebSocket: Connecting to', wsUrl)
+    debugLog('🌌 WebSocket: Connecting to', wsUrl)
 
     ws = new WebSocket(wsUrl)
 
@@ -145,7 +149,7 @@ export function useWebSocket(callbacks = {}) {
 
     ws.onclose = () => {
       stopHeartbeat()
-      console.log('WebSocket: Disconnected, retrying in 5s...')
+      debugLog('WebSocket: Disconnected, retrying in 5s...')
       reconnectTimer = setTimeout(() => connect(userId), 5000)
     }
   }
