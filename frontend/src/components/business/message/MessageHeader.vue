@@ -1,6 +1,6 @@
 <script setup>
 import { Ban, Trash2, Zap } from 'lucide-vue-next'
-import { formatTime } from '@/utils/time.js'
+import { formatTime } from '@/utils/time'
 
 defineProps({
   msg: { type: Object, required: true },

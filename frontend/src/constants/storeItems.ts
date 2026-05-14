@@ -1,3 +1,5 @@
+import type { StoreItem } from '@/types'
+
 export const STORE_ITEMS = [
   {
     id: 'lain_intro',
@@ -39,8 +41,8 @@ export const STORE_ITEMS = [
     preview: '',
     toggleEvent: 'toggle-camo'
   }
-]
+] as const satisfies readonly StoreItem[]
 
-export function getStoreItemToggleEvent(id) {
+export function getStoreItemToggleEvent(id: string): string {
   return STORE_ITEMS.find(item => item.id === id)?.toggleEvent || ''
 }

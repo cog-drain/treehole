@@ -58,7 +58,7 @@
 
 <script setup>
 import { ChevronLeft } from 'lucide-vue-next'
-import { formatTime } from '@/utils/time.js'
+import { formatTime } from '@/utils/time'
 
 defineProps({
   bottles: { type: Array, default: () => [] }

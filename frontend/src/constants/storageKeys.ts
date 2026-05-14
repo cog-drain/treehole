@@ -14,8 +14,8 @@ export const STORAGE_KEYS = {
   p5AoaEnabled: 'treehole_p5_aoa_enabled',
   alterEgoEnabled: 'treehole_alter_ego_enabled',
   camoEnabled: 'treehole_camo_enabled'
-}
+} as const
 
-export const messageReactionKey = (messageId) => `treehole_msg_reacted_${messageId}`
-export const commentReactionKey = (commentId) => `treehole_cmt_reacted_${commentId}`
-export const earnCooldownKey = (type) => `treehole_last_${type}`
+export const messageReactionKey = (messageId: string | number) => `treehole_msg_reacted_${messageId}`
+export const commentReactionKey = (commentId: string | number) => `treehole_cmt_reacted_${commentId}`
+export const earnCooldownKey = (type: string) => `treehole_last_${type}`

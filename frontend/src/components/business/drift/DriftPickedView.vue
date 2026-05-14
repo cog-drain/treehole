@@ -72,7 +72,7 @@
 
 <script setup>
 import { RefreshCw } from 'lucide-vue-next'
-import { formatTime } from '@/utils/time.js'
+import { formatTime } from '@/utils/time'
 
 defineProps({
   pickedData: { type: Object, required: true },

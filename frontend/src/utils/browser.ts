@@ -1,8 +1,8 @@
-export function openExternalImage(url) {
+export function openExternalImage(url: string): void {
   window.open(url, '_blank')
 }
 
-export function reloadPage(delay = 0) {
+export function reloadPage(delay = 0): void {
   if (delay > 0) {
     setTimeout(() => window.location.reload(), delay)
     return
@@ -10,6 +10,6 @@ export function reloadPage(delay = 0) {
   window.location.reload()
 }
 
-export function scrollToTop(options = { behavior: 'smooth' }) {
+export function scrollToTop(options: ScrollToOptions = { behavior: 'smooth' }): void {
   window.scrollTo({ top: 0, ...options })
 }

@@ -1,6 +1,6 @@
 <script setup>
 import { Edit2, ShieldAlert, Trash2 } from 'lucide-vue-next'
-import { formatTime } from '@/utils/time.js'
+import { formatTime } from '@/utils/time'
 
 defineProps({
   visible: { type: Boolean, default: false },

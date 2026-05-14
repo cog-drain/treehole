@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
     "3d-force-graph": "^1.80.0",
@@ -29,10 +30,13 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.4",
     "@vitejs/plugin-vue": "^6.0.6",
+    "@vue/tsconfig": "^0.9.1",
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.12",
     "tailwindcss": "^4.2.4",
-    "vite": "^8.0.10"
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10",
+    "vue-tsc": "^3.2.8"
   },
   "packageManager": "pnpm@11.0.9+sha512.34ce82e6780233cf9cad8685029a8f81d2e06196c5a9bad98879f7424940c6817c4e4524fb7d38b8553ceed48b9758b8ebaf1abd3600c232c4c8cf7366086f38"
 }
