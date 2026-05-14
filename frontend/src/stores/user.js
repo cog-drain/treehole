@@ -9,10 +9,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
-import { getJson, getString, setJson, setString } from '@/utils/storage'
-
-const ADJECTIVES = ['深海', '星际', '赛博', '荒野', '幻梦', '虚空', '极光', '迷雾', '雷鸣', '永恒']
-const NOUNS = ['居民', '浪人', '访客', '幽灵', '观察者', '行者', '先驱', '诗人', '信徒', '极客']
+import { getString, setString } from '@/utils/storage'
+import { generateRandomAlias, getOrCreateUserIdentity } from '@/utils/clientIdentity'
 
 export const useUserStore = defineStore('user', () => {
   // ── 核心状态 ──
@@ -22,17 +20,7 @@ export const useUserStore = defineStore('user', () => {
   // ── 初始化 ──
   function init() {
     // 1. UUID 身份
-    let identity = getJson(STORAGE_KEYS.identity, null)
-
-    if (!identity?.userId) {
-      // 兼容性修复：非 HTTPS 环境下 crypto.randomUUID 可能不可用
-      const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-        ? crypto.randomUUID() 
-        : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      
-      identity = { userId: newId, createdAt: Date.now() }
-      setJson(STORAGE_KEYS.identity, identity)
-    }
+    const identity = getOrCreateUserIdentity()
     userId.value = identity.userId
 
     // 2. 昵称
@@ -46,10 +34,7 @@ export const useUserStore = defineStore('user', () => {
 
   // ── 生成新昵称 ──
   function refreshAlias() {
-    const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]
-    const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)]
-    const id = Math.random().toString(36).substring(2, 6).toUpperCase()
-    alias.value = `${adj}${noun}_${id}`
+    alias.value = generateRandomAlias()
     setString(STORAGE_KEYS.alias, alias.value)
   }
 

@@ -1,7 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { STORAGE_KEYS } from '@/constants/storageKeys'
-import { getJson, setJson } from '@/utils/storage'
+import { getOrCreateUserIdentity } from '@/utils/clientIdentity'
 
 const request = axios.create({
   baseURL: '/api',
@@ -10,20 +9,7 @@ const request = axios.create({
 
 /** 获取或初始化本地身份 (MVP 方案) */
 export function getUserIdentity() {
-  let identity = getJson(STORAGE_KEYS.identity, null)
-
-  if (!identity || !identity.userId) {
-    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-    identity = {
-      userId: newId,
-      createdAt: Date.now()
-    }
-    setJson(STORAGE_KEYS.identity, identity)
-  }
-  return identity
+  return getOrCreateUserIdentity()
 }
 
 // 请求拦截器

@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 import { backupIdentity, restoreIdentity } from '@/api'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
 import { setJson } from '@/utils/storage'
+import { reloadPage } from '@/utils/browser'
 
 export function useIdentityVault() {
   const showIdentityModal = ref(false)
@@ -23,7 +24,7 @@ export function useIdentityVault() {
       if (res.code === 0 || res.code === 200) {
         setJson(STORAGE_KEYS.identity, { userId: res.data, createdAt: Date.now() })
         ElMessage.success('身份还原成功，正在重载...')
-        setTimeout(() => window.location.reload(), 1500)
+        reloadPage(1500)
       }
     } catch {}
   }

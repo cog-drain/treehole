@@ -1,6 +1,7 @@
 <script setup>
 import { Zap } from 'lucide-vue-next'
 import { generateDiceBearAvatar } from '@/utils/avatar'
+import { openExternalImage } from '@/utils/browser'
 
 defineProps({
   comment: { type: Object, required: true }
@@ -15,7 +16,7 @@ const formatRelativeTime = (time) => {
   return `${Math.floor(diff / 86400)}D AGO`
 }
 
-const openImage = (url) => window.open(url, '_blank')
+const openImage = openExternalImage
 </script>
 
 <template>

@@ -63,6 +63,7 @@ import { ElMessage } from 'element-plus'
 import api from '@/api'
 import { offlineQueue } from '@/utils/offlineQueue'
 import { earnCooldownKey } from '@/constants/storageKeys'
+import { getString, setString } from '@/utils/storage'
 
 const LainIntro = defineAsyncComponent(() => import('@/components/business/LainIntro.vue'))
 const EnergyStore = defineAsyncComponent(() => import('@/components/business/EnergyStore.vue'))
@@ -109,7 +110,7 @@ const handleBuy = ({ id, cost }) => {
 const handleEarnEnergy = ({ type, amount }) => {
   // 简易防刷机制（实际应由后端控制）
   const lastKey = earnCooldownKey(type)
-  const lastTime = parseInt(localStorage.getItem(lastKey) || '0')
+  const lastTime = parseInt(getString(lastKey, '0'))
   const now = Date.now()
   
   if (type === 'checkin' && now - lastTime < 86400000) {
@@ -121,14 +122,14 @@ const handleEarnEnergy = ({ type, amount }) => {
     ElMessage({ message: '正在连接神经网路路获取数据...', type: 'info', duration: 2000 })
     setTimeout(() => {
       appStore.addEnergy(amount)
-      localStorage.setItem(lastKey, Date.now().toString())
+      setString(lastKey, Date.now())
       ElMessage.success(`数据流载入完毕！获得 ${amount} ⚡`)
     }, 2000)
     return
   }
 
   appStore.addEnergy(amount)
-  localStorage.setItem(lastKey, Date.now().toString())
+  setString(lastKey, Date.now())
   ElMessage.success(`获取成功！获得 ${amount} ⚡`)
 }
 

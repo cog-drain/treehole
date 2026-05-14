@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { Pause, Play } from 'lucide-vue-next'
+import { openExternalImage } from '@/utils/browser'
 
 const props = defineProps({
   msg: { type: Object, required: true },
@@ -65,7 +66,7 @@ function seek(val) {
   audioRef.value.currentTime = val
 }
 
-const openImage = (url) => window.open(url, '_blank')
+const openImage = openExternalImage
 </script>
 
 <template>
