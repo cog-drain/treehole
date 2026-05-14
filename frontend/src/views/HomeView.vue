@@ -65,96 +65,30 @@
 
       <FeedHeader :view-mode="viewMode" :online-count="onlineCount" @set-view-mode="setViewMode" />
 
-      <!-- Active Tag Banner -->
-      <Transition name="page">
-        <div v-if="activeTag" class="flex items-center justify-between px-6 py-4 rounded-2xl bg-blue-50/80 border border-blue-200 shadow-sm backdrop-blur-md">
-          <div class="flex items-center gap-2">
-            <Hash :size="16" class="text-blue-500" />
-            <span class="text-sm font-medium text-slate-700">正在查看话题: <span class="text-blue-600 font-bold">{{ activeTag }}</span></span>
-          </div>
-          <button @click="clearTagFilter" class="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors">返回全域</button>
-        </div>
-      </Transition>
+      <ActiveTagBanner :active-tag="activeTag" @clear="clearTagFilter" />
 
-      <!-- Main Feed -->
-      <div v-if="viewMode === 'list'" class="space-y-12">
-        <div v-if="total > 0" class="space-y-12">
-          <TransitionGroup name="msg-list">
-            <MessageCard
-              v-for="(msg, index) in messages"
-              :key="msg.id"
-              :msg="msg"
-              :liked="likedIds.has(msg.id)"
-              :class="['theme-' + (msg.theme || 'default'), 'animate__animated animate__fadeInUp']"
-              :style="{ animationDelay: (index * 100) + 'ms' }"
-              @like="likeMessage"
-              @toggle-comments="toggleComments"
-              @delete="deleteMessage"
-              @delete-comment="handleDeleteComment"
-              @publish-comment="publishComment"
-              @react="trackActivity(ACTIVITY_EVENTS.react)"
-              @witness="trackActivity(ACTIVITY_EVENTS.witnessConfession, ACTIVITY_MODULES.comments)"
-              @tag-click="handleTagClick"
-              :isAdmin="isAdmin"
-              @admin-ban="handleBanIP"
-            />
-          </TransitionGroup>
-
-          <!-- Pagination -->
-            <!-- Custom Godly Pagination -->
-            <div class="flex justify-center pt-16 pb-32">
-              <nav class="flex items-center gap-1 p-2 bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] ring-1 ring-white/5">
-                <!-- Prev Button -->
-                <button 
-                  class="w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 group disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10"
-                  :disabled="pageNum <= 1"
-                  @click="handlePageChange(pageNum - 1)"
-                >
-                  <ChevronLeft :size="18" class="text-slate-400 group-hover:text-blue-400 transition-colors" />
-                </button>
-
-                <!-- Page Numbers -->
-                <div class="flex items-center gap-1">
-                  <button 
-                    v-for="p in totalPages" 
-                    :key="p"
-                    @click="handlePageChange(p)"
-                    class="w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold transition-all duration-500 relative group"
-                    :class="pageNum === p ? 'text-white' : 'text-slate-500 hover:text-slate-200'"
-                  >
-                    <!-- Active Glow Effect -->
-                    <div 
-                      v-if="pageNum === p"
-                      class="absolute inset-0 rounded-full bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-400/50 animate-in zoom-in duration-300"
-                    ></div>
-                    <span class="relative z-10">{{ p }}</span>
-                  </button>
-                </div>
-
-                <!-- Next Button -->
-                <button 
-                  class="w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 group disabled:opacity-20 disabled:cursor-not-allowed hover:bg-white/5"
-                  :disabled="pageNum >= totalPages"
-                  @click="handlePageChange(pageNum + 1)"
-                >
-                  <ChevronRight :size="18" class="text-slate-400 group-hover:text-white transition-colors" />
-                </button>
-              </nav>
-            </div>
-        </div>
-
-        <!-- Empty State -->
-        <div v-else class="py-24 text-center space-y-6">
-          <div class="text-6xl opacity-20 grayscale">🌌</div>
-          <div class="space-y-2">
-            <h4 class="text-slate-400 font-medium">这里还是一片虚无</h4>
-            <p class="text-xs text-slate-600">你是第一个发现这里的人吗？</p>
-          </div>
-        </div>
-      </div>
+      <HomeFeedList
+        :view-mode="viewMode"
+        :messages="messages"
+        :liked-ids="likedIds"
+        :is-admin="isAdmin"
+        :page-num="pageNum"
+        :total="total"
+        :total-pages="totalPages"
+        @like="likeMessage"
+        @toggle-comments="toggleComments"
+        @delete="deleteMessage"
+        @delete-comment="handleDeleteComment"
+        @publish-comment="publishComment"
+        @react="trackActivity(ACTIVITY_EVENTS.react)"
+        @witness="trackActivity(ACTIVITY_EVENTS.witnessConfession, ACTIVITY_MODULES.comments)"
+        @tag-click="handleTagClick"
+        @admin-ban="handleBanIP"
+        @page-change="handlePageChange"
+      />
 
       <!-- Graph View (Wrapper for Obsidian Graph) -->
-      <div v-else class="h-[850px] relative">
+      <div v-if="viewMode === 'graph'" class="h-[850px] relative">
         <MindGraph 
           v-if="viewMode === 'graph'" 
           :visible="viewMode === 'graph'"
@@ -171,67 +105,23 @@
       </div>
     </Transition>
 
-    <!-- FABs (Fixed Floating) -->
-    <div class="fixed right-8 bottom-8 flex flex-col gap-4 z-[1001]">
-      <!-- Zen Control -->
-      <div class="relative group" v-click-outside="() => showZenMenu = false">
-        <Transition name="page">
-          <div v-if="showZenMenu" class="absolute bottom-full right-0 mb-4 glass-card w-64 p-4 space-y-4">
-            <div class="space-y-2">
-              <button 
-                v-for="s in zenSounds" :key="s.id" 
-                @click="selectZenSound(s)"
-                class="w-full text-left px-4 py-2 rounded-lg text-xs transition-all flex items-center justify-between"
-                :class="currentZenSound?.id === s.id ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20' : 'hover:bg-white/5 text-slate-400'"
-              >
-                <span>{{ s.icon }} {{ s.name }}</span>
-                <div v-if="currentZenSound?.id === s.id" class="flex gap-1">
-                  <div class="w-0.5 h-3 bg-blue-500 animate-[bounce_0.6s_infinite_0s]"></div>
-                  <div class="w-0.5 h-3 bg-blue-500 animate-[bounce_0.6s_infinite_0.1s]"></div>
-                  <div class="w-0.5 h-3 bg-blue-500 animate-[bounce_0.6s_infinite_0.2s]"></div>
-                </div>
-              </button>
-            </div>
-            <div class="pt-4 border-t border-white/5">
-              <div class="flex items-center justify-between text-[10px] text-slate-500 mb-2 px-1">
-                <span>VOLUME</span>
-                <span>{{ zenVolume }}%</span>
-              </div>
-              <el-slider v-model="zenVolume" :show-tooltip="false" @input="updateZenVolume" size="small" />
-            </div>
-            <div v-if="currentZenSound" class="space-y-2 mt-4 pt-4 border-t border-white/5">
-              <button @click="returnToZen" v-if="!isZenMode" class="w-full py-2 rounded-lg bg-blue-500/10 text-blue-400 text-[10px] font-bold border border-blue-500/20 hover:bg-blue-500/20 transition-all uppercase tracking-widest">Return to Zen</button>
-              <button @click="minimizeZen" v-if="isZenMode" class="w-full py-2 rounded-lg bg-slate-500/10 text-slate-400 text-[10px] font-bold border border-slate-500/20 hover:bg-slate-500/20 transition-all uppercase tracking-widest">Minimize UI</button>
-              <button @click="stopZenMode" class="w-full py-2 rounded-lg bg-red-500/10 text-red-400 text-[10px] font-bold border border-red-500/20 hover:bg-red-500/20 transition-all uppercase tracking-widest">Terminate All</button>
-            </div>
-          </div>
-        </Transition>
-        <button 
-          class="w-12 h-12 rounded-full glass-effect flex items-center justify-center text-slate-400 hover:text-blue-400 transition-all active:scale-90"
-          :class="{ 'bg-blue-500 !text-white border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]': currentZenSound || isZenMode }"
-          @click="showZenMenu = !showZenMenu"
-        >
-          <Volume2 v-if="currentZenSound" :size="20" />
-          <Moon v-else :size="20" />
-        </button>
-      </div>
-
-      <!-- Bottle FAB -->
-      <button 
-        @click="openBottleCenter"
-        class="w-12 h-12 rounded-full glass-effect flex items-center justify-center text-slate-400 hover:text-cyan-400 transition-all active:scale-90 border-cyan-500/20"
-      >
-        <Waves :size="20" />
-      </button>
-
-      <!-- Identity FAB -->
-      <button 
-        @click="showIdentityModal = true"
-        class="w-12 h-12 rounded-full glass-effect flex items-center justify-center text-slate-400 hover:text-purple-400 transition-all active:scale-90 border-purple-500/20"
-      >
-        <Fingerprint :size="20" />
-      </button>
-    </div>
+    <HomeFabStack
+      :show-zen-menu="showZenMenu"
+      :is-zen-mode="isZenMode"
+      :current-zen-sound="currentZenSound"
+      :zen-volume="zenVolume"
+      :zen-sounds="zenSounds"
+      @toggle-zen-menu="showZenMenu = !showZenMenu"
+      @close-zen-menu="showZenMenu = false"
+      @select-zen-sound="selectZenSound"
+      @update:zen-volume="zenVolume = $event"
+      @update-zen-volume="updateZenVolume"
+      @return-to-zen="returnToZen"
+      @minimize-zen="minimizeZen"
+      @stop-zen-mode="stopZenMode"
+      @open-bottle="openBottleCenter"
+      @open-identity="showIdentityModal = true"
+    />
 
     <IdentityVaultModal
       :visible="showIdentityModal"
@@ -297,20 +187,19 @@
 <script setup>
 import { defineAsyncComponent, ref, onMounted, onUnmounted, watch } from 'vue'
 import api from '@/api'
-import MessageCard from '@/components/business/MessageCard.vue'
 import AdminDock from '@/components/home/admin/AdminDock.vue'
 import AdminLoginModal from '@/components/home/admin/AdminLoginModal.vue'
+import ActiveTagBanner from '@/components/home/ActiveTagBanner.vue'
 import BlacklistDialog from '@/components/home/admin/BlacklistDialog.vue'
 import ComposeBox from '@/components/home/ComposeBox.vue'
 import FeedHeader from '@/components/home/FeedHeader.vue'
+import HomeFabStack from '@/components/home/HomeFabStack.vue'
+import HomeFeedList from '@/components/home/feed/HomeFeedList.vue'
 import IdentityVaultModal from '@/components/home/IdentityVaultModal.vue'
 import OfflineQueueDialog from '@/components/home/OfflineQueueDialog.vue'
 import PasswordDialog from '@/components/home/admin/PasswordDialog.vue'
 import TrendingTags from '@/components/home/TrendingTags.vue'
 import CyberWatermark from '@/components/common/CyberWatermark.vue'
-import {
-  ChevronLeft, ChevronRight, Fingerprint, Hash, Moon, Volume2, Waves
-} from 'lucide-vue-next'
 import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
 
 const MindGraph = defineAsyncComponent(() => import('@/components/business/MindGraph.vue'))
@@ -410,17 +299,6 @@ const {
   exitAdmin,
   handleBanIP
 } = adminPanel
-
-// ── Custom Directive ──
-const vClickOutside = {
-  mounted(el, binding) {
-    el.clickOutsideEvent = (event) => {
-      if (!(el === event.target || el.contains(event.target))) binding.value(event)
-    }
-    document.addEventListener('click', el.clickOutsideEvent)
-  },
-  unmounted(el) { document.removeEventListener('click', el.clickOutsideEvent) }
-}
 
 // ── UI State ──
 const viewMode = ref('list')
