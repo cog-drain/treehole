@@ -121,6 +121,7 @@
             :defaultExpanded="depth + 1 < autoExpandDepth"
             @reply="$emit('reply', $event)"
             @delete="$emit('delete', $event)"
+            @react="$emit('react')"
           />
         </div>
 
@@ -140,6 +141,7 @@
               :defaultExpanded="false"
               @reply="$emit('reply', $event)"
               @delete="$emit('delete', $event)"
+              @react="$emit('react')"
             />
           </div>
         </div>
@@ -162,7 +164,7 @@ const props = defineProps({
   defaultExpanded: { type: Boolean, default: true }
 })
 
-const emit = defineEmits(['reply', 'delete'])
+const emit = defineEmits(['reply', 'delete', 'react'])
 
 const isCollapsed = ref(!props.defaultExpanded)
 const expandDeep = ref(false)
@@ -230,6 +232,7 @@ const toggleReaction = async (emoji) => {
       // Add or change local tracking
       localStorage.setItem(reactedKey.value, emoji)
     }
+    emit('react')
   } catch (e) {
     console.error('Comment reaction error:', e)
   }

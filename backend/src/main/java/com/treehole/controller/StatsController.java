@@ -21,7 +21,16 @@ public class StatsController {
 
     @Operation(summary = "当前在线人数", description = "基于 Redis ZSet 统计最近活跃的 WebSocket 用户")
     @GetMapping("/online")
-    public Result<Map<String, Long>> online() {
-        return Result.success(Map.of("online", redisRealtimeService.countOnlineUsers()));
+    public Result<Map<String, Object>> online() {
+        return Result.success(Map.of(
+                "online", redisRealtimeService.countOnlineUsers(),
+                "modules", redisRealtimeService.countActiveModules()
+        ));
+    }
+
+    @Operation(summary = "实时行为热度", description = "基于 Redis ZSet 返回前端关键行为聚合排行")
+    @GetMapping("/activity")
+    public Result<Map<String, Long>> activity() {
+        return Result.success(redisRealtimeService.topActions(10));
     }
 }

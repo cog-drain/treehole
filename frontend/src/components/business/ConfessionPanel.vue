@@ -8,6 +8,7 @@ const props = defineProps({
     required: true
   }
 })
+const emit = defineEmits(['witness'])
 
 const now = ref(Date.now())
 let countdownTimer = null
@@ -36,6 +37,7 @@ async function witnessConfession() {
     const res = await api.witnessMessage(props.msg.id)
     props.msg.witnessCount = res.data?.witnessCount ?? witnessCount.value + 1
     props.msg.witnessedByMe = true
+    emit('witness')
   } catch (e) {
     console.error('Witness error:', e)
   }

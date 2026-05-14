@@ -10,10 +10,54 @@ import { ElMessage, ElNotification } from 'element-plus'
 export function useWebSocket(callbacks = {}) {
   let ws = null
   let reconnectTimer = null
+  let heartbeatTimer = null
+  let currentModule = 'feed'
+  const HEARTBEAT_INTERVAL = 25000
 
   // 守望者消息节流
   let lastObserverMessage = ''
   let lastObserverTime = 0
+
+  function stopHeartbeat() {
+    if (heartbeatTimer) {
+      window.clearInterval(heartbeatTimer)
+      heartbeatTimer = null
+    }
+  }
+
+  function sendHeartbeat() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return
+    try {
+      ws.send(JSON.stringify({ type: 'PING', module: currentModule, ts: Date.now() }))
+    } catch (e) {
+      console.error('WebSocket: Heartbeat send failed', e)
+    }
+  }
+
+  function sendActivity(action, module = currentModule) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return
+    try {
+      ws.send(JSON.stringify({ type: 'ACTIVITY', module, action, ts: Date.now() }))
+    } catch (e) {
+      console.error('WebSocket: Activity send failed', e)
+    }
+  }
+
+  function setModule(module) {
+    currentModule = module || 'unknown'
+    sendHeartbeat()
+  }
+
+  function trackAction(action, module = currentModule) {
+    if (!action) return
+    sendActivity(action, module)
+  }
+
+  function startHeartbeat() {
+    stopHeartbeat()
+    sendHeartbeat()
+    heartbeatTimer = window.setInterval(sendHeartbeat, HEARTBEAT_INTERVAL)
+  }
 
   function connect(userId) {
     if (!userId) {
@@ -28,12 +72,17 @@ export function useWebSocket(callbacks = {}) {
       ws = null
     }
     if (reconnectTimer) clearTimeout(reconnectTimer)
+    stopHeartbeat()
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsUrl = `${protocol}//${window.location.host}/ws/treehole/${userId}`
     console.log('🌌 WebSocket: Connecting to', wsUrl)
 
     ws = new WebSocket(wsUrl)
+
+    ws.onopen = () => {
+      startHeartbeat()
+    }
 
     ws.onmessage = (event) => {
       try {
@@ -95,12 +144,14 @@ export function useWebSocket(callbacks = {}) {
     }
 
     ws.onclose = () => {
+      stopHeartbeat()
       console.log('WebSocket: Disconnected, retrying in 5s...')
       reconnectTimer = setTimeout(() => connect(userId), 5000)
     }
   }
 
   function disconnect() {
+    stopHeartbeat()
     if (ws) {
       ws.onclose = null
       ws.close()
@@ -111,5 +162,5 @@ export function useWebSocket(callbacks = {}) {
 
   onUnmounted(disconnect)
 
-  return { connect, disconnect }
+  return { connect, disconnect, setModule, trackAction }
 }

@@ -85,6 +85,7 @@ const api = {
 
   // Stats 模块
   getOnlineStats: statsApi.getOnlineStats,
+  getActivityStats: statsApi.getActivityStats,
 
   // AI / Graph 模块
   chatWithAI: aiApi.chat,
@@ -101,5 +102,5 @@ export const {
   throwBottle, pickBottle, replyBottle, returnBottle, getMyBottles,
   backupIdentity, restoreIdentity,
   adminLogin, resetAdminPassword, banIP, unbanIP, getBlacklist, adminDeleteMessage, adminDeleteComment,
-  uploadFile, getOnlineStats, chatWithAI, getGraphData
+  uploadFile, getOnlineStats, getActivityStats, chatWithAI, getGraphData
 } = api

@@ -8,10 +8,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +24,10 @@ public class RedisRealtimeService {
     private static final String MESSAGE_RANK_KEY = "treehole:rank:messages";
     private static final String TAG_RANK_KEY = "treehole:rank:tags";
     private static final String ONLINE_USERS_KEY = "treehole:online:users";
+    private static final String MODULE_ACTIVE_KEY_PREFIX = "treehole:active:module:";
+    private static final String ACTION_RANK_KEY = "treehole:activity:actions";
     private static final long ONLINE_TTL_SECONDS = 90;
+    private static final List<String> TRACKED_MODULES = List.of("feed", "graph", "shop", "comments", "unknown");
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -107,26 +113,110 @@ public class RedisRealtimeService {
                 .toList();
     }
 
-    public void markUserOnline(String userId) {
-        if (userId == null || userId.isBlank()) return;
-        redisTemplate.opsForZSet().add(ONLINE_USERS_KEY, userId, Instant.now().getEpochSecond());
+    public void markUserOnline(String userId, String sessionId) {
+        String member = sessionMember(userId, sessionId);
+        if (member == null) return;
+        redisTemplate.opsForZSet().add(ONLINE_USERS_KEY, member, Instant.now().getEpochSecond());
         pruneOfflineUsers();
     }
 
-    public void markUserOffline(String userId) {
-        if (userId == null || userId.isBlank()) return;
-        redisTemplate.opsForZSet().remove(ONLINE_USERS_KEY, userId);
+    public void markUserModuleActive(String userId, String sessionId, String module) {
+        String member = sessionMember(userId, sessionId);
+        if (member == null) return;
+        String normalizedModule = normalizeModule(module);
+        redisTemplate.opsForZSet().add(moduleKey(normalizedModule), member, Instant.now().getEpochSecond());
+        pruneOfflineUsers();
+    }
+
+    public void recordAction(String action) {
+        String normalizedAction = normalizeToken(action, null);
+        if (normalizedAction == null) return;
+        redisTemplate.opsForZSet().incrementScore(ACTION_RANK_KEY, normalizedAction, 1);
+    }
+
+    public Map<String, Long> countActiveModules() {
+        pruneOfflineUsers();
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (String module : TRACKED_MODULES) {
+            counts.put(module, countDistinctUsers(moduleKey(module)));
+        }
+        return counts;
+    }
+
+    public Map<String, Long> topActions(int limit) {
+        Set<String> actions = redisTemplate.opsForZSet().reverseRange(ACTION_RANK_KEY, 0, Math.max(0, limit - 1));
+        if (actions == null || actions.isEmpty()) return Collections.emptyMap();
+
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (String action : actions) {
+            Double score = redisTemplate.opsForZSet().score(ACTION_RANK_KEY, action);
+            result.put(action, score == null ? 0L : score.longValue());
+        }
+        return result;
+    }
+
+    public void markUserOffline(String userId, String sessionId) {
+        String member = sessionMember(userId, sessionId);
+        if (member == null) return;
+        redisTemplate.opsForZSet().remove(ONLINE_USERS_KEY, member);
+        for (String module : TRACKED_MODULES) {
+            redisTemplate.opsForZSet().remove(moduleKey(module), member);
+        }
     }
 
     public long countOnlineUsers() {
         pruneOfflineUsers();
-        Long count = redisTemplate.opsForZSet().zCard(ONLINE_USERS_KEY);
-        return count == null ? 0 : count;
+        Set<String> members = redisTemplate.opsForZSet().range(ONLINE_USERS_KEY, 0, -1);
+        return countDistinctUsers(members);
+    }
+
+    private long countDistinctUsers(String key) {
+        Set<String> members = redisTemplate.opsForZSet().range(key, 0, -1);
+        return countDistinctUsers(members);
+    }
+
+    private long countDistinctUsers(Set<String> members) {
+        if (members == null || members.isEmpty()) return 0;
+        return members.stream()
+                .map(this::extractUserId)
+                .filter(userId -> userId != null && !userId.isBlank())
+                .collect(Collectors.toSet())
+                .size();
     }
 
     private void pruneOfflineUsers() {
         long cutoff = Instant.now().getEpochSecond() - ONLINE_TTL_SECONDS;
         redisTemplate.opsForZSet().removeRangeByScore(ONLINE_USERS_KEY, 0, cutoff);
+        for (String module : TRACKED_MODULES) {
+            redisTemplate.opsForZSet().removeRangeByScore(moduleKey(module), 0, cutoff);
+        }
+    }
+
+    private String sessionMember(String userId, String sessionId) {
+        if (userId == null || userId.isBlank() || sessionId == null || sessionId.isBlank()) return null;
+        return userId + ":" + sessionId;
+    }
+
+    private String extractUserId(String member) {
+        if (member == null || member.isBlank()) return null;
+        int splitIndex = member.lastIndexOf(':');
+        return splitIndex <= 0 ? member : member.substring(0, splitIndex);
+    }
+
+    private String moduleKey(String module) {
+        return MODULE_ACTIVE_KEY_PREFIX + module;
+    }
+
+    private String normalizeModule(String module) {
+        String normalized = normalizeToken(module, "unknown");
+        return TRACKED_MODULES.contains(normalized) ? normalized : "unknown";
+    }
+
+    private String normalizeToken(String value, String fallback) {
+        if (value == null || value.isBlank()) return fallback;
+        String normalized = value.trim().toLowerCase();
+        boolean safe = normalized.matches("[a-z0-9_-]+");
+        return safe ? normalized : fallback;
     }
 
     private void seedReactionCountsIfEmpty(String countsKey, String dbSnapshotJson) {

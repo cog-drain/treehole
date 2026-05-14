@@ -49,7 +49,7 @@ const props = defineProps({
   isAdmin: Boolean
 })
 
-const emit = defineEmits(['like', 'toggle-comments', 'delete', 'delete-comment', 'publish-comment', 'tag-click', 'admin-ban'])
+const emit = defineEmits(['like', 'toggle-comments', 'delete', 'delete-comment', 'publish-comment', 'tag-click', 'admin-ban', 'react', 'witness'])
 
 // --- Resonance State ---
 const isResonant = computed(() => props.msg.coFrequency && !props.msg.isOwner)
@@ -131,6 +131,7 @@ const toggleReaction = async (emoji) => {
     } else {
       localStorage.setItem(reactedKey.value, emoji)
     }
+    emit('react')
   } catch (e) {
     console.error('Reaction error:', e)
   }
@@ -301,7 +302,7 @@ const safeAudioUrl = computed(() => {
       </div>
     </div>
 
-    <ConfessionPanel v-if="isConfession" :msg="msg" />
+    <ConfessionPanel v-if="isConfession" :msg="msg" @witness="$emit('witness')" />
 
     <!-- Unified Footer: Reactions + Comment Toggle -->
     <div v-if="!isConfession" class="action-bar">
@@ -390,6 +391,7 @@ const safeAudioUrl = computed(() => {
           :defaultExpanded="true"
           @reply="(c) => { msg._replyToId = c.id; msg._commentText = `@${c.authorAlias} ` }"
           @delete="(c) => $emit('delete-comment', {msg, comment: c})"
+          @react="$emit('react')"
         />
       </div>
 

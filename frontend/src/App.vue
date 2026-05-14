@@ -12,6 +12,7 @@
     <main class="main-container">
       <div id="tsparticles" class="fixed inset-0 pointer-events-none z-0" style="filter: blur(100px); opacity: 0.6;"></div>
       <HomeView 
+        :store-visible="showStore"
         @open-store="showStore = true" 
         @publish-success="handlePublishSuccess"
         @resonance-boom="handleResonanceBoom"

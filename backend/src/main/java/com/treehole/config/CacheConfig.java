@@ -25,7 +25,7 @@ public class CacheConfig {
         cacheObjectMapper.activateDefaultTyping(
                 BasicPolymorphicTypeValidator.builder().allowIfSubType(Object.class).build(),
                 ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY
+                JsonTypeInfo.As.WRAPPER_ARRAY
         );
 
         GenericJackson2JsonRedisSerializer serializer =

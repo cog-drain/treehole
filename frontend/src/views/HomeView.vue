@@ -296,7 +296,7 @@
         <div class="flex items-center gap-6">
           <button 
             v-for="m in ['list', 'graph']" :key="m"
-            @click="viewMode = m"
+            @click="setViewMode(m)"
             class="text-xs font-bold tracking-widest transition-all relative py-2"
             :class="viewMode === m ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'"
           >
@@ -347,6 +347,8 @@
               @delete="deleteMessage"
               @delete-comment="handleDeleteComment"
               @publish-comment="publishComment"
+              @react="trackActivity('react')"
+              @witness="trackActivity('witness_confession', 'comments')"
               @tag-click="handleTagClick"
               :isAdmin="isAdmin"
               @admin-ban="handleBanIP"
@@ -505,7 +507,7 @@
             </div>
             <div class="flex items-center gap-2">
               <button 
-                @click="$emit('open-store')" 
+                @click="openStore"
                 class="p-2 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition-all flex items-center gap-2 group/energy"
                 title="能量中心"
               >
@@ -766,6 +768,12 @@ const appStore = useAppStore()
 const zen = useZenMode()
 const recorder = useRecorder()
 
+const props = defineProps({
+  storeVisible: {
+    type: Boolean,
+    default: false
+  }
+})
 const emit = defineEmits(['publish-success', 'open-store', 'resonance-boom', 'new-broadcast'])
 
 // ── 从 composable 解构 (保持模板变量名不变) ──
@@ -837,7 +845,7 @@ function handleEdgeSwipeEnd() {
   const deltaX = edgeSwipe.currentX - edgeSwipe.startX
   const deltaY = Math.abs(edgeSwipe.currentY - edgeSwipe.startY)
   if (deltaX >= EDGE_SWIPE_DISTANCE && deltaY <= EDGE_SWIPE_MAX_VERTICAL) {
-    viewMode.value = 'list'
+    setViewMode('list')
   }
   resetEdgeSwipe()
 }
@@ -852,6 +860,7 @@ const trendingTags = ref([])
 const activeTag = ref('')
 const publishing = ref(false)
 const onlineCount = ref(0)
+const onlineModules = ref({})
 let onlineStatsTimer = null
 const isConfessionMode = ref(false)
 const clockNow = ref(new Date())
@@ -1056,6 +1065,7 @@ async function fetchOnlineStats() {
   try {
     const res = await getOnlineStats()
     onlineCount.value = Number(res.data?.online || 0)
+    onlineModules.value = res.data?.modules || {}
   } catch {}
 }
 
@@ -1164,6 +1174,7 @@ async function likeMessage(msg) {
   if (likedIds.has(msg.id)) { ElMessage.info('已经点过赞啦 ❤️'); return }
   try { 
     await api.likeMessage(msg.id);
+    trackActivity('like_message')
     likedIds.add(msg.id); 
     msg.likes = (msg.likes || 0) + 1 
     ElMessage.success('产生共鸣 ✨ (获得 2 ⚡)')
@@ -1174,8 +1185,12 @@ async function likeMessage(msg) {
 async function toggleComments(msg) {
   msg._showComments = !msg._showComments
   if (msg._showComments) {
+    setActivityModule('comments')
+    trackActivity('open_comments', 'comments')
     msg._read = true; markAsRead(msg.id)
     try { const res = await api.getComments(msg.id); msg._comments = res.data || []; if (msg._comments.some(c => c.coFrequency)) msg.coFrequency = true } catch {}
+  } else {
+    setActivityModule(resolveActivityModule())
   }
 }
 
@@ -1188,6 +1203,7 @@ async function publishComment(msg) {
     msg._comments = [...(cmtRes.data || [])]; msg.commentCount = (msg.commentCount || 0) + 1
     msg._commentText = ''; msg._commentImage = null; msg._replyToId = null
     if (msg._comments.some(c => c.coFrequency)) msg.coFrequency = true
+    trackActivity('publish_comment', 'comments')
     ElMessage.success('评论已送达 ✨ (获得 5 ⚡)')
     appStore.addEnergy(5)
   } catch {} finally { msg._commenting = false }
@@ -1263,7 +1279,7 @@ const showWatcherMessage = (data) => {
 }
 
 // ── WebSocket (委托给 composable) ──
-const { connect: connectWS, disconnect: disconnectWS } = useWebSocket({
+const { connect: connectWS, disconnect: disconnectWS, setModule: setActivityModule, trackAction: trackActivity } = useWebSocket({
   onNewMessage(data) {
     messages.value = messages.value.filter(m => !m.isOptimistic)
     if (messages.value.some(m => m.id === data.id)) return
@@ -1295,6 +1311,7 @@ const { connect: connectWS, disconnect: disconnectWS } = useWebSocket({
   },
   onOnlineStatsUpdate(data) {
     onlineCount.value = Number(data?.online || 0)
+    onlineModules.value = data?.modules || onlineModules.value
   },
   onConfessorReply(data) {
     const target = messages.value.find(m => m.id === data.messageId)
@@ -1304,6 +1321,31 @@ const { connect: connectWS, disconnect: disconnectWS } = useWebSocket({
     const target = messages.value.find(m => m.id === data.messageId)
     if (target) target.witnessCount = Number(data.witnessCount || 0)
   }
+})
+
+function resolveActivityModule() {
+  if (props.storeVisible) return 'shop'
+  return viewMode.value === 'graph' ? 'graph' : 'feed'
+}
+
+function setViewMode(mode) {
+  if (viewMode.value === mode) return
+  viewMode.value = mode
+  const module = mode === 'graph' ? 'graph' : 'feed'
+  setActivityModule(module)
+  trackActivity(mode === 'graph' ? 'view_graph' : 'view_feed', module)
+}
+
+function openStore() {
+  setActivityModule('shop')
+  trackActivity('open_shop', 'shop')
+  emit('open-store')
+}
+
+watch(() => props.storeVisible, (visible) => {
+  const module = visible ? 'shop' : resolveActivityModule()
+  setActivityModule(module)
+  if (visible) trackActivity('open_shop', 'shop')
 })
 
 // ── Lifecycle ──
@@ -1321,6 +1363,8 @@ onMounted(() => {
 
   // 2. WebSocket
   connectWS(userStore.userId)
+  setActivityModule(resolveActivityModule())
+  trackActivity('view_feed', 'feed')
 
   // 3. 数据加载
   setTimeout(() => { fetchMessages(); fetchTrending() }, 300)
