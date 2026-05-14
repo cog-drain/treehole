@@ -9,6 +9,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
+import { getJson, getString, setJson, setString } from '@/utils/storage'
 
 const ADJECTIVES = ['深海', '星际', '赛博', '荒野', '幻梦', '虚空', '极光', '迷雾', '雷鸣', '永恒']
 const NOUNS = ['居民', '浪人', '访客', '幽灵', '观察者', '行者', '先驱', '诗人', '信徒', '极客']
@@ -21,10 +22,7 @@ export const useUserStore = defineStore('user', () => {
   // ── 初始化 ──
   function init() {
     // 1. UUID 身份
-    let identity = null
-    try {
-      identity = JSON.parse(localStorage.getItem(STORAGE_KEYS.identity))
-    } catch { /* ignore */ }
+    let identity = getJson(STORAGE_KEYS.identity, null)
 
     if (!identity?.userId) {
       // 兼容性修复：非 HTTPS 环境下 crypto.randomUUID 可能不可用
@@ -33,12 +31,12 @@ export const useUserStore = defineStore('user', () => {
         : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
       identity = { userId: newId, createdAt: Date.now() }
-      localStorage.setItem(STORAGE_KEYS.identity, JSON.stringify(identity))
+      setJson(STORAGE_KEYS.identity, identity)
     }
     userId.value = identity.userId
 
     // 2. 昵称
-    const saved = localStorage.getItem(STORAGE_KEYS.alias)
+    const saved = getString(STORAGE_KEYS.alias)
     if (saved) {
       alias.value = saved
     } else {
@@ -52,14 +50,14 @@ export const useUserStore = defineStore('user', () => {
     const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)]
     const id = Math.random().toString(36).substring(2, 6).toUpperCase()
     alias.value = `${adj}${noun}_${id}`
-    localStorage.setItem(STORAGE_KEYS.alias, alias.value)
+    setString(STORAGE_KEYS.alias, alias.value)
   }
 
   // ── 设置昵称 (手动编辑时调用) ──
   function setAlias(newAlias) {
     if (newAlias) {
       alias.value = newAlias
-      localStorage.setItem(STORAGE_KEYS.alias, newAlias)
+      setString(STORAGE_KEYS.alias, newAlias)
     }
   }
 

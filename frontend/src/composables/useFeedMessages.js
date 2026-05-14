@@ -4,6 +4,7 @@ import api, { CMT_TOKEN_KEY, getOnlineStats, getToken, getTrendingTags, MSG_TOKE
 import { offlineQueue } from '@/utils/offlineQueue'
 import { ACTIVITY_EVENTS, ACTIVITY_MODULES } from '@/constants/activityEvents'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
+import { getJson, setJson } from '@/utils/storage'
 
 export function useFeedMessages({
   form,
@@ -30,13 +31,13 @@ export function useFeedMessages({
   const onlineCount = ref(0)
   const onlineModules = ref({})
 
-  const likedIds = reactive(new Set(JSON.parse(localStorage.getItem(STORAGE_KEYS.likes) || '[]')))
-  watch(likedIds, (val) => localStorage.setItem(STORAGE_KEYS.likes, JSON.stringify([...val])), { deep: true })
+  const likedIds = reactive(new Set(getJson(STORAGE_KEYS.likes, [])))
+  watch(likedIds, (val) => setJson(STORAGE_KEYS.likes, [...val]), { deep: true })
 
-  const readIds = ref(new Set(JSON.parse(localStorage.getItem(STORAGE_KEYS.readMessages) || '[]')))
+  const readIds = ref(new Set(getJson(STORAGE_KEYS.readMessages, [])))
   const markAsRead = (id) => {
     readIds.value.add(id)
-    localStorage.setItem(STORAGE_KEYS.readMessages, JSON.stringify([...readIds.value]))
+    setJson(STORAGE_KEYS.readMessages, [...readIds.value])
   }
 
   async function fetchTrending() {

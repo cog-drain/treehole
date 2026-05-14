@@ -1,6 +1,7 @@
 import { ElNotification } from 'element-plus'
 import { shallowRef } from 'vue'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
+import { getJson, setJson } from '@/utils/storage'
 
 const QUEUE_KEY = STORAGE_KEYS.offlineMessages
 
@@ -16,9 +17,7 @@ export const offlineQueue = {
 
   /** 获取队列 */
   get() {
-    try {
-      return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]')
-    } catch { return [] }
+    return getJson(QUEUE_KEY, [])
   },
 
   /** 存入队列 */
@@ -33,7 +32,7 @@ export const offlineQueue = {
       timestamp: Date.now(),
       id: Math.random().toString(36).substring(2, 9)
     })
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue))
+    setJson(QUEUE_KEY, queue)
     offlineQueueCount.value = queue.length
     
     ElNotification({
@@ -47,7 +46,7 @@ export const offlineQueue = {
   /** 清空特定任务 */
   remove(id) {
     const queue = this.get().filter(item => item.id !== id)
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue))
+    setJson(QUEUE_KEY, queue)
     offlineQueueCount.value = queue.length
   },
 
@@ -84,7 +83,7 @@ export const offlineQueue = {
       }
     }
 
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining))
+    setJson(QUEUE_KEY, remaining)
     offlineQueueCount.value = remaining.length
 
     if (remaining.length === 0) {

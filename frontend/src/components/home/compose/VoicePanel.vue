@@ -28,6 +28,8 @@ const emit = defineEmits([
   'seek-preview'
 ])
 
+const waveformBars = [8, 14, 10, 16, 7, 18, 12, 15, 9, 17, 11, 13]
+
 function bindAudioPreview(el) {
   if (props.audioPreviewRef) props.audioPreviewRef.value = el
 }
@@ -92,11 +94,11 @@ function setVoiceEffect(effectId) {
               <span>{{ formatDuration(previewCurrentTime) }}</span>
               <div class="flex gap-0.5 items-center">
                 <div
-                  v-for="i in 12"
-                  :key="i"
+                  v-for="(height, index) in waveformBars"
+                  :key="index"
                   class="w-0.5 bg-blue-500/30 rounded-full transition-all"
                   :class="{ 'animate-[bounce_0.8s_infinite]': isPlayingPreview }"
-                  :style="{ height: Math.random() * 12 + 4 + 'px', animationDelay: (i * 0.1) + 's', opacity: isPlayingPreview ? 0.8 : 0.2 }"
+                  :style="{ height: height + 'px', animationDelay: (index * 0.1) + 's', opacity: isPlayingPreview ? 0.8 : 0.2 }"
                 ></div>
               </div>
               <span>{{ formatDuration(previewDuration || 0) }}</span>

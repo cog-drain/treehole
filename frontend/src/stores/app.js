@@ -6,6 +6,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
+import { getJson, getString, remove, setJson, setString } from '@/utils/storage'
 
 export const useAppStore = defineStore('app', () => {
   // ── 能量商店 ──
@@ -22,26 +23,26 @@ export const useAppStore = defineStore('app', () => {
   // ── 初始化 ──
   function init() {
     document.documentElement.classList.remove('dark')
-    localStorage.removeItem('theme')
+    remove('theme')
 
-    energy.value = parseInt(localStorage.getItem(STORAGE_KEYS.energy) || '1000')
-    ownedItems.value = JSON.parse(localStorage.getItem(STORAGE_KEYS.ownedItems) || '[]')
-    lainEnabled.value = localStorage.getItem(STORAGE_KEYS.lainEnabled) === 'true'
-    p5EffectEnabled.value = localStorage.getItem(STORAGE_KEYS.p5Enabled) === 'true'
-    p5AoaEnabled.value = localStorage.getItem(STORAGE_KEYS.p5AoaEnabled) === 'true'
-    alterEgoEnabled.value = localStorage.getItem(STORAGE_KEYS.alterEgoEnabled) === 'true'
-    camoEnabled.value = localStorage.getItem(STORAGE_KEYS.camoEnabled) === 'true'
+    energy.value = parseInt(getString(STORAGE_KEYS.energy, '1000'))
+    ownedItems.value = getJson(STORAGE_KEYS.ownedItems, [])
+    lainEnabled.value = getString(STORAGE_KEYS.lainEnabled) === 'true'
+    p5EffectEnabled.value = getString(STORAGE_KEYS.p5Enabled) === 'true'
+    p5AoaEnabled.value = getString(STORAGE_KEYS.p5AoaEnabled) === 'true'
+    alterEgoEnabled.value = getString(STORAGE_KEYS.alterEgoEnabled) === 'true'
+    camoEnabled.value = getString(STORAGE_KEYS.camoEnabled) === 'true'
   }
 
   // ── 持久化 ──
   function persist() {
-    localStorage.setItem(STORAGE_KEYS.energy, energy.value.toString())
-    localStorage.setItem(STORAGE_KEYS.ownedItems, JSON.stringify(ownedItems.value))
-    localStorage.setItem(STORAGE_KEYS.lainEnabled, lainEnabled.value.toString())
-    localStorage.setItem(STORAGE_KEYS.p5Enabled, p5EffectEnabled.value.toString())
-    localStorage.setItem(STORAGE_KEYS.p5AoaEnabled, p5AoaEnabled.value.toString())
-    localStorage.setItem(STORAGE_KEYS.alterEgoEnabled, alterEgoEnabled.value.toString())
-    localStorage.setItem(STORAGE_KEYS.camoEnabled, camoEnabled.value.toString())
+    setString(STORAGE_KEYS.energy, energy.value)
+    setJson(STORAGE_KEYS.ownedItems, ownedItems.value)
+    setString(STORAGE_KEYS.lainEnabled, lainEnabled.value)
+    setString(STORAGE_KEYS.p5Enabled, p5EffectEnabled.value)
+    setString(STORAGE_KEYS.p5AoaEnabled, p5AoaEnabled.value)
+    setString(STORAGE_KEYS.alterEgoEnabled, alterEgoEnabled.value)
+    setString(STORAGE_KEYS.camoEnabled, camoEnabled.value)
   }
 
   // ── 增加能量 ──
