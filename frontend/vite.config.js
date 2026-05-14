@@ -39,7 +39,19 @@ export default defineConfig(({ mode }) => {
       // After lazy-loading heavy feature surfaces, the remaining main bundle is
       // dominated by shared UI/runtime dependencies. Keep the warning above the
       // measured app baseline so future regressions are still visible.
-      chunkSizeWarningLimit: 1100
+      chunkSizeWarningLimit: 1100,
+      rolldownOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return
+            if (id.includes('/three/') || id.includes('/3d-force-graph/')) return 'graph-vendor'
+            if (id.includes('/vue/') || id.includes('/pinia/')) return 'vue-vendor'
+            if (id.includes('/element-plus/') || id.includes('/lucide-vue-next/')) return 'ui-vendor'
+            if (id.includes('/@dicebear/') || id.includes('/d3/')) return 'visual-vendor'
+            return 'vendor'
+          }
+        }
+      }
     }
   }
 })
