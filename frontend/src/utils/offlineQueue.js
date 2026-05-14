@@ -1,7 +1,8 @@
 import { ElNotification } from 'element-plus'
 import { shallowRef } from 'vue'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
-const QUEUE_KEY = 'treehole_offline_messages'
+const QUEUE_KEY = STORAGE_KEYS.offlineMessages
 
 // 创建一个响应式的长度，供 UI 绑定
 export const offlineQueueCount = shallowRef(0)

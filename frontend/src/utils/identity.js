@@ -9,10 +9,10 @@ export function generateRandomIdentity() {
 }
 
 export function getOrGenerateIdentity() {
-  let id = localStorage.getItem('treehole_alias');
+  let id = localStorage.getItem(STORAGE_KEYS.alias);
   if (!id) {
     id = generateRandomIdentity();
-    localStorage.setItem('treehole_alias', id);
+    localStorage.setItem(STORAGE_KEYS.alias, id);
   }
   return id;
 }
@@ -25,3 +25,4 @@ export function getAvatarColor(name) {
   const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
   return '#' + '00000'.substring(0, 6 - c.length) + c;
 }
+import { STORAGE_KEYS } from '@/constants/storageKeys'

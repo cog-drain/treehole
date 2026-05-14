@@ -11,314 +11,59 @@
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-24 space-y-8 sm:space-y-12">
       <!-- ... Offline Banner ... -->
 
-      <!-- Publish Form Section -->
-      <section 
-        class="glass-card group relative animate__animated animate__backInUp"
-        :class="[
-          'theme-' + form.theme,
-          isConfessionMode ? 'confession-compose' : '',
-          { 'opacity-20 blur-[20px] pointer-events-none scale-95': isZenMode || adminLoginVisible }
-        ]"
-      >
-        <div class="space-y-8">
-          <!-- Identity Line (Responsive Header) -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="relative flex-1 group/input w-full">
-              <input
-                class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all placeholder:text-slate-500"
-                v-model="form.authorAlias"
-                type="text"
-                placeholder="👤 你的匿名昵称"
-                maxlength="20"
-                @focus="handleAliasFocus"
-              />
-              <button 
-                class="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-blue-400 transition-colors"
-                @click="refreshIdentity" 
-                title="换一个身份"
-              >
-                <Dices :size="18" />
-              </button>
-            </div>
-            
-            <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
-              <div class="flex items-center p-1.5 gap-3">
-                <button 
-                  v-for="t in themesList"
-                  :key="t.value"
-                  class="group/dot relative flex items-center justify-center transition-all duration-500"
-                  @click="form.theme = t.value"
-                >
-                  <!-- Outer Halo -->
-                  <div 
-                    class="absolute inset-0 rounded-full transition-all duration-700 blur-[4px]"
-                    :class="form.theme === t.value ? 'bg-white/20 scale-150 animate-pulse' : 'bg-transparent scale-100 group-hover/dot:bg-white/10 group-hover/dot:scale-125'"
-                  ></div>
-                  
-                  <!-- Color Core -->
-                  <div 
-                    class="relative w-4 h-4 rounded-full border transition-all duration-500"
-                    :class="[
-                      form.theme === t.value ? 'scale-110 border-white theme-dot-active' : 'border-white/20 opacity-40 group-hover/dot:opacity-100',
-                      'theme-dot-' + t.value
-                    ]"
-                  ></div>
-                </button>
-              </div>
-            </div>
-          </div>
+      <ComposeBox
+        :form="form"
+        :themes-list="themesList"
+        :tone-map="toneMap"
+        :is-confession-mode="isConfessionMode"
+        :is-midnight="isMidnight"
+        :is-zen-mode="isZenMode"
+        :admin-login-visible="adminLoginVisible"
+        :is-mobile="isMobile"
+        :is-online="isOnline"
+        :publishing="publishing"
+        :offline-queue-count="offlineQueueCount"
+        :image-preview="imagePreview"
+        :show-tone-panel="showTonePanel"
+        :tone-selector-ref="toneSelectorRef"
+        :show-voice-panel="showVoicePanel"
+        :is-recording="isRecording"
+        :recording-time="recordingTime"
+        :recorded-blob="recordedBlob"
+        :raw-audio-url="rawAudioUrl"
+        :masked-audio-url="maskedAudioUrl"
+        :is-playing-preview="isPlayingPreview"
+        :preview-current-time="previewCurrentTime"
+        :preview-duration="previewDuration"
+        :audio-preview-ref="audioPreviewRef"
+        :voice-effect="voiceEffect"
+        :voice-effects="voiceEffects"
+        :format-duration="formatDuration"
+        @refresh-identity="refreshIdentity"
+        @image-select="onImageSelect"
+        @paste="handlePaste"
+        @publish="publishMessage"
+        @publish-button-click="handlePublishButtonClick"
+        @toggle-voice-panel="toggleVoicePanel"
+        @toggle-tone-panel="showTonePanel = $event"
+        @set-tone="form.mood = $event"
+        @set-theme="form.theme = $event"
+        @toggle-confession="isConfessionMode = !isConfessionMode"
+        @open-offline-box="openOfflineBox"
+        @clear-image="clearImage"
+        @toggle-recording="toggleRecording"
+        @set-voice-effect="voiceEffect = $event"
+        @reapply-voice-mask="reapplyVoiceMask"
+        @clear-audio="clearAudio"
+        @toggle-preview-playback="togglePreviewPlayback"
+        @preview-time-update="onPreviewTimeUpdate"
+        @preview-ended="onPreviewEnded"
+        @seek-preview="seekPreview"
+      />
 
-          <!-- Content Area -->
-          <div class="relative">
-            <textarea
-              class="w-full bg-transparent border-none text-lg leading-relaxed placeholder:text-slate-600 focus:outline-none resize-none min-h-[120px]"
-              v-model="form.content"
-              :placeholder="isConfessionMode ? '这里只有神父能听见...' : '说点什么吧……你的秘密在这里很安全 🤫 (支持 Ctrl+Enter 发送)'"
-              maxlength="500"
-              rows="4"
-              @paste="handlePaste"
-              @keydown.ctrl.enter="publishMessage"
-              @keydown.meta.enter="publishMessage"
-            ></textarea>
-            <div class="absolute bottom-0 right-0 text-[10px] font-mono text-slate-600 tracking-tighter">
-              {{ form.content.length }} / 500
-            </div>
-          </div>
+      <TrendingTags :tags="trendingTags" :active-tag="activeTag" @tag-click="handleTagClick" />
 
-          <!-- Media & Action Bar (Responsive Footer) -->
-          <div class="flex flex-col gap-4 pt-6 border-t border-white/5">
-            <!-- Row 1: Tools -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div class="flex flex-wrap items-center gap-2 min-w-0">
-                <label class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-200 cursor-pointer transition-all active:scale-95">
-                  <ImagePlus :size="14" />
-                  <span class="whitespace-nowrap">{{ imagePreview ? (isMobile ? '换图' : '更换图片') : '图片' }}</span>
-                  <input type="file" accept="image/*" class="hidden" @change="onImageSelect" />
-                </label>
-                
-                <button 
-                  class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-all active:scale-95"
-                  @click="toggleVoicePanel" 
-                  v-if="!recordedBlob && !isRecording"
-                >
-                  <Mic :size="14" />
-                  <span class="whitespace-nowrap">{{ isMobile ? '语音' : '语音留言' }}</span>
-                </button>
-
-                <!-- Tone Selector (inline expand) -->
-                <div class="relative flex items-center" ref="toneSelectorRef">
-                  <!-- Collapsed: trigger button -->
-                  <button 
-                    v-if="!showTonePanel"
-                    @click.stop="showTonePanel = true"
-                    class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border text-[11px] transition-all active:scale-95"
-                    :class="form.mood ? 'bg-blue-500/10 border-blue-500/25 text-blue-500 hover:bg-blue-500/15' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200'"
-                  >
-                    <Sparkles :size="14" />
-                    <span class="whitespace-nowrap">{{ form.mood && toneMap[form.mood] ? toneMap[form.mood].emoji + ' ' + toneMap[form.mood].label : '语气' }}</span>
-                  </button>
-
-                  <!-- Expanded: emoji row -->
-                  <div
-                    v-else
-                    class="z-30 flex items-center gap-0.5 px-1 py-1 rounded-full bg-white/90 backdrop-blur-xl shadow-xl border border-slate-200"
-                    :class="isMobile ? 'absolute left-0 bottom-full mb-2 max-w-[calc(100vw-3rem)] flex-wrap' : 'relative max-w-none flex-nowrap'"
-                  >
-                    <button
-                      v-for="(tone, key) in toneMap"
-                      :key="key"
-                      class="w-8 h-8 shrink-0 flex items-center justify-center rounded-full transition-all hover:bg-slate-100 active:scale-90"
-                      :class="form.mood === key ? 'bg-blue-100 ring-1 ring-blue-400/40 scale-110' : 'opacity-60 hover:opacity-100'"
-                      :title="tone.label + ' — ' + tone.desc"
-                      @click="form.mood = form.mood === key ? '' : key"
-                    >
-                      <span class="text-sm">{{ tone.emoji }}</span>
-                    </button>
-                    <button 
-                      @click="showTonePanel = false"
-                      class="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all ml-0.5"
-                    >
-                      <X :size="12" />
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border text-[11px] transition-all active:scale-95"
-                  :class="isConfessionMode ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 shadow-sm shadow-amber-500/10' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200'"
-                  :title="isMidnight ? '深夜了，有什么话想说吗？' : '切换告解模式'"
-                  @click="isConfessionMode = !isConfessionMode"
-                >
-                  <span class="text-sm">🕯️</span>
-                  <span class="whitespace-nowrap">告解</span>
-                </button>
-              </div>
-              
-              <!-- Publish Button -->
-              <div class="flex w-full sm:w-auto items-center gap-3">
-                <button 
-                  v-if="offlineQueueCount > 0 || !isOnline" 
-                  class="p-3 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all group/archive"
-                  @click="openOfflineBox"
-                  :title="isOnline ? '查看离线暂存箱' : '网络已断开，留言将暂存'"
-                >
-                  <div class="relative">
-                    <Archive :size="18" :class="{ 'animate-bounce': !isOnline && offlineQueueCount > 0 }" />
-                    <span v-if="offlineQueueCount > 0" class="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
-                  </div>
-                </button>
-                
-                <button 
-                  class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-bold text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
-                  :class="isConfessionMode && isOnline ? 'bg-amber-600 hover:bg-amber-500 shadow-lg shadow-amber-600/20 text-white' : (isOnline ? 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white' : 'bg-slate-800 text-slate-400 border border-white/5')"
-                  :disabled="publishing"
-                  @click="handlePublishButtonClick"
-                  :title="isMidnight && !isConfessionMode ? '深夜了，有什么话想说吗？' : ''"
-                >
-                  <Loader2 v-if="publishing" class="animate-spin" :size="16" />
-                  <span v-else-if="isConfessionMode || isMidnight" class="text-base leading-none">🕯️</span>
-                  <Send v-else :size="16" />
-                  <span class="whitespace-nowrap">{{ publishing ? '发射中' : (isConfessionMode ? '忏悔' : (isOnline ? '投入树洞' : '封存胶囊')) }}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Previews (Floating Style) -->
-          <TransitionGroup name="page">
-            <div v-if="imagePreview" key="img" class="relative group/img inline-block mt-4">
-              <img :src="imagePreview" class="w-24 h-24 object-cover rounded-xl border border-white/10" />
-              <button @click="clearImage" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs opacity-0 group-hover/img:opacity-100 transition-opacity">✕</button>
-            </div>
-
-            <div v-if="showVoicePanel || isRecording || recordedBlob" key="voice" class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
-              <div v-if="!recordedBlob" class="flex flex-col items-center gap-4">
-                <button 
-                  class="w-full py-3 rounded-xl transition-all font-medium text-sm border border-dashed border-white/20 hover:border-blue-500/50 hover:bg-blue-500/5"
-                  :class="{ 'animate-pulse text-red-400 border-red-500/50 bg-red-500/5': isRecording }"
-                  @click="toggleRecording"
-                >
-                  {{ isRecording ? `⏹ 停止录音 (${recordingTime}s)` : '⏺ 点击开始录制 (60s)' }}
-                </button>
-              </div>
-              <div v-else class="space-y-4">
-                <!-- 变声选项 -->
-                <div class="flex items-center justify-between px-2">
-                  <div class="flex gap-2">
-                    <button 
-                      v-for="eff in voiceEffects" :key="eff.id"
-                      @click="voiceEffect = eff.id; reapplyVoiceMask()"
-                      class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all"
-                      :class="voiceEffect === eff.id ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'"
-                    >
-                      <span class="text-lg">{{ eff.icon }}</span>
-                      <span class="text-[9px] font-bold uppercase tracking-tighter">{{ eff.name }}</span>
-                    </button>
-                  </div>
-                  <button @click="clearAudio" class="p-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"><Trash2 :size="18" /></button>
-                </div>
-
-                <div class="flex items-center gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 relative overflow-hidden group/player max-w-md mx-auto">
-                  <!-- Hidden Native Audio -->
-                  <audio 
-                    ref="audioPreviewRef" 
-                    :src="maskedAudioUrl || rawAudioUrl" 
-                    @timeupdate="onPreviewTimeUpdate" 
-                    @ended="onPreviewEnded"
-                    class="hidden"
-                  ></audio>
-
-                  <!-- Play/Pause Button -->
-                  <button 
-                    @click="togglePreviewPlayback" 
-                    class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 active:scale-90 transition-all"
-                  >
-                    <Play v-if="!isPlayingPreview" :size="18" fill="currentColor" />
-                    <Pause v-else :size="18" fill="currentColor" />
-                  </button>
-
-                  <!-- Progress Section -->
-                  <div class="flex-1 space-y-1">
-                    <div class="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                      <span>{{ formatDuration(previewCurrentTime) }}</span>
-                      <div class="flex gap-0.5 items-center">
-                        <div v-for="i in 12" :key="i" 
-                          class="w-0.5 bg-blue-500/30 rounded-full transition-all"
-                          :class="{ 'animate-[bounce_0.8s_infinite]': isPlayingPreview }"
-                          :style="{ 
-                            height: Math.random() * 12 + 4 + 'px', 
-                            animationDelay: (i * 0.1) + 's',
-                            opacity: isPlayingPreview ? 0.8 : 0.2
-                          }"
-                        ></div>
-                      </div>
-                      <span>{{ formatDuration(previewDuration || 0) }}</span>
-                    </div>
-                    <el-slider 
-                      v-model="previewCurrentTime" 
-                      :max="previewDuration || 1" 
-                      :show-tooltip="false" 
-                      @input="seekPreview"
-                      size="small"
-                      class="cyber-slider"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TransitionGroup>
-        </div>
-      </section>
-
-      <!-- Trending Section -->
-      <div v-if="trendingTags.length > 0 && !activeTag" class="space-y-4">
-        <div class="flex items-center gap-2 ml-1">
-          <h3 class="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">热门共鸣</h3>
-          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/70 px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-            Redis Rank
-          </span>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button 
-            v-for="t in trendingTags" :key="t.id" 
-            @click="handleTagClick(t.name)"
-            class="px-4 py-2 rounded-full text-xs font-medium bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all flex items-center gap-2 text-slate-400 hover:text-slate-200"
-          >
-            <Hash :size="12" class="opacity-50" />
-            {{ t.name }}
-            <span class="opacity-30 font-mono">{{ t.usageCount }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Feed Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-8">
-        <div class="flex items-center gap-6">
-          <button 
-            v-for="m in ['list', 'graph']" :key="m"
-            @click="setViewMode(m)"
-            class="text-xs font-bold tracking-widest transition-all relative py-2"
-            :class="viewMode === m ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'"
-          >
-            {{ m === 'list' ? 'FEED' : 'CONSCIOUSNESS' }}
-            <span v-if="viewMode === m" class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
-          </button>
-        </div>
-        <div class="inline-flex w-full sm:w-auto items-center justify-between sm:justify-start gap-3 rounded-full border border-slate-200 bg-white/60 px-3 py-2 text-slate-500 shadow-sm backdrop-blur-xl">
-          <div class="flex items-center gap-2">
-            <span class="relative flex h-2.5 w-2.5">
-              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50"></span>
-              <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-            </span>
-            <Activity :size="14" class="text-emerald-500" />
-            <span class="text-[9px] font-bold uppercase tracking-[0.18em]">Online</span>
-          </div>
-          <div class="flex items-baseline gap-2">
-            <span class="font-mono text-sm font-bold text-slate-800">{{ onlineCount }}</span>
-            <span class="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-400">Redis ZSet</span>
-          </div>
-        </div>
-      </div>
+      <FeedHeader :view-mode="viewMode" :online-count="onlineCount" @set-view-mode="setViewMode" />
 
       <!-- Active Tag Banner -->
       <Transition name="page">
@@ -347,8 +92,8 @@
               @delete="deleteMessage"
               @delete-comment="handleDeleteComment"
               @publish-comment="publishComment"
-              @react="trackActivity('react')"
-              @witness="trackActivity('witness_confession', 'comments')"
+              @react="trackActivity(ACTIVITY_EVENTS.react)"
+              @witness="trackActivity(ACTIVITY_EVENTS.witnessConfession, ACTIVITY_MODULES.comments)"
               @tag-click="handleTagClick"
               :isAdmin="isAdmin"
               @admin-ban="handleBanIP"
@@ -488,90 +233,17 @@
       </button>
     </div>
 
-    <!-- Identity Vault Modal -->
-    <Transition name="fade">
-      <div v-if="showIdentityModal" class="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md" @click.self="showIdentityModal = false">
-        <div class="glass-card max-w-sm w-full p-8 space-y-8 animate-in zoom-in-95 duration-300 relative overflow-hidden">
-          <!-- Background Decoration -->
-          <Fingerprint class="absolute -right-8 -top-8 w-32 h-32 opacity-[0.03] pointer-events-none rotate-12 text-blue-500" />
-          
-          <div class="flex items-center justify-between relative z-10">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                <Fingerprint :size="20" />
-              </div>
-              <div>
-                <h3 class="text-sm font-bold tracking-widest uppercase">身份备份</h3>
-                <p class="text-[9px] text-slate-500 uppercase tracking-tighter">Identity Backup Vault</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <button 
-                @click="openStore"
-                class="p-2 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition-all flex items-center gap-2 group/energy"
-                title="能量中心"
-              >
-                <Zap :size="16" class="fill-current" />
-                <span class="text-[10px] font-bold tracking-widest hidden group-hover/energy:inline">STORE</span>
-              </button>
-              <button @click="showIdentityModal = false" class="p-2 rounded-full hover:bg-black/5 transition-colors opacity-40 hover:opacity-100">
-                <X :size="18" />
-              </button>
-            </div>
-          </div>
-          
-          <div class="space-y-6 relative z-10">
-            <div class="space-y-3">
-              <label class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase px-1">恢复密钥 / Recovery Key</label>
-              <div v-if="recoveryKey" class="group relative flex items-center gap-2 p-5 bg-blue-500/5 rounded-2xl border border-blue-500/10 font-mono text-sm text-blue-600 transition-all hover:bg-blue-500/10">
-                <span class="truncate flex-1 min-w-0 select-all">{{ recoveryKey }}</span>
-                <button @click="copyKey" class="p-2 hover:bg-blue-500/20 rounded-xl transition-all active:scale-90 text-blue-500 relative z-10 cursor-pointer flex-shrink-0">
-                  <Copy :size="16" />
-                </button>
-              </div>
-              <button v-else @click="handleBackup" class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-lg hover:shadow-blue-600/20 text-white font-bold text-xs tracking-widest uppercase transition-all active:scale-95">
-                生成备份密钥
-              </button>
-            </div>
-            <div class="relative py-2 flex items-center">
-              <div class="flex-grow border-t border-slate-200"></div>
-              <span class="flex-shrink mx-4 text-[9px] text-slate-400 font-bold uppercase tracking-[0.3em]">OR</span>
-              <div class="flex-grow border-t border-slate-200"></div>
-            </div>
-
-            <div class="space-y-3">
-              <label class="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase px-1">找回身份 / Restore Identity</label>
-              <div class="flex gap-2">
-                <input 
-                  v-model="inputKey" 
-                  type="text" 
-                  class="flex-1 bg-black/5 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-400"
-                  placeholder="treehole-xxx" 
-                />
-                <button 
-                  @click="handleRestore" 
-                  :disabled="!inputKey" 
-                  class="px-6 rounded-2xl bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all disabled:opacity-30"
-                >
-                  还原
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <div class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex gap-3 items-start relative z-10">
-            <ShieldAlert class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <div class="space-y-1.5 text-[10px] text-amber-600/80 leading-relaxed font-medium">
-              <p class="font-bold text-amber-600">密钥是您穿越树洞的唯一凭证，丢失后无法找回。</p>
-              <ul class="list-disc pl-3 space-y-0.5 opacity-90">
-                <li><span class="font-bold">可恢复（云端记录）：</span>身份标识、发布记录、历史互动、删除权限、漂流瓶记录。</li>
-                <li><span class="font-bold">不可恢复（本地缓存）：</span>能量余额与已购商品、离线暂存草稿、当前的匿名昵称与主题偏好。</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <IdentityVaultModal
+      :visible="showIdentityModal"
+      :recovery-key="recoveryKey"
+      :input-key="inputKey"
+      @close="showIdentityModal = false"
+      @open-store="openStore"
+      @backup="handleBackup"
+      @restore="handleRestore"
+      @copy-key="copyKey"
+      @update:input-key="inputKey = $event"
+    />
 
     <!-- Premium Drifting Bottle System -->
     <DriftBottleDialog 
@@ -584,172 +256,64 @@
       @on-return="handleReturnBottle"
     />
 
-    <!-- Godly Admin Authentication Overlay -->
-    <Transition name="fade">
-      <div v-if="adminLoginVisible" class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/40 backdrop-blur-[80px]">
-        <div class="w-full max-w-md p-12 space-y-12 text-center animate-in fade-in zoom-in-95 duration-700">
-          <div class="space-y-4">
-            <h2 class="text-[10px] uppercase tracking-[0.6em] text-red-500 font-bold opacity-80">System.Authorize</h2>
-            <h1 class="text-4xl font-light tracking-tighter text-white/90">Authentication Required</h1>
-          </div>
-          
-          <div class="relative group">
-            <input 
-              ref="adminPwdInputRef"
-              v-model="adminPassword" 
-              type="password" 
-              autofocus
-              class="w-full bg-transparent border-b border-white/10 py-6 text-4xl text-center font-light tracking-[0.4em] focus:outline-none focus:border-red-500/60 transition-all placeholder:text-white/5" 
-              placeholder="••••"
-              @keyup.enter="handleAdminLogin"
-            />
-            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[1px] bg-red-500 transition-all duration-700 group-focus-within:w-full shadow-[0_0_20px_rgba(239,68,68,0.5)]"></div>
-          </div>
+    <AdminLoginModal
+      :visible="adminLoginVisible"
+      :password="adminPassword"
+      @update:password="adminPassword = $event"
+      @login="handleAdminLogin"
+      @close="adminLoginVisible = false"
+    />
 
-          <div class="flex flex-col gap-4 pt-8">
-            <button @click="handleAdminLogin" class="group relative py-4 px-8 overflow-hidden rounded-full border border-white/10 hover:border-red-500/40 transition-all duration-500">
-              <span class="relative z-10 text-[10px] uppercase tracking-[0.4em] text-white/60 group-hover:text-white">Initialize Root Access</span>
-              <div class="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-            </button>
-            <button @click="adminLoginVisible = false" class="text-[9px] uppercase tracking-[0.2em] text-white/20 hover:text-white/60 transition-colors">Abort Connection</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <AdminDock
+      :visible="isAdmin"
+      @open-blacklist="showBlacklistModal = true"
+      @open-password="showPasswordModal = true"
+      @exit="exitAdmin"
+    />
 
-    <!-- Godly Admin Command Dock -->
-    <Transition name="page">
-      <div v-if="isAdmin" class="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-[40] w-[95%] sm:w-auto">
-        <div class="glass-card !p-3 sm:!p-4 flex flex-wrap sm:flex-nowrap items-center justify-center gap-2 sm:gap-6 shadow-2xl shadow-blue-500/20">
-          <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            <ShieldAlert :size="14" />
-            <span class="text-[9px] sm:text-[10px] font-bold tracking-widest uppercase">Root Auth</span>
-          </div>
-          
-          <div class="h-4 w-px bg-white/10 hidden sm:block"></div>
-          
-          <div class="flex items-center gap-1 sm:gap-2">
-            <button @click="showBlacklistModal = true" class="p-2 sm:px-4 sm:py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-blue-400 transition-all flex items-center gap-2">
-              <Users :size="16" />
-              <span class="text-[10px] font-bold tracking-widest uppercase hidden sm:inline">Blacklist</span>
-            </button>
-            <button @click="showPasswordModal = true" class="p-2 sm:px-4 sm:py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-blue-400 transition-all flex items-center gap-2">
-              <Lock :size="16" />
-              <span class="text-[10px] font-bold tracking-widest uppercase hidden sm:inline">Security</span>
-            </button>
-            <button @click="exitAdmin" class="p-2 sm:px-4 sm:py-2 rounded-xl bg-red-500/5 text-red-500/60 hover:bg-red-500/10 hover:text-red-400 transition-all flex items-center gap-2 border border-red-500/10">
-              <LogOut :size="16" />
-              <span class="text-[10px] font-bold tracking-widest uppercase hidden sm:inline">Exit</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <BlacklistDialog
+      v-model:visible="showBlacklistModal"
+      :blacklist="blacklist"
+      @unban="handleUnban"
+    />
 
-    <!-- Blacklist Management Modal -->
-    <el-dialog v-model="showBlacklistModal" width="min(95vw, 600px)" :show-header="false" custom-class="glass-dialog">
-      <div class="py-6 space-y-8">
-        <div class="space-y-1">
-          <h2 class="text-sm font-bold tracking-widest uppercase text-red-400">Restricted Access</h2>
-          <p class="text-[10px] text-slate-500 uppercase">Managing banned entities in the void</p>
-        </div>
-
-        <div class="max-h-[400px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-          <div v-for="item in blacklist" :key="item.ip" class="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all group">
-            <div class="flex items-center gap-4">
-              <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 text-xs font-mono">IP</div>
-              <div>
-                <p class="text-sm font-mono text-slate-200">{{ item.ip }}</p>
-                <p class="text-[9px] text-slate-500 uppercase">{{ item.reason || 'No reason provided' }}</p>
-              </div>
-            </div>
-            <button @click="handleUnban(item.ip)" class="px-4 py-2 rounded-full bg-blue-500/10 text-blue-400 text-[9px] font-bold uppercase tracking-widest hover:bg-blue-500/20 transition-all opacity-0 group-hover:opacity-100">Release</button>
-          </div>
-          <div v-if="blacklist.length === 0" class="py-12 text-center text-[10px] text-slate-600 uppercase tracking-widest">The void is empty</div>
-        </div>
-
-        <button @click="showBlacklistModal = false" class="w-full py-4 rounded-xl text-[10px] font-bold text-slate-500 hover:text-white transition-colors uppercase tracking-widest">Close Registry</button>
-      </div>
-    </el-dialog>
-
-    <!-- Change Password Modal -->
-    <el-dialog v-model="showPasswordModal" width="min(95vw, 400px)" :show-header="false" custom-class="glass-dialog">
-      <div class="py-6 space-y-8 text-center">
-        <div class="space-y-1">
-          <h2 class="text-sm font-bold tracking-widest uppercase text-blue-400">Security.Update</h2>
-          <p class="text-[10px] text-slate-500 uppercase">Updating root credentials</p>
-        </div>
-
-        <div class="space-y-4">
-          <input v-model="pwdForm.oldPassword" type="password" class="w-full bg-white/5 border border-white/5 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/40 transition-all text-center tracking-widest" placeholder="CURRENT PASSWORD" />
-          <input v-model="pwdForm.newPassword" type="password" class="w-full bg-white/5 border border-white/5 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/40 transition-all text-center tracking-widest" placeholder="NEW PASSWORD" />
-        </div>
-
-        <div class="flex gap-4">
-          <button @click="showPasswordModal = false" class="flex-1 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-white">Cancel</button>
-          <button @click="handleChangePassword" class="flex-[2] py-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Update Key</button>
-        </div>
-      </div>
-    </el-dialog>
-    <!-- Offline Messages Management Dialog -->
-    <el-dialog v-model="offlineDialogVisible" width="min(95vw, 500px)" :show-header="false" custom-class="glass-dialog">
-      <div class="py-6 space-y-6">
-        <div class="flex items-center justify-between">
-          <div class="space-y-1">
-            <h2 class="text-sm font-bold tracking-widest uppercase text-amber-400">离线暂存胶囊</h2>
-            <p class="text-[10px] text-slate-500 uppercase">Offline Message Buffer ({{ offlineQueueCount }} items)</p>
-          </div>
-          <button v-if="isOnline" @click="syncOfflineQueue" class="px-4 py-2 rounded-xl bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-widest hover:bg-blue-500/20 transition-all">立即同步</button>
-        </div>
-
-        <div class="max-h-[350px] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-          <div v-for="item in offlineList" :key="item.id" class="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all group">
-            <div class="flex justify-between items-start mb-2">
-              <span class="text-[10px] font-bold text-blue-400/60 uppercase tracking-tighter">{{ item.authorAlias || '匿名访客' }}</span>
-              <div class="flex gap-3">
-                <button @click="editOfflineItem(item)" class="text-slate-500 hover:text-blue-400 transition-colors" title="载入并编辑">
-                  <Edit2 :size="14" />
-                </button>
-                <button @click="removeOfflineItem(item.id)" class="text-slate-500 hover:text-red-400 transition-colors" title="删除">
-                  <Trash2 :size="14" />
-                </button>
-              </div>
-            </div>
-            <p class="text-sm text-slate-300 leading-relaxed mb-3">{{ item.content }}</p>
-            <div class="flex items-center justify-between text-[9px] text-slate-500 font-mono">
-              <span>{{ formatTime(item.timestamp) }}</span>
-              <span class="px-2 py-0.5 rounded-full bg-slate-800 border border-white/5 uppercase">{{ item.theme }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="!isOnline" class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex gap-3 items-start">
-          <ShieldAlert class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-          <p class="text-[10px] text-amber-600/80 leading-relaxed font-medium">
-            当前处于离线状态。留言已安全加密暂存在浏览器本地，待网络恢复后我们将自动尝试为您发射。
-          </p>
-        </div>
-      </div>
-    </el-dialog>
+    <PasswordDialog
+      v-model:visible="showPasswordModal"
+      :form="pwdForm"
+      @submit="handleChangePassword"
+    />
+    <OfflineQueueDialog
+      v-model:visible="offlineDialogVisible"
+      :is-online="isOnline"
+      :offline-list="offlineList"
+      :offline-queue-count="offlineQueueCount"
+      @sync="syncOfflineQueue"
+      @edit="editOfflineItem"
+      @remove="removeOfflineItem"
+    />
   </div>
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import { defineAsyncComponent, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import api, {
-  saveToken, getToken, removeToken, hasMsgToken, hasCmtToken, MSG_TOKEN_KEY, CMT_TOKEN_KEY,
-  getTrendingTags, getMessagesByTag,
-  throwBottle, pickBottle, replyBottle, returnBottle,
-  backupIdentity, restoreIdentity, getOnlineStats
+  throwBottle, pickBottle, returnBottle
 } from '@/api'
 import MessageCard from '@/components/business/MessageCard.vue'
+import AdminDock from '@/components/home/admin/AdminDock.vue'
+import AdminLoginModal from '@/components/home/admin/AdminLoginModal.vue'
+import BlacklistDialog from '@/components/home/admin/BlacklistDialog.vue'
+import ComposeBox from '@/components/home/ComposeBox.vue'
+import FeedHeader from '@/components/home/FeedHeader.vue'
+import IdentityVaultModal from '@/components/home/IdentityVaultModal.vue'
+import OfflineQueueDialog from '@/components/home/OfflineQueueDialog.vue'
+import PasswordDialog from '@/components/home/admin/PasswordDialog.vue'
+import TrendingTags from '@/components/home/TrendingTags.vue'
 import CyberWatermark from '@/components/common/CyberWatermark.vue'
 import {
-  Dices, Fingerprint, ImagePlus, Mic, Archive, Send, Loader2, Sparkles, Hash, Copy, Waves, Volume2, Moon, Trash2, Plus, X,
-  LogOut, ShieldAlert, Users, Lock, ChevronLeft, ChevronRight, Play, Pause, Zap, Edit2, Activity
+  ChevronLeft, ChevronRight, Fingerprint, Hash, Moon, Volume2, Waves
 } from 'lucide-vue-next'
-import { formatTime } from '@/utils/time.js'
 import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
 
 const MindGraph = defineAsyncComponent(() => import('@/components/business/MindGraph.vue'))
@@ -761,12 +325,22 @@ import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
 import { useZenMode } from '@/composables/useZenMode'
 import { useRecorder } from '@/composables/useRecorder'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useAdminPanel } from '@/composables/useAdminPanel'
+import { useComposeForm } from '@/composables/useComposeForm'
+import { useFeedMessages } from '@/composables/useFeedMessages'
+import { useHomeRealtime } from '@/composables/useHomeRealtime'
+import { useIdentityVault } from '@/composables/useIdentityVault'
+import { ACTIVITY_EVENTS, ACTIVITY_MODULES } from '@/constants/activityEvents'
+import { TONE_MODES } from '@/constants/toneModes'
+import { CARD_THEMES } from '@/constants/themes'
 
 const userStore = useUserStore()
 const appStore = useAppStore()
 const zen = useZenMode()
 const recorder = useRecorder()
+const compose = useComposeForm()
+const identityVault = useIdentityVault()
+const adminPanel = useAdminPanel()
 
 const props = defineProps({
   storeVisible: {
@@ -791,6 +365,46 @@ const {
   togglePreviewPlayback, onPreviewTimeUpdate, seekPreview, onPreviewEnded,
   clearAudio, toggleVoicePanel, formatDuration
 } = recorder
+
+const {
+  form,
+  showTonePanel,
+  toneSelectorRef,
+  imageFile,
+  imagePreview,
+  isConfessionMode,
+  isMidnight,
+  onImageSelect,
+  clearImage,
+  handlePaste,
+  handleClickOutside,
+  tickClock
+} = compose
+
+const {
+  showIdentityModal,
+  recoveryKey,
+  inputKey,
+  handleBackup,
+  handleRestore,
+  copyKey
+} = identityVault
+
+const {
+  isAdmin,
+  adminLoginVisible,
+  adminPassword,
+  showBlacklistModal,
+  showPasswordModal,
+  blacklist,
+  pwdForm,
+  handleCommand: handleAdminCommand,
+  handleAdminLogin,
+  handleUnban,
+  handleChangePassword,
+  exitAdmin,
+  handleBanIP
+} = adminPanel
 
 // ── Custom Directive ──
 const vClickOutside = {
@@ -850,108 +464,76 @@ function handleEdgeSwipeEnd() {
   resetEdgeSwipe()
 }
 
-// ── Feed State ──
-const messages = ref([])
-const pageNum = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
-const trendingTags = ref([])
-const activeTag = ref('')
-const publishing = ref(false)
-const onlineCount = ref(0)
-const onlineModules = ref({})
 let onlineStatsTimer = null
-const isConfessionMode = ref(false)
-const clockNow = ref(new Date())
 let clockTimer = null
-const isMidnight = computed(() => {
-  const hour = clockNow.value.getHours()
-  return hour >= 0 && hour < 4
-})
-
-// ── Interaction State ──
-const likedIds = reactive(new Set(JSON.parse(localStorage.getItem('treehole_likes') || '[]')))
-watch(likedIds, (val) => localStorage.setItem('treehole_likes', JSON.stringify([...val])), { deep: true })
-
-const readIds = ref(new Set(JSON.parse(localStorage.getItem('read_message_ids') || '[]')))
-const markAsRead = (id) => {
-  readIds.value.add(id)
-  localStorage.setItem('read_message_ids', JSON.stringify([...readIds.value]))
-}
+let connectWS = () => {}
+let disconnectWS = () => {}
+let setActivityModule = () => {}
+let trackActivity = () => {}
 
 // ── Offline State ──
 const isOnline = ref(navigator.onLine)
 const offlineList = ref([]) // 用于弹窗显示的列表数据
 const offlineDialogVisible = ref(false)
 
-// ── Identity & Admin State ──
-const showIdentityModal = ref(false)
-const recoveryKey = ref('')
-const inputKey = ref('')
-const adminLoginVisible = ref(false)
-const adminPassword = ref('')
-const adminPwdInputRef = ref(null)
-const showBlacklistModal = ref(false)
-const showPasswordModal = ref(false)
-const blacklist = ref([])
-const pwdForm = reactive({ oldPassword: '', newPassword: '' })
-
-// ── Form ──
-const form = reactive({ authorAlias: '', content: '', mood: '', theme: 'default' })
-const showTonePanel = ref(false)
-const toneSelectorRef = ref(null)
-
-const handleClickOutside = (e) => {
-  if (showTonePanel.value && toneSelectorRef.value && !toneSelectorRef.value.contains(e.target)) {
-    showTonePanel.value = false
-  }
-}
-
-const toneMap = {
-  'whisper': { emoji: '🤫', label: '悄悄话', desc: '文字变淡，悬停才显现' },
-  'shout':   { emoji: '📢', label: '大声说', desc: '文字加粗放大' },
-  'dream':   { emoji: '💤', label: '梦话', desc: '模糊飘忽，像在梦境中' },
-  'glitch':  { emoji: '👾', label: '电波', desc: '赛博毛刺动画' },
-  'poetic':  { emoji: '🌙', label: '诗意', desc: '衬线体、加大行距' }
-}
-
-// ── Image Upload ──
-const imageFile = ref(null)
-const imagePreview = ref('')
-function onImageSelect(e) { const f = e.target.files[0]; if (f) { imageFile.value = f; imagePreview.value = URL.createObjectURL(f) } }
-function clearImage() { imageFile.value = null; imagePreview.value = '' }
-
-function handlePaste(event) {
-  const items = (event.clipboardData || event.originalEvent.clipboardData).items
-  for (const item of items) {
-    if (item.type.indexOf('image') !== -1) {
-      const file = item.getAsFile()
-      if (file) { imageFile.value = file; imagePreview.value = URL.createObjectURL(file); ElMessage.success('已从剪贴板捕获图片 📸') }
-    }
-  }
-}
+const toneMap = TONE_MODES
 
 // ── Theme System ──
-const themesList = [
-  { value: 'default' },
-  { value: 'dawn' },
-  { value: 'sakura' },
-  { value: 'spring' }
-]
+const themesList = CARD_THEMES
 
-// ── Admin State ──
-const isAdmin = ref(!!localStorage.getItem('treehole_admin_token'))
-
-watch(() => form.content, (val) => {
-  if (val?.trim() === 'sudo su - root') { adminLoginVisible.value = true; adminPassword.value = ''; form.content = '' }
-  else if (val?.trim() === 'exit' && isAdmin.value) { isAdmin.value = false; localStorage.removeItem('treehole_admin_token'); form.content = ''; ElMessage.info('权限已撤销') }
+// ── Feed Controller ──
+const feed = useFeedMessages({
+  form,
+  imageFile,
+  isConfessionMode,
+  isOnline,
+  recordedBlob,
+  maskedAudioBlob,
+  clearImage,
+  clearAudio,
+  appStore,
+  emit,
+  isAdmin,
+  activity: {
+    setModule: (...args) => setActivityModule(...args),
+    track: (...args) => trackActivity(...args),
+    resolveModule: () => resolveActivityModule()
+  }
 })
 
-watch(adminLoginVisible, async (visible) => {
-  if (!visible) return
-  await nextTick()
-  adminPwdInputRef.value?.focus()
+const {
+  messages,
+  pageNum,
+  pageSize,
+  total,
+  totalPages,
+  trendingTags,
+  activeTag,
+  publishing,
+  onlineCount,
+  onlineModules,
+  likedIds,
+  fetchTrending,
+  fetchOnlineStats,
+  fetchMessages,
+  publishMessage,
+  handlePublishButtonClick: handleFeedPublishButtonClick,
+  likeMessage,
+  toggleComments,
+  publishComment,
+  deleteMessage,
+  handleDeleteComment,
+  handleTagClick,
+  clearTagFilter,
+  handlePageChange
+} = feed
+
+function handlePublishButtonClick() {
+  handleFeedPublishButtonClick(isMidnight.value)
+}
+
+watch(() => form.content, (val) => {
+  handleAdminCommand(val, () => { form.content = '' })
 })
 
 // ── Identity (委托给 userStore) ──
@@ -959,7 +541,6 @@ function refreshIdentity() {
   userStore.refreshAlias()
   form.authorAlias = userStore.alias
 }
-function handleAliasFocus() { /* 保留昵称，不做清空 */ }
 
 // ── 昵称持久化同步 ──
 watch(() => form.authorAlias, (newVal) => {
@@ -977,43 +558,6 @@ const handleOnline = () => {
 const handleOffline = () => { 
   isOnline.value = false
   ElMessage.warning('你已进入离线回声舱') 
-}
-
-// ── Identity Backup ──
-const handleBackup = async () => { try { const res = await backupIdentity(); recoveryKey.value = res.data; ElMessage.success('备份密钥已生成') } catch {} }
-const handleRestore = async () => {
-  try {
-    const res = await restoreIdentity(inputKey.value)
-    if (res.code === 0 || res.code === 200) { 
-      localStorage.setItem('treehole_identity', JSON.stringify({ userId: res.data, createdAt: Date.now() }))
-      ElMessage.success('身份还原成功，正在重载...')
-      setTimeout(() => window.location.reload(), 1500) 
-    }
-  } catch {}
-}
-const copyKey = () => {
-  const text = recoveryKey.value
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text)
-      .then(() => ElMessage.success('已复制'))
-      .catch(() => ElMessage.error('复制失败'))
-  } else {
-    const textArea = document.createElement("textarea")
-    textArea.value = text
-    textArea.style.position = "fixed"
-    textArea.style.opacity = "0"
-    document.body.appendChild(textArea)
-    textArea.focus()
-    textArea.select()
-    const successful = document.execCommand("copy")
-    textArea.remove()
-    
-    if (successful) {
-      ElMessage.success('已复制')
-    } else {
-      ElMessage.error('复制失败')
-    }
-  }
 }
 
 // ── Drift Bottle ──
@@ -1058,204 +602,7 @@ async function handleReplyBottle(content) {
 
 async function handleReturnBottle() { try { await returnBottle(pickedBottle.value.id); ElMessage.success('瓶子已重回大海的怀抱'); bottleVisible.value = false } catch {} }
 
-// ── Feed CRUD ──
-async function fetchTrending() { try { const res = await getTrendingTags(12); trendingTags.value = res.data || [] } catch {} }
-
-async function fetchOnlineStats() {
-  try {
-    const res = await getOnlineStats()
-    onlineCount.value = Number(res.data?.online || 0)
-    onlineModules.value = res.data?.modules || {}
-  } catch {}
-}
-
-async function fetchMessages() {
-  try {
-    const res = activeTag.value
-      ? await api.getMessagesByTag(activeTag.value, pageNum.value, pageSize.value)
-      : await api.getMessages(pageNum.value, pageSize.value)
-    messages.value = (res.data.records || []).map(m => ({
-      ...m, _showComments: false, _comments: [], _commentText: '', _commentImage: null, _replyToId: null, _commenting: false,
-      _read: readIds.value.has(m.id), coFrequency: m.commentCount > 5 || m.coFrequency
-    }))
-    total.value = Number(res.data.total)
-    if (total.value === 0 && pageNum.value === 1 && !activeTag.value) {
-      ElNotification({ title: '星空巡检', message: '当前树洞空空如也，快去留下第一句心声吧 🌌', type: 'info', position: 'bottom-left' })
-    }
-  } catch {}
-}
-
-function saveToOfflineQueue() {
-  offlineQueue.push({ ...form, messageType: isConfessionMode.value ? 'confession' : 'normal' })
-  form.content = ''; clearImage(); clearAudio()
-}
-
-async function publishMessage() {
-  if (!form.content.trim() && !imageFile.value && !recordedBlob.value) return
-  if (!isOnline.value) { saveToOfflineQueue(); return }
-  publishing.value = true
-
-  const localContent = form.content, localAlias = form.authorAlias, localMood = form.mood, localTheme = form.theme, localMessageType = isConfessionMode.value ? 'confession' : 'normal'
-  // 提前准备乐观更新数据，将作用域提升到 try-catch 之外
-  const optimisticMessage = {
-    id: Date.now(), content: localContent, authorAlias: localAlias || '访客', mood: localMood, theme: localTheme, messageType: localMessageType,
-    expiresAt: localMessageType === 'confession' ? new Date(Date.now() + 86400000).toISOString() : null,
-    witnessCount: 0, witnessedByMe: false, confessorReply: '',
-    imageUrl: '', audioUrl: '', likes: 0, commentCount: 0, createTime: new Date().toISOString(),
-    isOwner: true, isOptimistic: true, _showComments: false, _comments: [], _commentText: '', _commentImage: null, _replyToId: null, _commenting: false, _read: false
-  }
-
-  try {
-    let imageUrl = '', audioUrl = ''
-    if (imageFile.value) { const fd = new FormData(); fd.append('file', imageFile.value); imageUrl = (await api.uploadFile(fd)).data }
-    if (maskedAudioBlob.value) {
-      const fd = new FormData()
-      const ext = maskedAudioBlob.value.type.includes('webm') ? 'webm' : 'wav'
-      fd.append('file', maskedAudioBlob.value, `voice.${ext}`)
-      audioUrl = (await api.uploadFile(fd)).data
-    }
-
-    optimisticMessage.imageUrl = imageUrl
-    optimisticMessage.audioUrl = audioUrl
-
-    const res = await api.publishMessage({ ...form, imageUrl, audioUrl, messageType: localMessageType })
-
-    // 如果断网被拦截进入离线胶囊，直接终止（拦截器内已提示）
-    if (res && res.code === 202) {
-      return
-    }
-
-    const serverMessage = res?.data?.message
-    const normalizedServerMessage = serverMessage ? {
-      ...serverMessage,
-      isOwner: true,
-      _showComments: false,
-      _comments: [],
-      _commentText: '',
-      _commentImage: null,
-      _replyToId: null,
-      _commenting: false,
-      _read: false
-    } : null
-
-    // 网络请求真正成功后，触发动画并更新 Feed 流
-    ElMessage.success(localMessageType === 'confession' ? '告解已投入烛光 🕯️ (获得 10 ⚡)' : '留言已投入星空 🌌 (获得 10 ⚡)')
-    appStore.addEnergy(10)
-    emit('publish-success', normalizedServerMessage || optimisticMessage)
-    
-    pageNum.value = 1
-    const feedBase = messages.value.filter(m => !m.isOptimistic)
-    const hasServerMessage = normalizedServerMessage?.id && feedBase.some(m => m.id === normalizedServerMessage.id)
-    if (!hasServerMessage) {
-      messages.value = [normalizedServerMessage || optimisticMessage, ...feedBase].slice(0, pageSize.value)
-      total.value++
-    } else {
-      messages.value = feedBase
-    }
-
-    form.content = ''; clearImage(); clearAudio(); isConfessionMode.value = false
-    setTimeout(() => { fetchMessages(); fetchTrending() }, 3000)
-  } catch (e) { 
-    // 发生真实错误（如上传图片失败或服务器 500）
-    if (!navigator.onLine) saveToOfflineQueue() 
-  }
-  finally { publishing.value = false }
-}
-
-function handlePublishButtonClick() {
-  if (isMidnight.value && !isConfessionMode.value) {
-    isConfessionMode.value = true
-    return
-  }
-  publishMessage()
-}
-
-async function likeMessage(msg) {
-  if (likedIds.has(msg.id)) { ElMessage.info('已经点过赞啦 ❤️'); return }
-  try { 
-    await api.likeMessage(msg.id);
-    trackActivity('like_message')
-    likedIds.add(msg.id); 
-    msg.likes = (msg.likes || 0) + 1 
-    ElMessage.success('产生共鸣 ✨ (获得 2 ⚡)')
-    appStore.addEnergy(2)
-  } catch {}
-}
-
-async function toggleComments(msg) {
-  msg._showComments = !msg._showComments
-  if (msg._showComments) {
-    setActivityModule('comments')
-    trackActivity('open_comments', 'comments')
-    msg._read = true; markAsRead(msg.id)
-    try { const res = await api.getComments(msg.id); msg._comments = res.data || []; if (msg._comments.some(c => c.coFrequency)) msg.coFrequency = true } catch {}
-  } else {
-    setActivityModule(resolveActivityModule())
-  }
-}
-
-async function publishComment(msg) {
-  if (!msg._commentText.trim() && !msg._commentImage) return
-  msg._commenting = true
-  try {
-    await api.publishComment({ messageId: msg.id, content: msg._commentText.trim(), imageUrl: msg._commentImage, parentId: msg._replyToId || null })
-    const cmtRes = await api.getComments(msg.id)
-    msg._comments = [...(cmtRes.data || [])]; msg.commentCount = (msg.commentCount || 0) + 1
-    msg._commentText = ''; msg._commentImage = null; msg._replyToId = null
-    if (msg._comments.some(c => c.coFrequency)) msg.coFrequency = true
-    trackActivity('publish_comment', 'comments')
-    ElMessage.success('评论已送达 ✨ (获得 5 ⚡)')
-    appStore.addEnergy(5)
-  } catch {} finally { msg._commenting = false }
-}
-
-async function deleteMessage(msg) {
-  if (!msg.isOwner && !getToken(MSG_TOKEN_KEY, msg.id) && !isAdmin.value) { ElMessage.warning('你没有删除权限'); return }
-  try { await ElMessageBox.confirm('确定要删除这条树洞吗？', '提示', { type: 'warning' }); await api.deleteMessage(msg.id); ElMessage.success('已删除'); fetchMessages() } catch {}
-}
-
-async function handleDeleteComment({ msg, comment }) {
-  if (!comment.isOwner && !getToken(CMT_TOKEN_KEY, comment.id) && !isAdmin.value) { ElMessage.warning('你没有删除权限'); return }
-  try {
-    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', { type: 'warning' }); await api.deleteComment(comment.id)
-    ElMessage.success('评论已删除'); const res = await api.getComments(msg.id)
-    msg._comments = res.data || []; msg.commentCount = Math.max(0, msg.commentCount - 1)
-  } catch {}
-}
-
-function handleTagClick(tag) { activeTag.value = tag; pageNum.value = 1; fetchMessages() }
-function clearTagFilter() { activeTag.value = ''; pageNum.value = 1; fetchMessages() }
-function handlePageChange(p) { pageNum.value = p; fetchMessages(); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 function showNodeDetail(msg) { selectedNodeMsg.value = msg; nodeDetailVisible.value = true }
-
-// ── Admin Functions ──
-async function handleAdminLogin() {
-  const pwd = adminPassword.value.trim()
-  if (!pwd) return
-  try {
-    const res = await api.adminLogin(pwd)
-    if (res.data) { isAdmin.value = true; localStorage.setItem('treehole_admin_token', res.data); adminLoginVisible.value = false; ElMessage({ message: '👑 ACCESS GRANTED.', type: 'success', duration: 3000 }); fetchBlacklist() }
-  } catch {
-    adminPassword.value = ''
-    await nextTick()
-    adminPwdInputRef.value?.focus()
-  }
-}
-async function fetchBlacklist() { try { blacklist.value = (await api.getBlacklist()).data || [] } catch {} }
-async function handleUnban(ip) { try { await api.unbanIP(ip); ElMessage.success('IP 已解封'); fetchBlacklist() } catch {} }
-async function handleChangePassword() {
-  const oldPassword = (pwdForm.oldPassword || '').trim()
-  const newPassword = (pwdForm.newPassword || '').trim()
-  if (!oldPassword || !newPassword) return
-  try { await api.resetAdminPassword(oldPassword, newPassword); ElMessage.success('密码修改成功'); exitAdmin() } catch {}
-}
-function exitAdmin() { isAdmin.value = false; localStorage.removeItem('treehole_admin_token'); showBlacklistModal.value = false; showPasswordModal.value = false; ElMessage.info('管理员模式已退出') }
-async function handleBanIP(ip) {
-  try {
-    const { value } = await ElMessageBox.prompt('请输入封禁理由', '封禁操作', { confirmButtonText: '确定封禁', cancelButtonText: '取消', inputPlaceholder: '违反社区守则' })
-    await api.banIP(ip, value || '违反社区守则'); ElMessage.success('已封禁该 IP'); fetchBlacklist()
-  } catch {}
-}
 
 // ── Particle Engine ──
 const loadParticles = (theme) => {
@@ -1269,83 +616,45 @@ const loadParticles = (theme) => {
 }
 watch(() => form.theme, loadParticles)
 
-// ── Singleton Watcher Notification ──
-let watcherInstance = null, lastWatcherMsg = ''
-const showWatcherMessage = (data) => {
-  if (data === lastWatcherMsg && watcherInstance) return
-  if (watcherInstance) watcherInstance.close()
-  lastWatcherMsg = data
-  watcherInstance = ElNotification({ title: '树洞守望者 🛰️', message: data, duration: 10000, position: 'bottom-left', offset: 250, customClass: 'watcher-notification', onClose: () => { watcherInstance = null; lastWatcherMsg = '' } })
-}
-
 // ── WebSocket (委托给 composable) ──
-const { connect: connectWS, disconnect: disconnectWS, setModule: setActivityModule, trackAction: trackActivity } = useWebSocket({
-  onNewMessage(data) {
-    messages.value = messages.value.filter(m => !m.isOptimistic)
-    if (messages.value.some(m => m.id === data.id)) return
-    const newMsg = {
-      ...data, isOwner: data.userId === userStore.userId,
-      _showComments: false, _comments: [], _commentText: '', _commentImage: null, _replyToId: null, _commenting: false, _read: false
-    }
-    if (pageNum.value === 1 && !messages.value.some(m => m.id === newMsg.id)) {
-      messages.value = [newMsg, ...messages.value.slice(0, pageSize.value - 1)]
-      emit('new-broadcast', newMsg)
-    }
-    if (data.userId !== userStore.userId) ElMessage({ message: '星空中传来了新的回响...', type: 'success', plain: true, duration: 2000 })
-    total.value++
-  },
-  onNewComment(data) {
-    const target = messages.value.find(m => m.id === data.messageId)
-    if (target && !target._comments?.some(c => c.id === data.id)) {
-      target._comments = [...(target._comments || []), { ...data, isOwner: data.userId === userStore.userId }]
-      target.commentCount++
-      if (target.commentCount === 5 || target.commentCount === 10) emit('resonance-boom')
-    }
-  },
-  onObserverMessage: showWatcherMessage,
-  onReactionUpdate(type, data) {
-    const target = messages.value.find(m => m.id === data.messageId)
-    if (!target) return
-    if (type === 'COMMENT_REACTION_UPDATE') { const c = target._comments?.find(c => c.id === data.commentId); if (c) c.reactions = data.reactions }
-    else target.reactions = data.reactions
-  },
-  onOnlineStatsUpdate(data) {
-    onlineCount.value = Number(data?.online || 0)
-    onlineModules.value = data?.modules || onlineModules.value
-  },
-  onConfessorReply(data) {
-    const target = messages.value.find(m => m.id === data.messageId)
-    if (target) target.confessorReply = data.reply
-  },
-  onConfessionWitnessUpdate(data) {
-    const target = messages.value.find(m => m.id === data.messageId)
-    if (target) target.witnessCount = Number(data.witnessCount || 0)
-  }
+const realtime = useHomeRealtime({
+  messages,
+  pageNum,
+  pageSize,
+  total,
+  userStore,
+  onlineCount,
+  onlineModules,
+  emit
 })
+connectWS = realtime.connect
+disconnectWS = realtime.disconnect
+setActivityModule = realtime.setModule
+trackActivity = realtime.trackAction
 
 function resolveActivityModule() {
-  if (props.storeVisible) return 'shop'
-  return viewMode.value === 'graph' ? 'graph' : 'feed'
+  if (props.storeVisible) return ACTIVITY_MODULES.shop
+  return viewMode.value === 'graph' ? ACTIVITY_MODULES.graph : ACTIVITY_MODULES.feed
 }
 
 function setViewMode(mode) {
   if (viewMode.value === mode) return
   viewMode.value = mode
-  const module = mode === 'graph' ? 'graph' : 'feed'
+  const module = mode === 'graph' ? ACTIVITY_MODULES.graph : ACTIVITY_MODULES.feed
   setActivityModule(module)
-  trackActivity(mode === 'graph' ? 'view_graph' : 'view_feed', module)
+  trackActivity(mode === 'graph' ? ACTIVITY_EVENTS.viewGraph : ACTIVITY_EVENTS.viewFeed, module)
 }
 
 function openStore() {
-  setActivityModule('shop')
-  trackActivity('open_shop', 'shop')
+  setActivityModule(ACTIVITY_MODULES.shop)
+  trackActivity(ACTIVITY_EVENTS.openShop, ACTIVITY_MODULES.shop)
   emit('open-store')
 }
 
 watch(() => props.storeVisible, (visible) => {
-  const module = visible ? 'shop' : resolveActivityModule()
+  const module = visible ? ACTIVITY_MODULES.shop : resolveActivityModule()
   setActivityModule(module)
-  if (visible) trackActivity('open_shop', 'shop')
+  if (visible) trackActivity(ACTIVITY_EVENTS.openShop, ACTIVITY_MODULES.shop)
 })
 
 // ── Lifecycle ──
@@ -1355,7 +664,7 @@ onMounted(() => {
   offlineQueue.init() 
   checkMobile()
   window.addEventListener('resize', checkMobile)
-  clockTimer = window.setInterval(() => { clockNow.value = new Date() }, 60000)
+  clockTimer = window.setInterval(tickClock, 60000)
 
   // 1. 身份初始化
   userStore.init()
@@ -1364,7 +673,7 @@ onMounted(() => {
   // 2. WebSocket
   connectWS(userStore.userId)
   setActivityModule(resolveActivityModule())
-  trackActivity('view_feed', 'feed')
+  trackActivity(ACTIVITY_EVENTS.viewFeed, ACTIVITY_MODULES.feed)
 
   // 3. 数据加载
   setTimeout(() => { fetchMessages(); fetchTrending() }, 300)

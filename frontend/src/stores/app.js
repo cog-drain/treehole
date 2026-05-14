@@ -5,6 +5,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 export const useAppStore = defineStore('app', () => {
   // ── 能量商店 ──
@@ -23,24 +24,24 @@ export const useAppStore = defineStore('app', () => {
     document.documentElement.classList.remove('dark')
     localStorage.removeItem('theme')
 
-    energy.value = parseInt(localStorage.getItem('treehole_energy') || '1000')
-    ownedItems.value = JSON.parse(localStorage.getItem('treehole_owned_items') || '[]')
-    lainEnabled.value = localStorage.getItem('treehole_lain_enabled') === 'true'
-    p5EffectEnabled.value = localStorage.getItem('treehole_p5_enabled') === 'true'
-    p5AoaEnabled.value = localStorage.getItem('treehole_p5_aoa_enabled') === 'true'
-    alterEgoEnabled.value = localStorage.getItem('treehole_alter_ego_enabled') === 'true'
-    camoEnabled.value = localStorage.getItem('treehole_camo_enabled') === 'true'
+    energy.value = parseInt(localStorage.getItem(STORAGE_KEYS.energy) || '1000')
+    ownedItems.value = JSON.parse(localStorage.getItem(STORAGE_KEYS.ownedItems) || '[]')
+    lainEnabled.value = localStorage.getItem(STORAGE_KEYS.lainEnabled) === 'true'
+    p5EffectEnabled.value = localStorage.getItem(STORAGE_KEYS.p5Enabled) === 'true'
+    p5AoaEnabled.value = localStorage.getItem(STORAGE_KEYS.p5AoaEnabled) === 'true'
+    alterEgoEnabled.value = localStorage.getItem(STORAGE_KEYS.alterEgoEnabled) === 'true'
+    camoEnabled.value = localStorage.getItem(STORAGE_KEYS.camoEnabled) === 'true'
   }
 
   // ── 持久化 ──
   function persist() {
-    localStorage.setItem('treehole_energy', energy.value.toString())
-    localStorage.setItem('treehole_owned_items', JSON.stringify(ownedItems.value))
-    localStorage.setItem('treehole_lain_enabled', lainEnabled.value.toString())
-    localStorage.setItem('treehole_p5_enabled', p5EffectEnabled.value.toString())
-    localStorage.setItem('treehole_p5_aoa_enabled', p5AoaEnabled.value.toString())
-    localStorage.setItem('treehole_alter_ego_enabled', alterEgoEnabled.value.toString())
-    localStorage.setItem('treehole_camo_enabled', camoEnabled.value.toString())
+    localStorage.setItem(STORAGE_KEYS.energy, energy.value.toString())
+    localStorage.setItem(STORAGE_KEYS.ownedItems, JSON.stringify(ownedItems.value))
+    localStorage.setItem(STORAGE_KEYS.lainEnabled, lainEnabled.value.toString())
+    localStorage.setItem(STORAGE_KEYS.p5Enabled, p5EffectEnabled.value.toString())
+    localStorage.setItem(STORAGE_KEYS.p5AoaEnabled, p5AoaEnabled.value.toString())
+    localStorage.setItem(STORAGE_KEYS.alterEgoEnabled, alterEgoEnabled.value.toString())
+    localStorage.setItem(STORAGE_KEYS.camoEnabled, camoEnabled.value.toString())
   }
 
   // ── 增加能量 ──

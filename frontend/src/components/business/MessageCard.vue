@@ -1,47 +1,17 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { 
-  Heart, MessageSquare, Share2, Trash2, ImagePlus, Send, 
-  ChevronDown, ChevronUp, Mic, X, MoreHorizontal, Ban, Sparkles, Zap, Hash, Loader2, Play, Pause, Smile, Music
+  Send, X, Loader2
 } from 'lucide-vue-next'
-import { formatTime } from '@/utils/time.js'
 import CommentItem from './CommentItem.vue'
 import ConfessionPanel from './ConfessionPanel.vue'
-import api, { getToken, MSG_TOKEN_KEY, CMT_TOKEN_KEY } from '@/api'
+import MessageActionBar from './message/MessageActionBar.vue'
+import MessageBody from './message/MessageBody.vue'
+import MessageHeader from './message/MessageHeader.vue'
 import { useAppStore } from '@/stores/app'
+import { TONE_MODES } from '@/constants/toneModes'
 
 const appStore = useAppStore()
-const isPlaying = ref(false)
-const currentTime = ref(0)
-const duration = ref(0)
-const audioRef = ref(null)
-
-const formatDuration = (s) => {
-  if (!s || isNaN(s)) return '00:00'
-  const min = Math.floor(s / 60)
-  const sec = Math.floor(s % 60)
-  return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
-}
-
-function togglePlayback() {
-  if (!audioRef.value) return
-  if (isPlaying.value) audioRef.value.pause()
-  else audioRef.value.play()
-  isPlaying.value = !isPlaying.value
-}
-
-function onTimeUpdate() {
-  if (!audioRef.value) return
-  currentTime.value = audioRef.value.currentTime
-  duration.value = audioRef.value.duration
-}
-
-function onEnded() { isPlaying.value = false; currentTime.value = 0 }
-
-function seek(val) {
-  if (!audioRef.value) return
-  audioRef.value.currentTime = val
-}
 
 const props = defineProps({
   msg: Object,
@@ -73,70 +43,9 @@ const commentTree = computed(() => {
 })
 
 // --- Local UI State ---
-const toneMap = {
-  'whisper': { emoji: '🤫', label: '悄悄话', class: 'tone-whisper' },
-  'shout':   { emoji: '📢', label: '大声说', class: 'tone-shout' },
-  'dream':   { emoji: '💤', label: '梦话', class: 'tone-dream' },
-  'glitch':  { emoji: '👾', label: '电波', class: 'tone-glitch' },
-  'poetic':  { emoji: '🌙', label: '诗意', class: 'tone-poetic' }
-}
+const toneMap = TONE_MODES
 const toneInfo = computed(() => props.msg.mood && toneMap[props.msg.mood] ? toneMap[props.msg.mood] : null)
 const isConfession = computed(() => props.msg.messageType === 'confession')
-function generateDiceBearAvatar(seed) {
-  return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9`
-}
-
-const parseContent = (content) => {
-  if (!content) return []
-  const parts = []
-  const regex = /(#[^\s#]+)/g
-  let lastIndex = 0
-  let match
-  while ((match = regex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({ text: content.substring(lastIndex, match.index), isTag: false })
-    }
-    parts.push({ text: match[0], isTag: true })
-    lastIndex = regex.lastIndex
-  }
-  if (lastIndex < content.length) {
-    parts.push({ text: content.substring(lastIndex), isTag: false })
-  }
-  return parts
-}
-
-const openImage = (url) => { window.open(url, '_blank') }
-
-// --- Reactions Logic ---
-const reactionEmojis = ['❤️', '😂', '👍', '🔥', '😭']
-const parsedReactions = computed(() => {
-  if (!props.msg.reactions) return {}
-  try {
-    return JSON.parse(props.msg.reactions)
-  } catch (e) {
-    return {}
-  }
-})
-
-const reactedKey = computed(() => `treehole_msg_reacted_${props.msg.id}`)
-const getReactedEmoji = () => localStorage.getItem(reactedKey.value)
-const hasReacted = (emoji) => getReactedEmoji() === emoji
-
-const toggleReaction = async (emoji) => {
-  const currentEmoji = getReactedEmoji()
-  try {
-    await api.reactToMessage(props.msg.id, emoji)
-    if (currentEmoji === emoji) {
-      localStorage.removeItem(reactedKey.value)
-    } else {
-      localStorage.setItem(reactedKey.value, emoji)
-    }
-    emit('react')
-  } catch (e) {
-    console.error('Reaction error:', e)
-  }
-}
-
 // --- Comment Sorting ---
 const commentSort = ref('oldest')
 const sortedCommentTree = computed(() => {
@@ -161,17 +70,6 @@ const clearReply = () => {
   props.msg._commentText = ''
 }
 
-// --- Audio Message Filtering ---
-const blockedDomains = ['pixabay.com', 'githubusercontent.com', 'archive.org']
-const isUrlBlocked = (url) => {
-  if (!url) return true
-  return blockedDomains.some(domain => url.includes(domain))
-}
-
-const safeAudioUrl = computed(() => {
-  return isUrlBlocked(props.msg.audioUrl) ? null : props.msg.audioUrl
-})
-
 // --- Message Actions ---
 </script>
 
@@ -188,171 +86,26 @@ const safeAudioUrl = computed(() => {
   >
     <div v-if="msg.isOwner" class="owner-indicator-line absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-60"></div>
     
-    <!-- Msg Header -->
-    <div class="flex items-center justify-between mb-8">
-      <div class="flex items-center gap-4">
-        <div class="relative group/avatar">
-          <img
-            :src="generateDiceBearAvatar(msg.authorAlias || '匿名')"
-            class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 p-1 transition-transform group-hover/avatar:scale-105 duration-500"
-            alt="avatar"
-          />
-          <!-- Resonance Indicator (The Lightning Bolt) -->
-          <div 
-            v-if="isResonant"
-            class="absolute -bottom-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-500 z-10 bg-gradient-to-tr from-purple-600 to-amber-400 border-amber-200/50 text-white shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse"
-            title="与您深度同频的灵魂"
-          >
-            <Zap :size="12" fill="currentColor" />
-          </div>
-        </div>
-        
-        <div class="flex flex-col min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-bold tracking-tight text-slate-200 truncate max-w-[120px] sm:max-w-none">{{ msg.authorAlias || '匿名用户' }}</span>
-            <span v-if="isConfession" class="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center gap-0.5">
-              <span class="text-xs">🕯️</span>告解
-            </span>
-            <span v-if="toneInfo" class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-slate-400 flex items-center gap-0.5">
-              <span class="text-xs">{{ toneInfo.emoji }}</span>{{ toneInfo.label }}
-            </span>
-          </div>
-          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{{ formatTime(msg.createTime) }}</span>
-        </div>
-      </div>
+    <MessageHeader
+      :msg="msg"
+      :is-admin="isAdmin"
+      :is-confession="isConfession"
+      :is-resonant="isResonant"
+      :tone-info="toneInfo"
+      @delete="$emit('delete', $event)"
+      @admin-ban="$emit('admin-ban', $event)"
+    />
 
-      <div class="flex items-center gap-2">
-        <div v-if="isConfession" class="hidden sm:flex flex-col items-end gap-1 mr-2">
-          <span class="text-[9px] font-bold uppercase tracking-[0.18em] text-amber-700">24h confession</span>
-          <span class="text-[10px] text-slate-500">{{ Number(msg.witnessCount || 0) }} candles lit</span>
-        </div>
-        <button
-          v-if="isAdmin"
-          class="w-10 h-10 flex items-center justify-center rounded-xl bg-red-500/5 text-red-500/40 border border-red-500/10 hover:bg-red-500/10 hover:text-red-400 transition-all"
-          @click.stop="$emit('admin-ban', msg.ipAddress)"
-        >
-          <Ban :size="16" />
-        </button>
-        <button 
-          v-if="msg.isOwner || isAdmin" 
-          class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-slate-500 border border-white/5 hover:bg-red-500/10 hover:text-red-400 transition-all active:scale-90" 
-          @click.stop="$emit('delete', msg)"
-        >
-          <Trash2 :size="16" />
-        </button>
-      </div>
-    </div>
-
-    <!-- Msg Content -->
-    <div class="space-y-6">
-      <div class="text-lg leading-relaxed text-slate-200/90 whitespace-pre-wrap break-words font-light" :class="toneInfo?.class">
-        <template v-for="(part, index) in parseContent(msg.content)" :key="index">
-          <span v-if="part.isTag" class="text-blue-400 font-bold hover:underline cursor-pointer" @click.stop="$emit('tag-click', part.text.substring(1))">{{ part.text }}</span>
-          <span v-else>{{ part.text }}</span>
-        </template>
-      </div>
-
-      <div v-if="msg.audioUrl" class="mt-4 p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group/audio max-w-md mx-auto">
-        <audio 
-          ref="audioRef" 
-          :src="safeAudioUrl" 
-          @timeupdate="onTimeUpdate" 
-          @ended="onEnded"
-          @error="(e) => console.log('Audio suppressed or unreachable')"
-          class="hidden"
-        ></audio>
-
-        <button 
-          @click.stop="togglePlayback" 
-          class="w-10 h-10 rounded-full bg-blue-500/80 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 active:scale-90 transition-all hover:bg-blue-500"
-        >
-          <Play v-if="!isPlaying" :size="16" fill="currentColor" />
-          <Pause v-else :size="16" fill="currentColor" />
-        </button>
-
-        <div class="flex-1 space-y-1">
-          <div class="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-            <span>{{ formatDuration(currentTime) }}</span>
-            <div class="flex gap-0.5">
-              <div v-for="i in 8" :key="i" 
-                class="w-0.5 bg-blue-400/40 rounded-full transition-all"
-                :class="{ 'animate-[bounce_0.6s_infinite]': isPlaying }"
-                :style="{ 
-                  height: (Math.sin(i) * 6 + 8) + 'px', 
-                  animationDelay: (i * 0.1) + 's',
-                  opacity: isPlaying ? 0.8 : 0.2
-                }"
-              ></div>
-            </div>
-            <span>{{ formatDuration(duration) }}</span>
-          </div>
-          <el-slider 
-            v-model="currentTime" 
-            :max="duration || 1" 
-            :show-tooltip="false" 
-            @input="seek"
-            @click.stop
-            size="small"
-            class="cyber-slider-mini"
-          />
-        </div>
-      </div>
-      <div v-if="msg.imageUrl" class="relative group/img">
-        <img :src="msg.imageUrl" class="w-full rounded-2xl border border-white/10 hover:border-white/20 transition-all cursor-zoom-in shadow-lg" @click="openImage(msg.imageUrl)" />
-      </div>
-    </div>
+    <MessageBody :msg="msg" :tone-info="toneInfo" @tag-click="$emit('tag-click', $event)" />
 
     <ConfessionPanel v-if="isConfession" :msg="msg" @witness="$emit('witness')" />
 
-    <!-- Unified Footer: Reactions + Comment Toggle -->
-    <div v-if="!isConfession" class="action-bar">
-      <!-- Left: Reaction Pills -->
-      <div class="action-bar-left">
-        <div 
-          v-for="(count, emoji) in parsedReactions" 
-          :key="emoji"
-          class="reaction-pill"
-          :class="{ 'is-own': hasReacted(emoji) }"
-          @click.stop="toggleReaction(emoji)"
-        >
-          <span class="reaction-emoji">{{ emoji }}</span>
-          <span class="reaction-count">{{ count }}</span>
-        </div>
-
-        <!-- Add Reaction -->
-        <el-popover placement="top" :width="240" trigger="click" popper-class="reaction-popover">
-          <template #reference>
-            <button class="add-reaction-trigger">
-              <Smile :size="14" />
-            </button>
-          </template>
-          <div class="reaction-picker-grid">
-            <button 
-              v-for="e in reactionEmojis" 
-              :key="e"
-              class="reaction-picker-cell"
-              :class="{ 'is-selected': hasReacted(e) }"
-              @click="toggleReaction(e)"
-            >
-              {{ e }}
-            </button>
-          </div>
-        </el-popover>
-      </div>
-
-      <!-- Right: Comment Toggle -->
-      <button 
-        class="comment-toggle-btn"
-        @click="$emit('toggle-comments', msg)"
-      >
-        <div class="relative">
-          <MessageSquare :size="16" />
-          <span v-if="msg.commentCount > 0 && !msg._read" class="unread-dot"></span>
-        </div>
-        <span class="comment-toggle-label">{{ msg._showComments ? 'CLOSE' : 'REPLY' }}</span>
-        <span v-if="msg.commentCount > 0" class="comment-toggle-count">{{ msg.commentCount }}</span>
-      </button>
-    </div>
+    <MessageActionBar
+      v-if="!isConfession"
+      :msg="msg"
+      @toggle-comments="$emit('toggle-comments', $event)"
+      @react="$emit('react')"
+    />
 
     <!-- Comments Section (Visually Separated) -->
     <div v-if="!isConfession && msg._showComments" class="comment-section">
@@ -500,179 +253,6 @@ const safeAudioUrl = computed(() => {
   10% { opacity: 1; }
   20% { background-position: -50% -50%; opacity: 0; }
   100% { background-position: -50% -50%; opacity: 0; }
-}
-
-/* ── Unified Action Bar ── */
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  gap: 8px;
-}
-
-.action-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-}
-
-/* ── Reaction Pill (Message Level) ── */
-.reaction-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(0, 0, 0, 0.02);
-}
-
-.reaction-pill:hover {
-  background: rgba(0, 0, 0, 0.05);
-  transform: translateY(-1px);
-}
-
-.reaction-pill:active {
-  transform: scale(0.93);
-}
-
-.reaction-pill.is-own {
-  border-color: var(--cmt-accent, #3b82f6);
-  background: rgba(59, 130, 246, 0.08);
-}
-
-.reaction-emoji {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.reaction-count {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-}
-
-/* ── Add Reaction Trigger ── */
-.add-reaction-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1px dashed rgba(0, 0, 0, 0.1);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  opacity: 0.4;
-}
-
-.action-bar:hover .add-reaction-trigger {
-  opacity: 0.8;
-}
-
-.add-reaction-trigger:hover {
-  opacity: 1 !important;
-  border-style: solid;
-  border-color: var(--cmt-accent, #3b82f6);
-  color: var(--cmt-accent, #3b82f6);
-  background: rgba(59, 130, 246, 0.05);
-}
-
-/* ── Reaction Picker (Popover Content) ── */
-.reaction-picker-grid {
-  display: flex;
-  gap: 4px;
-  padding: 6px;
-}
-
-.reaction-picker-cell {
-  flex: 1;
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  border: none;
-  background: transparent;
-  font-size: 22px;
-  cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.reaction-picker-cell:hover {
-  background: rgba(59, 130, 246, 0.1);
-  transform: scale(1.3);
-}
-
-.reaction-picker-cell:active {
-  transform: scale(1.5);
-}
-
-.reaction-picker-cell.is-selected {
-  background: rgba(59, 130, 246, 0.15);
-  border-radius: 12px;
-  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.3);
-}
-
-/* ── Comment Toggle Button ── */
-.comment-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background: rgba(0, 0, 0, 0.03);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.comment-toggle-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--color-text-primary);
-}
-
-.comment-toggle-btn:active {
-  transform: scale(0.95);
-}
-
-.unread-dot {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 7px;
-  height: 7px;
-  background: #3b82f6;
-  border-radius: 50%;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
-}
-
-.comment-toggle-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.comment-toggle-count {
-  font-size: 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  opacity: 0.5;
 }
 
 /* ── Comment Section (Visually Separated) ── */
@@ -894,61 +474,4 @@ const safeAudioUrl = computed(() => {
   cursor: not-allowed;
 }
 
-/* ── Tone Effects ── */
-
-/* 🤫 悄悄话：文字缩小、半透明，悬停显现 */
-.tone-whisper {
-  font-size: 0.85rem !important;
-  opacity: 0.45;
-  filter: blur(0.5px);
-  transition: all 0.4s ease;
-  cursor: default;
-}
-.tone-whisper:hover {
-  opacity: 1;
-  filter: blur(0);
-}
-
-/* 📢 大声说：文字加粗加大 */
-.tone-shout {
-  font-size: 1.35rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.03em;
-}
-
-/* 💤 梦话：模糊飘忽，悬停聚焦 */
-.tone-dream {
-  filter: blur(1.5px);
-  opacity: 0.7;
-  font-style: italic;
-  transition: all 0.6s ease;
-}
-.tone-dream:hover {
-  filter: blur(0);
-  opacity: 1;
-}
-
-/* 👾 电波：赛博毛刺感 */
-.tone-glitch {
-  font-family: 'Courier New', monospace;
-  text-shadow: 
-    1px 0 rgba(255, 0, 80, 0.4),
-    -1px 0 rgba(0, 255, 200, 0.4);
-  animation: glitch-text 4s infinite;
-}
-@keyframes glitch-text {
-  0%, 95%, 100% { text-shadow: 1px 0 rgba(255, 0, 80, 0.4), -1px 0 rgba(0, 255, 200, 0.4); }
-  96% { text-shadow: -2px 0 rgba(255, 0, 80, 0.7), 2px 0 rgba(0, 255, 200, 0.7); transform: translateX(1px); }
-  97% { text-shadow: 2px 0 rgba(255, 0, 80, 0.7), -2px 0 rgba(0, 255, 200, 0.7); transform: translateX(-1px); }
-  98% { text-shadow: 0 0 rgba(255, 0, 80, 0.4), 0 0 rgba(0, 255, 200, 0.4); transform: translateX(0); }
-}
-
-/* 🌙 诗意：优雅衬线体 + 柔光 */
-.tone-poetic {
-  font-family: 'Georgia', 'Noto Serif SC', serif;
-  font-style: italic;
-  letter-spacing: 0.08em;
-  line-height: 2.2 !important;
-  text-shadow: 0 0 20px rgba(147, 130, 220, 0.15);
-}
 </style>

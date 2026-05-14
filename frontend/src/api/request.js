@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 const request = axios.create({
   baseURL: '/api',
@@ -10,7 +11,7 @@ const request = axios.create({
 export function getUserIdentity() {
   let identity = null
   try {
-    identity = JSON.parse(localStorage.getItem('treehole_identity'))
+    identity = JSON.parse(localStorage.getItem(STORAGE_KEYS.identity))
   } catch (e) {
     identity = null
   }
@@ -24,7 +25,7 @@ export function getUserIdentity() {
       userId: newId,
       createdAt: Date.now()
     }
-    localStorage.setItem('treehole_identity', JSON.stringify(identity))
+    localStorage.setItem(STORAGE_KEYS.identity, JSON.stringify(identity))
   }
   return identity
 }

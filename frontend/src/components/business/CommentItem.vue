@@ -52,62 +52,13 @@
           <img :src="comment.imageUrl" class="comment-image" @click.stop="openImage(comment.imageUrl)" />
         </div>
 
-        <!-- Reaction Pills + Actions (merged into one line) -->
-        <div class="comment-actions-bar">
-          <!-- Existing reaction pills -->
-          <div 
-            v-for="(count, emoji) in parsedReactions" 
-            :key="emoji"
-            class="reaction-pill"
-            :class="{ 'is-own': hasReacted(emoji) }"
-            @click.stop="toggleReaction(emoji)"
-          >
-            <span class="reaction-emoji">{{ emoji }}</span>
-            <span class="reaction-count">{{ count }}</span>
-          </div>
-
-          <!-- Add reaction button with popover -->
-          <el-popover
-            placement="top"
-            :width="200"
-            trigger="click"
-            popper-class="cyber-popover"
-          >
-            <template #reference>
-              <button class="add-reaction-btn" title="添加表情">
-                <Smile :size="14" />
-              </button>
-            </template>
-            <div class="reaction-picker">
-              <button 
-                v-for="e in reactionEmojis" 
-                :key="e"
-                class="reaction-picker-item"
-                @click="toggleReaction(e)"
-              >
-                {{ e }}
-              </button>
-            </div>
-          </el-popover>
-
-          <span class="actions-divider"></span>
-
-          <!-- Reply -->
-          <button class="action-btn" @click.stop="$emit('reply', comment)">
-            <MessageSquare :size="12" />
-            <span>Reply</span>
-          </button>
-
-          <!-- Delete -->
-          <button 
-            v-if="comment.isOwner || isAdmin"
-            class="action-btn action-btn--danger"
-            @click.stop="$emit('delete', comment)"
-          >
-            <Trash2 :size="12" />
-            <span>Remove</span>
-          </button>
-        </div>
+        <CommentActions
+          :comment="comment"
+          :is-admin="isAdmin"
+          @reply="$emit('reply', $event)"
+          @delete="$emit('delete', $event)"
+          @react="$emit('react')"
+        />
 
         <!-- Nested Children (Reddit-style) -->
         <div v-if="comment.children?.length > 0 && depth < maxDepth" class="children-area">
@@ -153,8 +104,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { generateDiceBearAvatar } from '@/utils/avatar'
-import { MessageSquare, Trash2, Zap, Smile } from 'lucide-vue-next'
-import api from '@/api'
+import { Zap } from 'lucide-vue-next'
+import CommentActions from './comment/CommentActions.vue'
 
 const props = defineProps({
   comment: { type: Object, required: true },
@@ -168,7 +119,6 @@ const emit = defineEmits(['reply', 'delete', 'react'])
 
 const isCollapsed = ref(!props.defaultExpanded)
 const expandDeep = ref(false)
-const reactionEmojis = ['❤️', '😂', '👍', '🔥', '😭']
 
 // Depth-based thread line color
 const threadLineColors = [
@@ -200,43 +150,6 @@ const formatRelativeTime = (time) => {
 
 const openImage = (url) => window.open(url, '_blank')
 
-// --- Reactions Logic ---
-const parsedReactions = computed(() => {
-  if (!props.comment.reactions) return {}
-  try {
-    return JSON.parse(props.comment.reactions)
-  } catch (e) {
-    return {}
-  }
-})
-
-// Track which emoji this user has reacted with (localStorage per comment)
-const reactedKey = computed(() => `treehole_cmt_reacted_${props.comment.id}`)
-
-const getReactedEmoji = () => localStorage.getItem(reactedKey.value)
-
-const hasReacted = (emoji) => {
-  return getReactedEmoji() === emoji
-}
-
-const toggleReaction = async (emoji) => {
-  const currentEmoji = getReactedEmoji()
-  
-  try {
-    await api.reactToComment(props.comment.id, emoji)
-    
-    if (currentEmoji === emoji) {
-      // Remove from local tracking
-      localStorage.removeItem(reactedKey.value)
-    } else {
-      // Add or change local tracking
-      localStorage.setItem(reactedKey.value, emoji)
-    }
-    emit('react')
-  } catch (e) {
-    console.error('Comment reaction error:', e)
-  }
-}
 </script>
 
 <style scoped>
@@ -443,161 +356,6 @@ const toggleReaction = async (emoji) => {
 
 .comment-image:hover {
   border-color: var(--cmt-accent, #3b82f6);
-}
-
-/* ── Actions Bar (reactions + buttons on one line) ── */
-.comment-actions-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-  margin-bottom: 8px;
-}
-
-/* ── Reaction Pill ── */
-.reaction-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.2s;
-  border: 1px solid var(--color-border);
-  background: var(--cmt-pill-bg, rgba(0, 0, 0, 0.03));
-}
-
-.reaction-pill:hover {
-  background: var(--cmt-pill-hover, rgba(0, 0, 0, 0.06));
-  transform: scale(1.05);
-}
-
-.reaction-pill.is-own {
-  border-color: var(--cmt-accent, #3b82f6);
-  background: rgba(59, 130, 246, 0.08);
-}
-
-.reaction-pill:active {
-  transform: scale(0.92);
-}
-
-.reaction-emoji {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.reaction-count {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-}
-
-/* ── Add Reaction Button ── */
-.add-reaction-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 24px;
-  border-radius: 999px;
-  border: 1px dashed var(--color-border);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  opacity: 0.5;
-}
-
-.comment-actions-bar:hover .add-reaction-btn {
-  opacity: 1;
-}
-
-.add-reaction-btn:hover {
-  border-style: solid;
-  border-color: var(--cmt-accent, #3b82f6);
-  color: var(--cmt-accent, #3b82f6);
-  background: rgba(59, 130, 246, 0.05);
-  opacity: 1;
-}
-
-/* ── Reaction Picker (popover content) ── */
-.reaction-picker {
-  display: flex;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 4px;
-}
-
-.reaction-picker-item {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.reaction-picker-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: scale(1.25);
-}
-
-.reaction-picker-item:active {
-  transform: scale(1.5);
-}
-
-/* ── Actions Divider ── */
-.actions-divider {
-  width: 1px;
-  height: 14px;
-  background: var(--color-border);
-  margin: 0 2px;
-}
-
-/* ── Action Buttons ── */
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  opacity: 0;
-}
-
-.comment-body:hover .action-btn {
-  opacity: 0.7;
-}
-
-.action-btn:hover {
-  opacity: 1 !important;
-  color: var(--cmt-accent, #3b82f6);
-  background: rgba(59, 130, 246, 0.06);
-}
-
-.action-btn--danger:hover {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.06);
-}
-
-.action-btn:active {
-  transform: scale(0.92);
 }
 
 /* ── Children Area ── */

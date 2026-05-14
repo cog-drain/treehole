@@ -7,10 +7,11 @@ import { fileApi } from './modules/file'
 import { statsApi } from './modules/stats'
 import { aiApi } from './modules/ai'
 import { graphApi } from './modules/graph'
+import { STORAGE_KEYS } from '@/constants/storageKeys'
 
 // ── localStorage Token 管理工具 ──
-const MSG_TOKEN_KEY = 'treehole_msg_tokens'
-const CMT_TOKEN_KEY = 'treehole_cmt_tokens'
+const MSG_TOKEN_KEY = STORAGE_KEYS.messageTokens
+const CMT_TOKEN_KEY = STORAGE_KEYS.commentTokens
 
 function loadTokenMap(storageKey) {
   try {

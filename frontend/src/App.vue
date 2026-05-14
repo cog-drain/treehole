@@ -62,6 +62,7 @@ import { useAppStore } from '@/stores/app'
 import { ElMessage } from 'element-plus'
 import api from '@/api'
 import { offlineQueue } from '@/utils/offlineQueue'
+import { earnCooldownKey } from '@/constants/storageKeys'
 
 const LainIntro = defineAsyncComponent(() => import('@/components/business/LainIntro.vue'))
 const EnergyStore = defineAsyncComponent(() => import('@/components/business/EnergyStore.vue'))
@@ -107,7 +108,7 @@ const handleBuy = ({ id, cost }) => {
 // 赚取能量逻辑
 const handleEarnEnergy = ({ type, amount }) => {
   // 简易防刷机制（实际应由后端控制）
-  const lastKey = `treehole_last_${type}`
+  const lastKey = earnCooldownKey(type)
   const lastTime = parseInt(localStorage.getItem(lastKey) || '0')
   const now = Date.now()
   
