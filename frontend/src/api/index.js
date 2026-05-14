@@ -8,21 +8,20 @@ import { statsApi } from './modules/stats'
 import { aiApi } from './modules/ai'
 import { graphApi } from './modules/graph'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
+import { getJson, setJson } from '@/utils/storage'
 
 // ── localStorage Token 管理工具 ──
 const MSG_TOKEN_KEY = STORAGE_KEYS.messageTokens
 const CMT_TOKEN_KEY = STORAGE_KEYS.commentTokens
 
 function loadTokenMap(storageKey) {
-  try {
-    return JSON.parse(localStorage.getItem(storageKey) || '{}')
-  } catch { return {} }
+  return getJson(storageKey, {})
 }
 
 export function saveToken(storageKey, id, token) {
   const map = loadTokenMap(storageKey)
   map[id] = token
-  localStorage.setItem(storageKey, JSON.stringify(map))
+  setJson(storageKey, map)
 }
 
 export function getToken(storageKey, id) {
@@ -32,7 +31,7 @@ export function getToken(storageKey, id) {
 export function removeToken(storageKey, id) {
   const map = loadTokenMap(storageKey)
   delete map[id]
-  localStorage.setItem(storageKey, JSON.stringify(map))
+  setJson(storageKey, map)
 }
 
 export function hasMsgToken(id) { return !!getToken(MSG_TOKEN_KEY, id) }

@@ -296,7 +296,6 @@
 
 <script setup>
 import { defineAsyncComponent, ref, onMounted, onUnmounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import api from '@/api'
 import MessageCard from '@/components/business/MessageCard.vue'
 import AdminDock from '@/components/home/admin/AdminDock.vue'
@@ -330,6 +329,7 @@ import { useFeedMessages } from '@/composables/useFeedMessages'
 import { useHomeRealtime } from '@/composables/useHomeRealtime'
 import { useIdentityVault } from '@/composables/useIdentityVault'
 import { useMobileEdgeSwipe } from '@/composables/useMobileEdgeSwipe'
+import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { useOfflineQueueDialog } from '@/composables/useOfflineQueueDialog'
 import { ACTIVITY_EVENTS, ACTIVITY_MODULES } from '@/constants/activityEvents'
 import { TONE_MODES } from '@/constants/toneModes'
@@ -342,6 +342,7 @@ const recorder = useRecorder()
 const compose = useComposeForm()
 const adminPanel = useAdminPanel()
 const identityVault = useIdentityVault()
+const networkStatus = useNetworkStatus()
 
 const props = defineProps({
   storeVisible: {
@@ -432,8 +433,7 @@ let disconnectWS = () => {}
 let setActivityModule = () => {}
 let trackActivity = () => {}
 
-// ── Network State ──
-const isOnline = ref(navigator.onLine)
+const { isOnline, startNetworkListeners, stopNetworkListeners } = networkStatus
 
 const toneMap = TONE_MODES
 
@@ -538,19 +538,6 @@ watch(() => form.authorAlias, (newVal) => {
   if (newVal) userStore.setAlias(newVal)
 }, { immediate: true })
 
-// ── Network State Handlers ──
-const handleOnline = () => { 
-  isOnline.value = true
-  // 自动触发同步
-  if (offlineQueueCount.value > 0) {
-    offlineQueue.sync(api)
-  }
-}
-const handleOffline = () => { 
-  isOnline.value = false
-  ElMessage.warning('你已进入离线回声舱') 
-}
-
 function showNodeDetail(msg) { selectedNodeMsg.value = msg; nodeDetailVisible.value = true }
 
 // ── Particle Engine ──
@@ -630,8 +617,7 @@ onMounted(() => {
   onlineStatsTimer = window.setInterval(fetchOnlineStats, 5000)
 
   // 4. 网络状态
-  window.addEventListener('online', handleOnline)
-  window.addEventListener('offline', handleOffline)
+  startNetworkListeners()
 
   // 5. 粒子
   setTimeout(() => loadParticles(form.theme), 1000)
@@ -641,8 +627,7 @@ onUnmounted(() => {
   window.removeEventListener('click', handleClickOutside)
   disconnectWS()
   window.removeEventListener('resize', checkMobile)
-  window.removeEventListener('online', handleOnline)
-  window.removeEventListener('offline', handleOffline)
+  stopNetworkListeners()
   if (onlineStatsTimer) window.clearInterval(onlineStatsTimer)
   if (clockTimer) window.clearInterval(clockTimer)
 })

@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
+import { getJson, setJson } from '@/utils/storage'
 
 const request = axios.create({
   baseURL: '/api',
@@ -9,12 +10,7 @@ const request = axios.create({
 
 /** 获取或初始化本地身份 (MVP 方案) */
 export function getUserIdentity() {
-  let identity = null
-  try {
-    identity = JSON.parse(localStorage.getItem(STORAGE_KEYS.identity))
-  } catch (e) {
-    identity = null
-  }
+  let identity = getJson(STORAGE_KEYS.identity, null)
 
   if (!identity || !identity.userId) {
     const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
@@ -25,7 +21,7 @@ export function getUserIdentity() {
       userId: newId,
       createdAt: Date.now()
     }
-    localStorage.setItem(STORAGE_KEYS.identity, JSON.stringify(identity))
+    setJson(STORAGE_KEYS.identity, identity)
   }
   return identity
 }

@@ -2,9 +2,10 @@ import { reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
+import { getString, remove, setString } from '@/utils/storage'
 
 export function useAdminPanel() {
-  const isAdmin = ref(!!localStorage.getItem(STORAGE_KEYS.adminToken))
+  const isAdmin = ref(!!getString(STORAGE_KEYS.adminToken))
   const adminLoginVisible = ref(false)
   const adminPassword = ref('')
   const showBlacklistModal = ref(false)
@@ -31,7 +32,7 @@ export function useAdminPanel() {
       const res = await api.adminLogin(pwd)
       if (res.data) {
         isAdmin.value = true
-        localStorage.setItem(STORAGE_KEYS.adminToken, res.data)
+        setString(STORAGE_KEYS.adminToken, res.data)
         adminLoginVisible.value = false
         ElMessage({ message: '👑 ACCESS GRANTED.', type: 'success', duration: 3000 })
         fetchBlacklist()
@@ -68,7 +69,7 @@ export function useAdminPanel() {
 
   function exitAdmin() {
     isAdmin.value = false
-    localStorage.removeItem(STORAGE_KEYS.adminToken)
+    remove(STORAGE_KEYS.adminToken)
     showBlacklistModal.value = false
     showPasswordModal.value = false
     ElMessage.info('管理员模式已退出')

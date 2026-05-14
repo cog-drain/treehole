@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { backupIdentity, restoreIdentity } from '@/api'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
+import { setJson } from '@/utils/storage'
 
 export function useIdentityVault() {
   const showIdentityModal = ref(false)
@@ -20,7 +21,7 @@ export function useIdentityVault() {
     try {
       const res = await restoreIdentity(inputKey.value)
       if (res.code === 0 || res.code === 200) {
-        localStorage.setItem(STORAGE_KEYS.identity, JSON.stringify({ userId: res.data, createdAt: Date.now() }))
+        setJson(STORAGE_KEYS.identity, { userId: res.data, createdAt: Date.now() })
         ElMessage.success('身份还原成功，正在重载...')
         setTimeout(() => window.location.reload(), 1500)
       }

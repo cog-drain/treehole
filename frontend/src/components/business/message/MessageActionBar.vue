@@ -4,6 +4,7 @@ import { MessageSquare, Smile } from 'lucide-vue-next'
 import api from '@/api'
 import { REACTION_EMOJIS } from '@/constants/reactions'
 import { messageReactionKey } from '@/constants/storageKeys'
+import { useReactionState } from '@/composables/useReactionState'
 
 const props = defineProps({
   msg: { type: Object, required: true }
@@ -20,16 +21,12 @@ const parsedReactions = computed(() => {
   }
 })
 
-const reactedKey = computed(() => messageReactionKey(props.msg.id))
-const getReactedEmoji = () => localStorage.getItem(reactedKey.value)
-const hasReacted = (emoji) => getReactedEmoji() === emoji
+const { getReactedEmoji, hasReacted, setReactedEmoji } = useReactionState(messageReactionKey, () => props.msg.id)
 
 async function toggleReaction(emoji) {
-  const currentEmoji = getReactedEmoji()
   try {
     await api.reactToMessage(props.msg.id, emoji)
-    if (currentEmoji === emoji) localStorage.removeItem(reactedKey.value)
-    else localStorage.setItem(reactedKey.value, emoji)
+    setReactedEmoji(emoji)
     emit('react')
   } catch (e) {
     console.error('Reaction error:', e)
