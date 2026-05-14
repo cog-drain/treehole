@@ -9,3 +9,7 @@ export function reloadPage(delay = 0) {
   }
   window.location.reload()
 }
+
+export function scrollToTop(options = { behavior: 'smooth' }) {
+  window.scrollTo({ top: 0, ...options })
+}
