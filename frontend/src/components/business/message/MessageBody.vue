@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { Pause, Play } from 'lucide-vue-next'
 import { openExternalImage } from '@/utils/browser'
+import { formatDuration } from '@/utils/time'
 
 const props = defineProps({
   msg: { type: Object, required: true },
@@ -20,13 +21,6 @@ const safeAudioUrl = computed(() => {
   if (!props.msg.audioUrl) return null
   return blockedDomains.some(domain => props.msg.audioUrl.includes(domain)) ? null : props.msg.audioUrl
 })
-
-function formatDuration(s) {
-  if (!s || isNaN(s)) return '00:00'
-  const min = Math.floor(s / 60)
-  const sec = Math.floor(s % 60)
-  return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
-}
 
 function parseContent(content) {
   if (!content) return []

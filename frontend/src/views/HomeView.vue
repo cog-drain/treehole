@@ -331,6 +331,8 @@ import { useIdentityVault } from '@/composables/useIdentityVault'
 import { useMobileEdgeSwipe } from '@/composables/useMobileEdgeSwipe'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 import { useOfflineQueueDialog } from '@/composables/useOfflineQueueDialog'
+import { useParticleTheme } from '@/composables/useParticleTheme'
+import { useViewport } from '@/composables/useViewport'
 import { ACTIVITY_EVENTS, ACTIVITY_MODULES } from '@/constants/activityEvents'
 import { TONE_MODES } from '@/constants/toneModes'
 import { CARD_THEMES } from '@/constants/themes'
@@ -343,6 +345,7 @@ const compose = useComposeForm()
 const adminPanel = useAdminPanel()
 const identityVault = useIdentityVault()
 const networkStatus = useNetworkStatus()
+const viewport = useViewport()
 
 const props = defineProps({
   storeVisible: {
@@ -421,10 +424,9 @@ const vClickOutside = {
 
 // ── UI State ──
 const viewMode = ref('list')
-const isMobile = ref(window.innerWidth < 768)
+const { isMobile, startViewportListeners, stopViewportListeners } = viewport
 const nodeDetailVisible = ref(false)
 const selectedNodeMsg = ref(null)
-const checkMobile = () => { isMobile.value = window.innerWidth < 768 }
 
 let onlineStatsTimer = null
 let clockTimer = null
@@ -540,17 +542,7 @@ watch(() => form.authorAlias, (newVal) => {
 
 function showNodeDetail(msg) { selectedNodeMsg.value = msg; nodeDetailVisible.value = true }
 
-// ── Particle Engine ──
-const loadParticles = (theme) => {
-  if (!window.tsParticles) return
-  const configs = {
-    sakura: { particles: { number: { value: 15 }, color: { value: '#f472b6' }, shape: { type: 'circle' }, opacity: { value: 0.5 }, size: { value: { min: 2, max: 5 } }, move: { enable: true, speed: 1.5, direction: 'bottom-right', outModes: { default: 'out' } }, rotate: { value: { min: 0, max: 360 }, animation: { enable: true, speed: 5 } } } },
-    spring: { particles: { number: { value: 12 }, color: { value: '#22c55e' }, shape: { type: 'circle' }, opacity: { value: 0.3 }, size: { value: { min: 5, max: 15 } }, move: { enable: true, speed: 1, direction: 'top', outModes: { default: 'out' } } } },
-    aurora: { particles: { number: { value: 3 }, color: { value: ['#e0e7ff', '#f3e8ff', '#ecfdf5'] }, shape: { type: 'circle' }, opacity: { value: 0.25 }, size: { value: { min: 600, max: 1200 } }, move: { enable: true, speed: 0.3, direction: 'none', random: true, straight: false, outModes: { default: 'out' } } } }
-  }
-  window.tsParticles.load('tsparticles', configs[theme] || configs.aurora)
-}
-watch(() => form.theme, loadParticles)
+const { startParticles, stopWatchingTheme } = useParticleTheme(() => form.theme)
 
 // ── WebSocket (委托给 composable) ──
 const realtime = useHomeRealtime({
@@ -598,8 +590,7 @@ onMounted(() => {
   window.addEventListener('click', handleClickOutside)
   appStore.init() 
   offlineQueue.init() 
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
+  startViewportListeners()
   clockTimer = window.setInterval(tickClock, 60000)
 
   // 1. 身份初始化
@@ -620,13 +611,14 @@ onMounted(() => {
   startNetworkListeners()
 
   // 5. 粒子
-  setTimeout(() => loadParticles(form.theme), 1000)
+  startParticles()
 })
 
 onUnmounted(() => {
   window.removeEventListener('click', handleClickOutside)
   disconnectWS()
-  window.removeEventListener('resize', checkMobile)
+  stopViewportListeners()
+  stopWatchingTheme()
   stopNetworkListeners()
   if (onlineStatsTimer) window.clearInterval(onlineStatsTimer)
   if (clockTimer) window.clearInterval(clockTimer)

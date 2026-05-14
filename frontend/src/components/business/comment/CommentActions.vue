@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { MessageSquare, Smile, Trash2 } from 'lucide-vue-next'
 import api from '@/api'
-import { REACTION_EMOJIS } from '@/constants/reactions'
+import { parseReactionMap, REACTION_EMOJIS } from '@/constants/reactions'
 import { commentReactionKey } from '@/constants/storageKeys'
 import { useReactionState } from '@/composables/useReactionState'
 
@@ -13,14 +13,7 @@ const props = defineProps({
 
 const emit = defineEmits(['reply', 'delete', 'react'])
 
-const parsedReactions = computed(() => {
-  if (!props.comment.reactions) return {}
-  try {
-    return JSON.parse(props.comment.reactions)
-  } catch {
-    return {}
-  }
-})
+const parsedReactions = computed(() => parseReactionMap(props.comment.reactions))
 
 const { hasReacted, setReactedEmoji } = useReactionState(commentReactionKey, () => props.comment.id)
 

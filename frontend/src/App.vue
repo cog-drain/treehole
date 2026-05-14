@@ -56,14 +56,13 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, onMounted } from 'vue'
+import { defineAsyncComponent, ref, onMounted, onUnmounted } from 'vue'
 import HomeView from './views/HomeView.vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage } from 'element-plus'
-import api from '@/api'
-import { offlineQueue } from '@/utils/offlineQueue'
 import { earnCooldownKey } from '@/constants/storageKeys'
 import { getString, setString } from '@/utils/storage'
+import { useOfflineSyncOnOnline } from '@/composables/useOfflineSyncOnOnline'
 
 const LainIntro = defineAsyncComponent(() => import('@/components/business/LainIntro.vue'))
 const EnergyStore = defineAsyncComponent(() => import('@/components/business/EnergyStore.vue'))
@@ -72,6 +71,7 @@ const P5AllOutAttack = defineAsyncComponent(() => import('@/components/business/
 const AlterEgo = defineAsyncComponent(() => import('@/components/business/AlterEgo.vue'))
 
 const appStore = useAppStore()
+const { startOfflineSync, stopOfflineSync } = useOfflineSyncOnOnline()
 
 const showP5Animation = ref(false)
 const showAoaAnimation = ref(false)
@@ -80,17 +80,10 @@ const latestMessage = ref(null)
 
 onMounted(() => {
   appStore.init()
-  
-  // 离线队列同步：监听网络恢复
-  window.addEventListener('online', () => {
-    offlineQueue.sync(api)
-  })
-  
-  // 启动时如果在线，也尝试同步一次（防止上次同步失败残留）
-  if (window.navigator.onLine) {
-    offlineQueue.sync(api)
-  }
+  startOfflineSync()
 })
+
+onUnmounted(stopOfflineSync)
 
 // 判断是否应该显示开场动画
 const shouldShowLain = () => {

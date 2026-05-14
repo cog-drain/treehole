@@ -2,19 +2,11 @@
 import { Zap } from 'lucide-vue-next'
 import { generateDiceBearAvatar } from '@/utils/avatar'
 import { openExternalImage } from '@/utils/browser'
+import { formatRelativeTime } from '@/utils/time'
 
 defineProps({
   comment: { type: Object, required: true }
 })
-
-const formatRelativeTime = (time) => {
-  if (!time) return ''
-  const diff = Math.floor((new Date() - new Date(time)) / 1000)
-  if (diff < 60) return 'NOW'
-  if (diff < 3600) return `${Math.floor(diff / 60)}M AGO`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}H AGO`
-  return `${Math.floor(diff / 86400)}D AGO`
-}
 
 const openImage = openExternalImage
 </script>

@@ -82,6 +82,7 @@ import { ref, computed } from 'vue'
 import { generateDiceBearAvatar } from '@/utils/avatar'
 import CommentActions from './comment/CommentActions.vue'
 import CommentBody from './comment/CommentBody.vue'
+import { formatRelativeTime } from '@/utils/time'
 
 const props = defineProps({
   comment: { type: Object, required: true },
@@ -114,15 +115,6 @@ const autoExpandDepth = 2
 
 // All children visible (no pagination for now)
 const visibleChildren = computed(() => props.comment.children || [])
-
-const formatRelativeTime = (time) => {
-  if (!time) return ''
-  const diff = Math.floor((new Date() - new Date(time)) / 1000)
-  if (diff < 60) return 'NOW'
-  if (diff < 3600) return `${Math.floor(diff / 60)}M AGO`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}H AGO`
-  return `${Math.floor(diff / 86400)}D AGO`
-}
 
 </script>
 
