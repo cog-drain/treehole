@@ -87,14 +87,7 @@
         @page-change="handlePageChange"
       />
 
-      <!-- Graph View (Wrapper for Obsidian Graph) -->
-      <div v-if="viewMode === 'graph'" class="h-[850px] relative">
-        <MindGraph 
-          v-if="viewMode === 'graph'" 
-          :visible="viewMode === 'graph'"
-          @node-click="showNodeDetail"
-        />
-      </div>
+      <HomeGraphPanel :view-mode="viewMode" @node-click="showNodeDetail" />
     </div>
 
     <!-- Professional Zen Overlay (Generative Garden) -->
@@ -123,88 +116,67 @@
       @open-identity="showIdentityModal = true"
     />
 
-    <IdentityVaultModal
-      :visible="showIdentityModal"
+    <HomeDialogs
+      :show-identity-modal="showIdentityModal"
       :recovery-key="recoveryKey"
       :input-key="inputKey"
-      @close="showIdentityModal = false"
+      :bottle-visible="bottleVisible"
+      :picked-bottle="pickedBottle"
+      :user-id="userStore.userId"
+      :admin-login-visible="adminLoginVisible"
+      :admin-password="adminPassword"
+      :is-admin="isAdmin"
+      :show-blacklist-modal="showBlacklistModal"
+      :show-password-modal="showPasswordModal"
+      :blacklist="blacklist"
+      :pwd-form="pwdForm"
+      :offline-dialog-visible="offlineDialogVisible"
+      :is-online="isOnline"
+      :offline-list="offlineList"
+      :offline-queue-count="offlineQueueCount"
+      @close-identity="showIdentityModal = false"
       @open-store="openStore"
       @backup="handleBackup"
       @restore="handleRestore"
       @copy-key="copyKey"
       @update:input-key="inputKey = $event"
-    />
-
-    <!-- Premium Drifting Bottle System -->
-    <DriftBottleDialog 
-      v-model="bottleVisible"
-      :picked-data="pickedBottle"
-      :user-id="api.getUserIdentity().userId"
-      @on-throw="handleThrowBottle"
-      @on-pick="handlePickBottle"
-      @on-reply="handleReplyBottle"
-      @on-return="handleReturnBottle"
-    />
-
-    <AdminLoginModal
-      :visible="adminLoginVisible"
-      :password="adminPassword"
-      @update:password="adminPassword = $event"
-      @login="handleAdminLogin"
-      @close="adminLoginVisible = false"
-    />
-
-    <AdminDock
-      :visible="isAdmin"
+      @update:bottle-visible="bottleVisible = $event"
+      @throw-bottle="handleThrowBottle"
+      @pick-bottle="handlePickBottle"
+      @reply-bottle="handleReplyBottle"
+      @return-bottle="handleReturnBottle"
+      @update:admin-password="adminPassword = $event"
+      @admin-login="handleAdminLogin"
+      @close-admin-login="adminLoginVisible = false"
       @open-blacklist="showBlacklistModal = true"
       @open-password="showPasswordModal = true"
-      @exit="exitAdmin"
-    />
-
-    <BlacklistDialog
-      v-model:visible="showBlacklistModal"
-      :blacklist="blacklist"
+      @exit-admin="exitAdmin"
+      @update:blacklist-visible="showBlacklistModal = $event"
+      @update:password-visible="showPasswordModal = $event"
       @unban="handleUnban"
-    />
-
-    <PasswordDialog
-      v-model:visible="showPasswordModal"
-      :form="pwdForm"
-      @submit="handleChangePassword"
-    />
-    <OfflineQueueDialog
-      v-model:visible="offlineDialogVisible"
-      :is-online="isOnline"
-      :offline-list="offlineList"
-      :offline-queue-count="offlineQueueCount"
-      @sync="syncOfflineQueue"
-      @edit="editOfflineItem"
-      @remove="removeOfflineItem"
+      @change-password="handleChangePassword"
+      @update:offline-dialog-visible="offlineDialogVisible = $event"
+      @sync-offline="syncOfflineQueue"
+      @edit-offline="editOfflineItem"
+      @remove-offline="removeOfflineItem"
     />
   </div>
 </template>
 
 <script setup>
 import { defineAsyncComponent, ref, onMounted, onUnmounted, watch } from 'vue'
-import api from '@/api'
-import AdminDock from '@/components/home/admin/AdminDock.vue'
-import AdminLoginModal from '@/components/home/admin/AdminLoginModal.vue'
 import ActiveTagBanner from '@/components/home/ActiveTagBanner.vue'
-import BlacklistDialog from '@/components/home/admin/BlacklistDialog.vue'
 import ComposeBox from '@/components/home/ComposeBox.vue'
 import FeedHeader from '@/components/home/FeedHeader.vue'
+import HomeDialogs from '@/components/home/HomeDialogs.vue'
 import HomeFabStack from '@/components/home/HomeFabStack.vue'
 import HomeFeedList from '@/components/home/feed/HomeFeedList.vue'
-import IdentityVaultModal from '@/components/home/IdentityVaultModal.vue'
-import OfflineQueueDialog from '@/components/home/OfflineQueueDialog.vue'
-import PasswordDialog from '@/components/home/admin/PasswordDialog.vue'
+import HomeGraphPanel from '@/components/home/HomeGraphPanel.vue'
 import TrendingTags from '@/components/home/TrendingTags.vue'
 import CyberWatermark from '@/components/common/CyberWatermark.vue'
 import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
 
-const MindGraph = defineAsyncComponent(() => import('@/components/business/MindGraph.vue'))
 const ZenGarden = defineAsyncComponent(() => import('@/components/zen/ZenGarden.vue'))
-const DriftBottleDialog = defineAsyncComponent(() => import('@/components/business/DriftBottleDialog.vue'))
 
 // ── Stores & Composables ──
 import { useUserStore } from '@/stores/user'
@@ -521,57 +493,6 @@ onUnmounted(() => {
   box-shadow:
     0 26px 60px -24px rgba(201, 149, 42, 0.45),
     inset 0 1px 0 rgba(255, 238, 178, 0.55) !important;
-}
-
-.cyber-pagination {
-  margin-top: 2rem !important;
-  --el-pagination-bg-color: transparent !important;
-  --el-pagination-button-bg-color: transparent !important;
-}
-
-.cyber-pagination .el-pager li {
-  width: 40px !important;
-  height: 40px !important;
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 14px !important;
-  color: #64748b !important;
-  margin: 0 6px !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-weight: 700 !important;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-}
-
-.cyber-pagination .el-pager li.is-active {
-  background: rgba(59, 130, 246, 0.15) !important;
-  color: #60a5fa !important;
-  border: 1px solid rgba(59, 130, 246, 0.5) !important;
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2), inset 0 0 10px rgba(59, 130, 246, 0.1) !important;
-  transform: translateY(-4px) scale(1.1) !important;
-}
-
-.cyber-pagination .el-pager li:not(.is-active):hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  color: #fff !important;
-  transform: translateY(-2px) !important;
-}
-
-.cyber-pagination button.btn-prev, 
-.cyber-pagination button.btn-next {
-  width: 40px !important;
-  height: 40px !important;
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 14px !important;
-  color: #64748b !important;
-  transition: all 0.3s !important;
-}
-
-.cyber-pagination button:not(:disabled):hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  color: #fff !important;
 }
 
 .msg-list-enter-active, .msg-list-leave-active { transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
