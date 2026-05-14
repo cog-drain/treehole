@@ -2,11 +2,11 @@
   <div class="fixed right-8 bottom-8 flex flex-col gap-4 z-[1001]">
     <div ref="zenRoot" class="relative group">
       <ZenMenu
-        :visible="showZenMenu"
-        :sounds="zenSounds"
-        :current-sound="currentZenSound"
-        :volume="zenVolume"
-        :is-zen-mode="isZenMode"
+        :visible="zenState.showZenMenu"
+        :sounds="zenState.zenSounds"
+        :current-sound="zenState.currentZenSound"
+        :volume="zenState.zenVolume"
+        :is-zen-mode="zenState.isZenMode"
         @select-sound="$emit('select-zen-sound', $event)"
         @update:volume="$emit('update:zen-volume', $event)"
         @volume-input="$emit('update-zen-volume', $event)"
@@ -16,10 +16,10 @@
       />
       <button
         class="w-12 h-12 rounded-full glass-effect flex items-center justify-center text-slate-400 hover:text-blue-400 transition-all active:scale-90"
-        :class="{ 'bg-blue-500 !text-white border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]': currentZenSound || isZenMode }"
+        :class="{ 'bg-blue-500 !text-white border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]': zenState.currentZenSound || zenState.isZenMode }"
         @click="$emit('toggle-zen-menu')"
       >
-        <Volume2 v-if="currentZenSound" :size="20" />
+        <Volume2 v-if="zenState.currentZenSound" :size="20" />
         <Moon v-else :size="20" />
       </button>
     </div>
@@ -46,11 +46,7 @@ import { Fingerprint, Moon, Volume2, Waves } from 'lucide-vue-next'
 import ZenMenu from './ZenMenu.vue'
 
 const props = defineProps({
-  showZenMenu: { type: Boolean, default: false },
-  isZenMode: { type: Boolean, default: false },
-  currentZenSound: { type: Object, default: null },
-  zenVolume: { type: Number, default: 50 },
-  zenSounds: { type: Array, default: () => [] }
+  zenState: { type: Object, required: true }
 })
 
 const emit = defineEmits([
@@ -69,7 +65,7 @@ const emit = defineEmits([
 const zenRoot = ref(null)
 
 function handleDocumentClick(event) {
-  if (props.showZenMenu && zenRoot.value && !zenRoot.value.contains(event.target)) {
+  if (props.zenState.showZenMenu && zenRoot.value && !zenRoot.value.contains(event.target)) {
     emit('close-zen-menu')
   }
 }

@@ -12,32 +12,36 @@
       <!-- ... Offline Banner ... -->
 
       <ComposeBox
-        :form="form"
+        :compose-state="{
+          form,
+          isConfessionMode,
+          isMidnight,
+          isZenMode,
+          adminLoginVisible,
+          isMobile,
+          isOnline,
+          publishing,
+          offlineQueueCount,
+          imagePreview,
+          showTonePanel,
+          toneSelectorRef
+        }"
+        :voice-state="{
+          showVoicePanel,
+          isRecording,
+          recordingTime,
+          recordedBlob,
+          rawAudioUrl,
+          maskedAudioUrl,
+          isPlayingPreview,
+          previewCurrentTime,
+          previewDuration,
+          audioPreviewRef,
+          voiceEffect,
+          voiceEffects
+        }"
         :themes-list="themesList"
         :tone-map="toneMap"
-        :is-confession-mode="isConfessionMode"
-        :is-midnight="isMidnight"
-        :is-zen-mode="isZenMode"
-        :admin-login-visible="adminLoginVisible"
-        :is-mobile="isMobile"
-        :is-online="isOnline"
-        :publishing="publishing"
-        :offline-queue-count="offlineQueueCount"
-        :image-preview="imagePreview"
-        :show-tone-panel="showTonePanel"
-        :tone-selector-ref="toneSelectorRef"
-        :show-voice-panel="showVoicePanel"
-        :is-recording="isRecording"
-        :recording-time="recordingTime"
-        :recorded-blob="recordedBlob"
-        :raw-audio-url="rawAudioUrl"
-        :masked-audio-url="maskedAudioUrl"
-        :is-playing-preview="isPlayingPreview"
-        :preview-current-time="previewCurrentTime"
-        :preview-duration="previewDuration"
-        :audio-preview-ref="audioPreviewRef"
-        :voice-effect="voiceEffect"
-        :voice-effects="voiceEffects"
         :format-duration="formatDuration"
         @refresh-identity="refreshIdentity"
         @image-select="onImageSelect"
@@ -99,11 +103,7 @@
     </Transition>
 
     <HomeFabStack
-      :show-zen-menu="showZenMenu"
-      :is-zen-mode="isZenMode"
-      :current-zen-sound="currentZenSound"
-      :zen-volume="zenVolume"
-      :zen-sounds="zenSounds"
+      :zen-state="{ showZenMenu, isZenMode, currentZenSound, zenVolume, zenSounds }"
       @toggle-zen-menu="showZenMenu = !showZenMenu"
       @close-zen-menu="showZenMenu = false"
       @select-zen-sound="selectZenSound"
@@ -117,23 +117,10 @@
     />
 
     <HomeDialogs
-      :show-identity-modal="showIdentityModal"
-      :recovery-key="recoveryKey"
-      :input-key="inputKey"
-      :bottle-visible="bottleVisible"
-      :picked-bottle="pickedBottle"
-      :user-id="userStore.userId"
-      :admin-login-visible="adminLoginVisible"
-      :admin-password="adminPassword"
-      :is-admin="isAdmin"
-      :show-blacklist-modal="showBlacklistModal"
-      :show-password-modal="showPasswordModal"
-      :blacklist="blacklist"
-      :pwd-form="pwdForm"
-      :offline-dialog-visible="offlineDialogVisible"
-      :is-online="isOnline"
-      :offline-list="offlineList"
-      :offline-queue-count="offlineQueueCount"
+      :identity-state="{ showIdentityModal, recoveryKey, inputKey }"
+      :bottle-state="{ bottleVisible, pickedBottle, userId: userStore.userId }"
+      :admin-state="{ adminLoginVisible, adminPassword, isAdmin, showBlacklistModal, showPasswordModal, blacklist, pwdForm }"
+      :offline-state="{ offlineDialogVisible, isOnline, offlineList, offlineQueueCount }"
       @close-identity="showIdentityModal = false"
       @open-store="openStore"
       @backup="handleBackup"
