@@ -4,6 +4,26 @@ import { getJson, setJson } from '@/utils/storage'
 import { useCommentActions } from '@/composables/feed/useCommentActions'
 import { useFeedPagination } from '@/composables/feed/useFeedPagination'
 import { useMessagePublishing } from '@/composables/feed/useMessagePublishing'
+import type { ComposeFormDraft, FeedMessage, Id } from '@/types'
+
+interface UseFeedMessagesOptions {
+  form: ComposeFormDraft
+  imageFile: { value: File | null }
+  isConfessionMode: { value: boolean }
+  isOnline: { value: boolean }
+  recordedBlob: { value: Blob | null }
+  maskedAudioBlob: { value: Blob | null }
+  clearImage: () => void
+  clearAudio: () => void
+  appStore: { addEnergy: (amount: number) => void }
+  emit: (event: 'publish-success', payload: FeedMessage | Record<string, unknown>) => void
+  isAdmin: { value: boolean }
+  activity: {
+    setModule: (module: string) => void
+    track: (event: string, module?: string) => void
+    resolveModule: () => string
+  }
+}
 
 export function useFeedMessages({
   form,
@@ -18,12 +38,12 @@ export function useFeedMessages({
   emit,
   isAdmin,
   activity
-}) {
-  const likedIds = reactive(new Set(getJson(STORAGE_KEYS.likes, [])))
+}: UseFeedMessagesOptions) {
+  const likedIds = reactive(new Set<Id>(getJson<Id[]>(STORAGE_KEYS.likes, [])))
   watch(likedIds, (val) => setJson(STORAGE_KEYS.likes, [...val]), { deep: true })
 
-  const readIds = ref(new Set(getJson(STORAGE_KEYS.readMessages, [])))
-  const markAsRead = (id) => {
+  const readIds = ref(new Set<Id>(getJson<Id[]>(STORAGE_KEYS.readMessages, [])))
+  const markAsRead = (id: Id) => {
     readIds.value.add(id)
     setJson(STORAGE_KEYS.readMessages, [...readIds.value])
   }

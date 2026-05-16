@@ -1,11 +1,16 @@
 import { computed, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import type { ComposeFormDraft } from '@/types'
+
+type PasteLikeEvent = ClipboardEvent & {
+  originalEvent?: ClipboardEvent
+}
 
 export function useComposeForm() {
-  const form = reactive({ authorAlias: '', content: '', mood: '', theme: 'default' })
+  const form = reactive<ComposeFormDraft>({ authorAlias: '', content: '', mood: '', theme: 'default' })
   const showTonePanel = ref(false)
-  const toneSelectorRef = ref(null)
-  const imageFile = ref(null)
+  const toneSelectorRef = ref<HTMLElement | null>(null)
+  const imageFile = ref<File | null>(null)
   const imagePreview = ref('')
   const isConfessionMode = ref(false)
   const clockNow = ref(new Date())
@@ -14,8 +19,9 @@ export function useComposeForm() {
     return hour >= 0 && hour < 4
   })
 
-  function onImageSelect(event) {
-    const file = event.target.files[0]
+  function onImageSelect(event: Event) {
+    const input = event.target as HTMLInputElement | null
+    const file = input?.files?.[0]
     if (file) {
       imageFile.value = file
       imagePreview.value = URL.createObjectURL(file)
@@ -27,8 +33,9 @@ export function useComposeForm() {
     imagePreview.value = ''
   }
 
-  function handlePaste(event) {
-    const items = (event.clipboardData || event.originalEvent.clipboardData).items
+  function handlePaste(event: PasteLikeEvent) {
+    const items = (event.clipboardData || event.originalEvent?.clipboardData)?.items
+    if (!items) return
     for (const item of items) {
       if (item.type.indexOf('image') !== -1) {
         const file = item.getAsFile()
@@ -41,8 +48,9 @@ export function useComposeForm() {
     }
   }
 
-  function handleClickOutside(event) {
-    if (showTonePanel.value && toneSelectorRef.value && !toneSelectorRef.value.contains(event.target)) {
+  function handleClickOutside(event: MouseEvent) {
+    const target = event.target
+    if (showTonePanel.value && toneSelectorRef.value && target instanceof Node && !toneSelectorRef.value.contains(target)) {
       showTonePanel.value = false
     }
   }

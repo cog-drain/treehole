@@ -1,9 +1,11 @@
-// audioProcessor.js
+type WebAudioWindow = Window & typeof globalThis & {
+  webkitAudioContext?: typeof AudioContext
+}
 
 /**
  * 将 AudioBuffer 转换为 Wav Blob
  */
-function audioBufferToWav(buffer) {
+function audioBufferToWav(buffer: AudioBuffer): Blob {
   const numChannels = buffer.numberOfChannels;
   const sampleRate = buffer.sampleRate;
   const format = 1; // PCM
@@ -21,7 +23,7 @@ function audioBufferToWav(buffer) {
   const bufferArray = new ArrayBuffer(44 + dataLength);
   const view = new DataView(bufferArray);
 
-  const writeString = (view, offset, string) => {
+  const writeString = (view: DataView, offset: number, string: string) => {
     for (let i = 0; i < string.length; i++) {
       view.setUint8(offset + i, string.charCodeAt(i));
     }
@@ -53,11 +55,13 @@ function audioBufferToWav(buffer) {
 /**
  * 离线渲染 Web Audio 特效 - 强化匿名版
  */
-export async function applyVoiceMask(originalBlob, effectType) {
+export async function applyVoiceMask(originalBlob: Blob, effectType?: string): Promise<Blob> {
   if (effectType === 'original' || !effectType) return originalBlob;
 
   const arrayBuffer = await originalBlob.arrayBuffer();
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const AudioContextCtor = window.AudioContext || (window as WebAudioWindow).webkitAudioContext
+  if (!AudioContextCtor) return originalBlob
+  const ctx = new AudioContextCtor();
   const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
 
   const offlineCtx = new OfflineAudioContext(
@@ -69,7 +73,7 @@ export async function applyVoiceMask(originalBlob, effectType) {
   const source = offlineCtx.createBufferSource();
   source.buffer = audioBuffer;
 
-  let lastNode = source;
+  let lastNode: AudioNode = source;
 
   if (effectType === 'robot') {
     // 机械音：高频环形调制 + 赛博粉碎
@@ -103,11 +107,11 @@ export async function applyVoiceMask(originalBlob, effectType) {
     filter1.Q.value = 5.0;
 
     const distortion = offlineCtx.createWaveShaper();
-    function makeDistortionCurve(amount) {
+    function makeDistortionCurve(amount: number) {
       let k = typeof amount === 'number' ? amount : 150,
         n_samples = 44100,
         curve = new Float32Array(n_samples),
-        i = 0, x;
+        i = 0, x = 0;
       for ( ; i < n_samples; ++i ) {
         x = i * 2 / n_samples - 1;
         curve[i] = ( (3 + k) * x * 20 * (Math.PI / 180) ) / ( Math.PI + k * Math.abs(x) );

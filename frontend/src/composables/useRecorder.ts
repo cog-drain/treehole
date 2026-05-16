@@ -4,30 +4,38 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { applyVoiceMask } from '@/utils/audioProcessor'
+import type { VoiceEffectKey, VoiceEffectOption } from '@/types'
+
+export function formatDuration(s: number): string {
+  if (!s || Number.isNaN(s)) return '00:00'
+  const min = Math.floor(s / 60)
+  const sec = Math.floor(s % 60)
+  return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+}
 
 export function useRecorder() {
   const showVoicePanel = ref(false)
   const isRecording = ref(false)
   const recordingTime = ref(0)
-  const recordedBlob = ref(null)
+  const recordedBlob = ref<Blob | null>(null)
   const rawAudioUrl = ref('')
-  const maskedAudioBlob = ref(null)
+  const maskedAudioBlob = ref<Blob | null>(null)
   const maskedAudioUrl = ref('')
   const isPlayingPreview = ref(false)
   const previewCurrentTime = ref(0)
   const previewDuration = ref(0)
-  const audioPreviewRef = ref(null)
-  const voiceEffect = ref('robot')
+  const audioPreviewRef = ref<HTMLAudioElement | null>(null)
+  const voiceEffect = ref<VoiceEffectKey>('robot')
 
-  const voiceEffects = [
+  const voiceEffects: VoiceEffectOption[] = [
     { id: 'original', name: '原音', icon: '👤' },
     { id: 'robot', name: '机器人', icon: '🤖' },
     { id: 'deep', name: '低沉', icon: '🌑' },
     { id: 'ethereal', name: '空灵', icon: '✨' }
   ]
 
-  let mediaRecorder = null
-  let recordingTimer = null
+  let mediaRecorder: MediaRecorder | null = null
+  let recordingTimer: ReturnType<typeof setInterval> | null = null
 
   async function startRecording() {
     if (!window.isSecureContext) {
@@ -49,11 +57,11 @@ export function useRecorder() {
         ? 'audio/webm;codecs=opus'
         : ''
       mediaRecorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream)
-      const chunks = []
+      const chunks: BlobPart[] = []
 
       mediaRecorder.ondataavailable = e => chunks.push(e.data)
       mediaRecorder.onstop = async () => {
-        recordedBlob.value = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' })
+        recordedBlob.value = new Blob(chunks, { type: mediaRecorder?.mimeType || 'audio/webm' })
         rawAudioUrl.value = URL.createObjectURL(recordedBlob.value)
         maskedAudioBlob.value = await applyVoiceMask(recordedBlob.value, voiceEffect.value)
         maskedAudioUrl.value = URL.createObjectURL(maskedAudioBlob.value)
@@ -67,10 +75,11 @@ export function useRecorder() {
         recordingTime.value++
         if (recordingTime.value >= 60) stopRecording()
       }, 1000)
-    } catch (err) {
-      if (err?.name === 'NotAllowedError') {
+    } catch (err: unknown) {
+      const errorName = err instanceof DOMException ? err.name : ''
+      if (errorName === 'NotAllowedError') {
         ElMessage.error('麦克风权限被拒绝，请在浏览器地址栏授权后重试 🎙️')
-      } else if (err?.name === 'NotFoundError') {
+      } else if (errorName === 'NotFoundError') {
         ElMessage.error('未检测到麦克风设备，请检查硬件连接')
       } else {
         ElMessage.error('无法访问麦克风，请检查浏览器权限与 HTTPS 设置 🎙️')
@@ -83,7 +92,8 @@ export function useRecorder() {
     if (mediaRecorder && isRecording.value) {
       mediaRecorder.stop()
       isRecording.value = false
-      clearInterval(recordingTimer)
+      if (recordingTimer) clearInterval(recordingTimer)
+      recordingTimer = null
     }
   }
 
@@ -111,7 +121,7 @@ export function useRecorder() {
     previewDuration.value = audioPreviewRef.value.duration
   }
 
-  function seekPreview(val) {
+  function seekPreview(val: number) {
     if (audioPreviewRef.value) audioPreviewRef.value.currentTime = val
   }
 
@@ -131,13 +141,6 @@ export function useRecorder() {
 
   function toggleVoicePanel() {
     showVoicePanel.value = !showVoicePanel.value
-  }
-
-  const formatDuration = (s) => {
-    if (!s || isNaN(s)) return '00:00'
-    const min = Math.floor(s / 60)
-    const sec = Math.floor(s % 60)
-    return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
   }
 
   return {

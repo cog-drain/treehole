@@ -4,6 +4,8 @@ export type ToneKey = 'whisper' | 'shout' | 'dream' | 'glitch' | 'poetic'
 
 export type MessageType = 'normal' | 'confession'
 
+export type VoiceEffectKey = 'original' | 'robot' | 'deep' | 'ethereal'
+
 export interface UserIdentity {
   userId: string
   createdAt: number
@@ -68,6 +70,20 @@ export interface MessageDraft {
   audioUrl?: string
   messageType?: MessageType | string
   [key: string]: unknown
+}
+
+export interface ComposeFormDraft {
+  authorAlias: string
+  content: string
+  mood: ToneKey | ''
+  theme: ThemeKey
+  [key: string]: unknown
+}
+
+export interface VoiceEffectOption {
+  id: VoiceEffectKey
+  name: string
+  icon: string
 }
 
 export interface CommentDraft {
