@@ -34,11 +34,11 @@ mvn test
 
 ## Coding Style & Naming Conventions
 
-Backend targets Java 17 and follows Spring naming: `*Controller`, `*Service`, `*ServiceImpl`, `*Mapper`, singular entity names, and DTOs ending in `DTO`. Keep controllers thin and business logic in services. Frontend uses Vue SFCs with PascalCase component names, camelCase composables, and resource-based API modules. Prefer existing Element Plus, Pinia, Tailwind, Lucide, composables, and `src/types/` before adding new dependencies or patterns.
+Backend targets Java 17 and follows Spring naming: `*Controller`, `*Service`, `*ServiceImpl`, `*Mapper`, singular entity names, and DTOs ending in `DTO`. Keep controllers thin and business logic in services. Frontend uses Vue SFCs with PascalCase component names, camelCase composables, and resource-based API modules. Keep page views as assembly layers; move reusable state and side effects into composables. Prefer existing Element Plus, Pinia, Tailwind, Lucide, composables, and `src/types/` before adding new dependencies or patterns. Put shared visual rules in `frontend/src/assets/styles/`; avoid page-local global CSS.
 
 ## Testing Guidelines
 
-Backend tests use Spring Boot Test and Maven Surefire; name them `*Tests.java`. Frontend tests use Vitest; place small logic tests near utilities or constants as `*.test.ts`. Run `pnpm test`, `pnpm type-check`, and `pnpm build` before handing off frontend changes. Add tests for cache behavior, rate limits, API contracts, offline queue logic, parsing utilities, or changed composables.
+Backend tests use Spring Boot Test and Maven Surefire; name them `*Tests.java`. Frontend tests use Vitest; place small logic tests near utilities, API modules, or composables as `*.test.ts`. Run `pnpm test`, `pnpm type-check`, and `pnpm build` before handing off frontend changes. Add tests for cache behavior, rate limits, API contracts, feed state helpers, offline queue logic, parsing utilities, or changed composables.
 
 ## Commit & Pull Request Guidelines
 

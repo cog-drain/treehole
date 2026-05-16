@@ -22,7 +22,7 @@
 ## 📂 项目结构
 
 - `backend/`: Spring Boot 3 + MyBatis-Plus + WebSocket + Redis
-- `frontend/`: Vue 3 + Vite + Pinia + Tailwind CSS + TS-ready 类型层 + Vitest
+- `frontend/`: Vue 3 + Vite + Pinia + Tailwind CSS + 渐进式 TypeScript + Vitest
 - `database/`: 数据库初始化与测试数据脚本
 - `storage/`: 运行时上传与日志目录
 - `compose.yml`: Docker 一键编排（db/backend/frontend/redis）
@@ -30,7 +30,7 @@
 ## 🛠 技术栈
 
 - **Backend**: Java 17, Spring Boot 3, MyBatis-Plus, Spring Data Redis
-- **Frontend**: Vue 3, Vite 8, Element Plus, Tailwind CSS 4, Pinia, Lucide Icons, TypeScript-ready, Vitest, vue-tsc
+- **Frontend**: Vue 3, Vite 8, Element Plus, Tailwind CSS 4, Pinia, Lucide Icons, TypeScript, Vitest, vue-tsc
 - **Database & Cache**: MariaDB 11, Redis 7
 - **Realtime**: WebSocket
 
@@ -159,11 +159,11 @@ pnpm test
 - `src/components/business/`: 留言卡片、评论、告解亭、漂流瓶、意识图谱、能量商店等业务组件。
 - `src/composables/`: 可复用业务逻辑，`feed/` 和 `graph/` 已按领域拆分。
 - `src/api/modules/`: 按资源拆分的请求封装。
-- `src/types/`: TS-ready 核心领域类型与 API 类型。
+- `src/types/`: 核心领域类型与 API 类型。
 - `src/assets/styles/`: `base`、`effects`、`skins`、`element-overrides`、`transitions` 分层样式。
 - `src/tests/` 与 `*.test.ts`: Vitest 基础测试与测试环境初始化。
 
-当前前端不是全量 TypeScript，但已具备 `vue-tsc` 类型检查、核心类型定义和逐步迁移基础。构建通过 Vite/Rolldown `manualChunks` 分包，`three` 与 `3d-force-graph` 已隔离到懒加载图谱 chunk，首屏主入口体积显著降低。
+当前前端采用渐进式 TypeScript：API 请求层、feed 发布/分页/评论状态、发帖框、录音、音频处理与实时 WebSocket 逻辑已类型化，少量历史 store、图谱和大型业务组件仍保留 JavaScript。`HomeView` 已收敛为页面装配层，业务状态由 composables 管理，通用样式迁移到 `src/assets/styles/`。构建通过 Vite/Rolldown `manualChunks` 分包，`three` 与 `3d-force-graph` 已隔离到懒加载图谱 chunk，首屏主入口体积显著降低。
 
 ### 后端
 

@@ -10,7 +10,7 @@
 - Element Plus
 - Tailwind CSS 4
 - Lucide Icons
-- TypeScript-ready: `vue-tsc` + `src/types/`
+- TypeScript 渐进迁移：`vue-tsc` + `src/types/`
 - Vitest baseline tests
 - Three.js / 3d-force-graph 用于意识图谱，按懒加载 chunk 分离
 
@@ -52,9 +52,9 @@ pnpm preview
 ## 工程约定
 
 - 新组件使用 PascalCase 文件名，复杂功能优先拆到领域目录，例如 `business/message/`、`business/comment/`、`home/compose/`。
-- 业务逻辑优先放入 composables，页面组件只做装配和事件转发。
+- 业务逻辑优先放入 composables，页面组件只做装配和事件转发；`HomeView` 不再承载页面级全局样式和重复状态对象。
 - 优先复用现有 `src/types/`、`constants/`、`utils/`，不要重复定义临时结构。
-- 样式优先使用 Tailwind utility 和现有分层 CSS；Element Plus 覆盖放入 `assets/styles/element-overrides.css`。
+- 样式优先使用 Tailwind utility 和现有分层 CSS；Element Plus 覆盖放入 `assets/styles/element-overrides.css`，动效放入 `assets/styles/transitions.css`，业务效果放入 `assets/styles/effects.css`。
 - 不再引入暗色主题；新增外观只需要适配当前浅色体系。
 - 重型视觉模块必须懒加载，避免回到大首屏 bundle。
 
@@ -62,6 +62,9 @@ pnpm preview
 
 当前测试覆盖基础工具与解析逻辑：
 
+- `api/modules/messages`
+- `composables/feed/messageState`
+- `composables/useRecorder`
 - `utils/time`
 - `utils/storage`
 - `utils/clientIdentity`
@@ -78,7 +81,7 @@ pnpm build
 
 ## TypeScript 状态
 
-项目处于 TS-ready 阶段，不是全量 TypeScript。当前已有：
+项目采用渐进式 TypeScript，不是全量 TypeScript。当前已有：
 
 - `tsconfig.json`
 - `tsconfig.app.json`
@@ -86,15 +89,21 @@ pnpm build
 - `src/types/`
 - `vue-tsc --build --force`
 
-推荐迁移顺序：
+已完成类型化的核心区域：
 
-1. `api/request` 与 `api/modules`
-2. `composables/feed`
-3. `useRecorder`、`useWebSocket`、`audioProcessor`
-4. 小型 Vue 组件
-5. 大型业务组件
+- API 请求封装与 `api/modules/messages`
+- `composables/feed` 的发布、分页、评论行为与留言 UI 状态
+- `useRecorder`、`useWebSocket`、`useHomeRealtime`、`audioProcessor`
+- 核心常量、工具函数与基础测试
 
-避免一次性把所有 `.vue` 改为 `lang="ts"`。
+后续迁移优先级：
+
+1. Pinia stores
+2. 图谱相关 composables 与业务组件
+3. 小型 Vue 组件
+4. 大型业务组件
+
+避免一次性把所有 `.vue` 改为 `lang="ts"`；每次迁移都要保留 `pnpm type-check` 与 `pnpm test` 通过。
 
 ## Bundle 说明
 
@@ -109,7 +118,7 @@ Vite 构建使用 `manualChunks` 分包：
 
 ## 后续优化建议
 
-- API 层类型化，收紧响应结构。
-- 为 `useFeedMessages`、`useCommentActions`、`useRecorder` 增加测试。
+- 为 `useFeedMessages`、`useCommentActions`、`useHomeRealtime` 增加更多行为测试。
 - 清理未使用静态资产。
-- 逐步迁移核心 composables 到 TypeScript。
+- 逐步迁移 Pinia stores、图谱组件和大型业务组件到 TypeScript。
+- 继续减少页面入口组件代码量，保持页面负责装配、composables 负责业务。

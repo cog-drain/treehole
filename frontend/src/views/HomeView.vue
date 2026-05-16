@@ -9,37 +9,9 @@
   >
     <CyberWatermark />
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-24 space-y-8 sm:space-y-12">
-      <!-- ... Offline Banner ... -->
-
       <ComposeBox
-        :compose-state="{
-          form,
-          isConfessionMode,
-          isMidnight,
-          isZenMode,
-          adminLoginVisible,
-          isMobile,
-          isOnline,
-          publishing,
-          offlineQueueCount,
-          imagePreview,
-          showTonePanel,
-          toneSelectorRef
-        }"
-        :voice-state="{
-          showVoicePanel,
-          isRecording,
-          recordingTime,
-          recordedBlob,
-          rawAudioUrl,
-          maskedAudioUrl,
-          isPlayingPreview,
-          previewCurrentTime,
-          previewDuration,
-          audioPreviewRef,
-          voiceEffect,
-          voiceEffects
-        }"
+        :compose-state="composeState"
+        :voice-state="voiceState"
         :themes-list="themesList"
         :tone-map="toneMap"
         :format-duration="formatDuration"
@@ -49,14 +21,14 @@
         @publish="publishMessage"
         @publish-button-click="handlePublishButtonClick"
         @toggle-voice-panel="toggleVoicePanel"
-        @toggle-tone-panel="showTonePanel = $event"
-        @set-tone="form.mood = $event"
-        @set-theme="form.theme = $event"
-        @toggle-confession="isConfessionMode = !isConfessionMode"
+        @toggle-tone-panel="setTonePanel"
+        @set-tone="setTone"
+        @set-theme="setTheme"
+        @toggle-confession="toggleConfession"
         @open-offline-box="openOfflineBox"
         @clear-image="clearImage"
         @toggle-recording="toggleRecording"
-        @set-voice-effect="voiceEffect = $event"
+        @set-voice-effect="setVoiceEffect"
         @reapply-voice-mask="reapplyVoiceMask"
         @clear-audio="clearAudio"
         @toggle-preview-playback="togglePreviewPlayback"
@@ -91,7 +63,7 @@
         @page-change="handlePageChange"
       />
 
-      <HomeGraphPanel :view-mode="viewMode" @node-click="showNodeDetail" />
+      <HomeGraphPanel :view-mode="viewMode" />
     </div>
 
     <!-- Professional Zen Overlay (Generative Garden) -->
@@ -103,46 +75,46 @@
     </Transition>
 
     <HomeFabStack
-      :zen-state="{ showZenMenu, isZenMode, currentZenSound, zenVolume, zenSounds }"
-      @toggle-zen-menu="showZenMenu = !showZenMenu"
-      @close-zen-menu="showZenMenu = false"
+      :zen-state="zenState"
+      @toggle-zen-menu="toggleZenMenu"
+      @close-zen-menu="closeZenMenu"
       @select-zen-sound="selectZenSound"
-      @update:zen-volume="zenVolume = $event"
+      @update:zen-volume="setZenVolume"
       @update-zen-volume="updateZenVolume"
       @return-to-zen="returnToZen"
       @minimize-zen="minimizeZen"
       @stop-zen-mode="stopZenMode"
       @open-bottle="openBottleCenter"
-      @open-identity="showIdentityModal = true"
+      @open-identity="openIdentity"
     />
 
     <HomeDialogs
-      :identity-state="{ showIdentityModal, recoveryKey, inputKey }"
-      :bottle-state="{ bottleVisible, pickedBottle, userId: userStore.userId }"
-      :admin-state="{ adminLoginVisible, adminPassword, isAdmin, showBlacklistModal, showPasswordModal, blacklist, pwdForm }"
-      :offline-state="{ offlineDialogVisible, isOnline, offlineList, offlineQueueCount }"
-      @close-identity="showIdentityModal = false"
+      :identity-state="identityState"
+      :bottle-state="bottleState"
+      :admin-state="adminState"
+      :offline-state="offlineState"
+      @close-identity="closeIdentity"
       @open-store="openStore"
       @backup="handleBackup"
       @restore="handleRestore"
       @copy-key="copyKey"
-      @update:input-key="inputKey = $event"
-      @update:bottle-visible="bottleVisible = $event"
+      @update:input-key="setInputKey"
+      @update:bottle-visible="setBottleVisible"
       @throw-bottle="handleThrowBottle"
       @pick-bottle="handlePickBottle"
       @reply-bottle="handleReplyBottle"
       @return-bottle="handleReturnBottle"
-      @update:admin-password="adminPassword = $event"
+      @update:admin-password="setAdminPassword"
       @admin-login="handleAdminLogin"
-      @close-admin-login="adminLoginVisible = false"
-      @open-blacklist="showBlacklistModal = true"
-      @open-password="showPasswordModal = true"
+      @close-admin-login="closeAdminLogin"
+      @open-blacklist="openBlacklist"
+      @open-password="openPassword"
       @exit-admin="exitAdmin"
-      @update:blacklist-visible="showBlacklistModal = $event"
-      @update:password-visible="showPasswordModal = $event"
+      @update:blacklist-visible="setBlacklistVisible"
+      @update:password-visible="setPasswordVisible"
       @unban="handleUnban"
       @change-password="handleChangePassword"
-      @update:offline-dialog-visible="offlineDialogVisible = $event"
+      @update:offline-dialog-visible="setOfflineDialogVisible"
       @sync-offline="syncOfflineQueue"
       @edit-offline="editOfflineItem"
       @remove-offline="removeOfflineItem"
@@ -151,7 +123,7 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, onMounted, onUnmounted, watch } from 'vue'
 import ActiveTagBanner from '@/components/home/ActiveTagBanner.vue'
 import ComposeBox from '@/components/home/ComposeBox.vue'
 import FeedHeader from '@/components/home/FeedHeader.vue'
@@ -203,67 +175,32 @@ const props = defineProps({
 })
 const emit = defineEmits(['publish-success', 'open-store', 'resonance-boom', 'new-broadcast'])
 
-// ── 从 composable 解构 (保持模板变量名不变) ──
 const {
   isZenMode, showZenMenu, currentZenSound, zenVolume, zenSounds,
   updateZenVolume, stopZenMode, minimizeZen, returnToZen, selectZenSound
 } = zen
 
 const {
-  showVoicePanel, isRecording, recordingTime, recordedBlob,
-  rawAudioUrl, maskedAudioBlob, maskedAudioUrl,
-  isPlayingPreview, previewCurrentTime, previewDuration, audioPreviewRef,
-  voiceEffect, voiceEffects,
-  toggleRecording, reapplyVoiceMask,
+  showVoicePanel, isRecording, recordingTime, recordedBlob, rawAudioUrl, maskedAudioBlob, maskedAudioUrl,
+  isPlayingPreview, previewCurrentTime, previewDuration, audioPreviewRef, voiceEffect, voiceEffects, toggleRecording, reapplyVoiceMask,
   togglePreviewPlayback, onPreviewTimeUpdate, seekPreview, onPreviewEnded,
   clearAudio, toggleVoicePanel, formatDuration
 } = recorder
 
 const {
-  form,
-  showTonePanel,
-  toneSelectorRef,
-  imageFile,
-  imagePreview,
-  isConfessionMode,
-  isMidnight,
-  onImageSelect,
-  clearImage,
-  handlePaste,
-  handleClickOutside,
-  tickClock
+  form, showTonePanel, toneSelectorRef, imageFile, imagePreview, isConfessionMode, isMidnight,
+  onImageSelect, clearImage, handlePaste, handleClickOutside, tickClock
 } = compose
 
-const {
-  showIdentityModal,
-  recoveryKey,
-  inputKey,
-  handleBackup,
-  handleRestore,
-  copyKey
-} = identityVault
+const { showIdentityModal, recoveryKey, inputKey, handleBackup, handleRestore, copyKey } = identityVault
 
 const {
-  isAdmin,
-  adminLoginVisible,
-  adminPassword,
-  showBlacklistModal,
-  showPasswordModal,
-  blacklist,
-  pwdForm,
-  handleCommand: handleAdminCommand,
-  handleAdminLogin,
-  handleUnban,
-  handleChangePassword,
-  exitAdmin,
-  handleBanIP
+  isAdmin, adminLoginVisible, adminPassword, showBlacklistModal, showPasswordModal, blacklist, pwdForm,
+  handleCommand: handleAdminCommand, handleAdminLogin, handleUnban, handleChangePassword, exitAdmin, handleBanIP
 } = adminPanel
 
-// ── UI State ──
 const viewMode = ref('list')
 const { isMobile, startViewportListeners, stopViewportListeners } = viewport
-const nodeDetailVisible = ref(false)
-const selectedNodeMsg = ref(null)
 
 let onlineStatsTimer = null
 let clockTimer = null
@@ -275,11 +212,27 @@ let trackActivity = () => {}
 const { isOnline, startNetworkListeners, stopNetworkListeners } = networkStatus
 
 const toneMap = TONE_MODES
-
-// ── Theme System ──
 const themesList = CARD_THEMES
 
-// ── Feed Controller ──
+const composeState = computed(() => ({
+  form, isConfessionMode: isConfessionMode.value, isMidnight: isMidnight.value,
+  isZenMode: isZenMode.value, adminLoginVisible: adminLoginVisible.value, isMobile: isMobile.value,
+  isOnline: isOnline.value, publishing: publishing.value, offlineQueueCount: offlineQueueCount.value,
+  imagePreview: imagePreview.value, showTonePanel: showTonePanel.value, toneSelectorRef
+}))
+
+const voiceState = computed(() => ({
+  showVoicePanel: showVoicePanel.value, isRecording: isRecording.value, recordingTime: recordingTime.value,
+  recordedBlob: recordedBlob.value, rawAudioUrl: rawAudioUrl.value, maskedAudioUrl: maskedAudioUrl.value,
+  isPlayingPreview: isPlayingPreview.value, previewCurrentTime: previewCurrentTime.value,
+  previewDuration: previewDuration.value, audioPreviewRef, voiceEffect: voiceEffect.value, voiceEffects
+}))
+
+const zenState = computed(() => ({
+  showZenMenu: showZenMenu.value, isZenMode: isZenMode.value,
+  currentZenSound: currentZenSound.value, zenVolume: zenVolume.value, zenSounds
+}))
+
 const feed = useFeedMessages({
   form,
   imageFile,
@@ -300,56 +253,66 @@ const feed = useFeedMessages({
 })
 
 const {
-  messages,
-  pageNum,
-  pageSize,
-  total,
-  totalPages,
-  trendingTags,
-  activeTag,
-  publishing,
-  onlineCount,
-  onlineModules,
-  likedIds,
-  fetchTrending,
-  fetchOnlineStats,
-  fetchMessages,
-  publishMessage,
-  handlePublishButtonClick: handleFeedPublishButtonClick,
-  likeMessage,
-  toggleComments,
-  publishComment,
-  deleteMessage,
-  handleDeleteComment,
-  handleTagClick,
-  clearTagFilter,
-  handlePageChange
+  messages, pageNum, pageSize, total, totalPages, trendingTags, activeTag, publishing,
+  onlineCount, onlineModules, likedIds, fetchTrending, fetchOnlineStats, fetchMessages, publishMessage,
+  handlePublishButtonClick: handleFeedPublishButtonClick, likeMessage, toggleComments, publishComment,
+  deleteMessage, handleDeleteComment, handleTagClick, clearTagFilter, handlePageChange
 } = feed
 
 const driftBottle = useDriftBottle({ userStore, appStore, form })
 const {
-  bottleVisible,
-  pickedBottle,
-  openBottleCenter,
-  handleThrowBottle,
-  handlePickBottle,
-  handleReplyBottle,
-  handleReturnBottle
+  bottleVisible, pickedBottle, openBottleCenter,
+  handleThrowBottle, handlePickBottle, handleReplyBottle, handleReturnBottle
 } = driftBottle
 
 const offlineBox = useOfflineQueueDialog({ form, userStore })
 const {
-  offlineList,
-  offlineDialogVisible,
-  openOfflineBox,
-  editOfflineItem,
-  removeOfflineItem,
-  syncOfflineQueue
+  offlineList, offlineDialogVisible, openOfflineBox,
+  editOfflineItem, removeOfflineItem, syncOfflineQueue
 } = offlineBox
+
+const identityState = computed(() => ({
+  showIdentityModal: showIdentityModal.value, recoveryKey: recoveryKey.value, inputKey: inputKey.value
+}))
+
+const bottleState = computed(() => ({
+  bottleVisible: bottleVisible.value, pickedBottle: pickedBottle.value, userId: userStore.userId
+}))
+
+const adminState = computed(() => ({
+  adminLoginVisible: adminLoginVisible.value, adminPassword: adminPassword.value, isAdmin: isAdmin.value,
+  showBlacklistModal: showBlacklistModal.value, showPasswordModal: showPasswordModal.value, blacklist: blacklist.value, pwdForm
+}))
+
+const offlineState = computed(() => ({
+  offlineDialogVisible: offlineDialogVisible.value, isOnline: isOnline.value,
+  offlineList: offlineList.value, offlineQueueCount: offlineQueueCount.value
+}))
 
 function handlePublishButtonClick() {
   handleFeedPublishButtonClick(isMidnight.value)
 }
+
+function setTonePanel(visible) { showTonePanel.value = visible }
+function setTone(tone) { form.mood = tone }
+function setTheme(theme) { form.theme = theme }
+function toggleConfession() { isConfessionMode.value = !isConfessionMode.value }
+function setVoiceEffect(effect) { voiceEffect.value = effect }
+
+function toggleZenMenu() { showZenMenu.value = !showZenMenu.value }
+function closeZenMenu() { showZenMenu.value = false }
+function setZenVolume(volume) { zenVolume.value = volume }
+function openIdentity() { showIdentityModal.value = true }
+function closeIdentity() { showIdentityModal.value = false }
+function setInputKey(value) { inputKey.value = value }
+function setBottleVisible(visible) { bottleVisible.value = visible }
+function setAdminPassword(value) { adminPassword.value = value }
+function closeAdminLogin() { adminLoginVisible.value = false }
+function openBlacklist() { showBlacklistModal.value = true }
+function openPassword() { showPasswordModal.value = true }
+function setBlacklistVisible(visible) { showBlacklistModal.value = visible }
+function setPasswordVisible(visible) { showPasswordModal.value = visible }
+function setOfflineDialogVisible(visible) { offlineDialogVisible.value = visible }
 
 const {
   resetEdgeSwipe,
@@ -372,12 +335,9 @@ function refreshIdentity() {
   form.authorAlias = userStore.alias
 }
 
-// ── 昵称持久化同步 ──
 watch(() => form.authorAlias, (newVal) => {
   if (newVal) userStore.setAlias(newVal)
 }, { immediate: true })
-
-function showNodeDetail(msg) { selectedNodeMsg.value = msg; nodeDetailVisible.value = true }
 
 const { startParticles, stopWatchingTheme } = useParticleTheme(() => form.theme)
 
@@ -422,36 +382,35 @@ watch(() => props.storeVisible, (visible) => {
   if (visible) trackActivity(ACTIVITY_EVENTS.openShop, ACTIVITY_MODULES.shop)
 })
 
-// ── Lifecycle ──
-onMounted(() => {
+function loadInitialFeed() {
+  setTimeout(() => {
+    fetchMessages()
+    fetchTrending()
+  }, 300)
+  fetchOnlineStats()
+  onlineStatsTimer = window.setInterval(fetchOnlineStats, 5000)
+}
+
+function startHomeRuntime() {
   window.addEventListener('click', handleClickOutside)
   appStore.init() 
   offlineQueue.init() 
   startViewportListeners()
   clockTimer = window.setInterval(tickClock, 60000)
 
-  // 1. 身份初始化
   userStore.init()
   form.authorAlias = userStore.alias
 
-  // 2. WebSocket
   connectWS(userStore.userId)
   setActivityModule(resolveActivityModule())
   trackActivity(ACTIVITY_EVENTS.viewFeed, ACTIVITY_MODULES.feed)
 
-  // 3. 数据加载
-  setTimeout(() => { fetchMessages(); fetchTrending() }, 300)
-  fetchOnlineStats()
-  onlineStatsTimer = window.setInterval(fetchOnlineStats, 5000)
-
-  // 4. 网络状态
+  loadInitialFeed()
   startNetworkListeners()
-
-  // 5. 粒子
   startParticles()
-})
+}
 
-onUnmounted(() => {
+function stopHomeRuntime() {
   window.removeEventListener('click', handleClickOutside)
   disconnectWS()
   stopViewportListeners()
@@ -459,31 +418,11 @@ onUnmounted(() => {
   stopNetworkListeners()
   if (onlineStatsTimer) window.clearInterval(onlineStatsTimer)
   if (clockTimer) window.clearInterval(clockTimer)
-})
+  onlineStatsTimer = null
+  clockTimer = null
+}
+
+onMounted(startHomeRuntime)
+onUnmounted(stopHomeRuntime)
 
 </script>
-
-<style>
-/* Global Glass Style for ElDialog */
-.glass-dialog {
-  background-color: rgba(15, 23, 42, 0.6) !important;
-  backdrop-filter: blur(40px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 2rem !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-}
-.glass-dialog .el-dialog__header { display: none; }
-.glass-dialog .el-dialog__body { padding: 2rem !important; color: var(--color-slate-200); }
-
-.confession-compose {
-  border-color: rgba(201, 149, 42, 0.45) !important;
-  box-shadow:
-    0 26px 60px -24px rgba(201, 149, 42, 0.45),
-    inset 0 1px 0 rgba(255, 238, 178, 0.55) !important;
-}
-
-.msg-list-enter-active, .msg-list-leave-active { transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-.msg-list-enter-from { opacity: 0; transform: translateY(30px); filter: blur(10px); }
-.msg-list-leave-to { opacity: 0; transform: scale(0.95); }
-.msg-list-move { transition: transform 0.5s ease; }
-</style>

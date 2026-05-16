@@ -57,3 +57,10 @@
   height: 3px !important;
   opacity: 0.8 !important;
 }
+
+.confession-compose {
+  border-color: rgba(201, 149, 42, 0.45) !important;
+  box-shadow:
+    0 26px 60px -24px rgba(201, 149, 42, 0.45),
+    inset 0 1px 0 rgba(255, 238, 178, 0.55) !important;
+}
