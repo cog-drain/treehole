@@ -19,6 +19,7 @@ export interface Comment {
   likeCount?: number
   reactions?: string | Record<string, number>
   children?: Comment[]
+  coFrequency?: boolean
 }
 
 export interface Message {
@@ -38,6 +39,42 @@ export interface Message {
   createTime?: string
   expiresAt?: string | null
   aiReply?: string
+  messageType?: MessageType | string
+  witnessCount?: number
+  witnessedByMe?: boolean
+  confessorReply?: string
+  likes?: number
+  isOwner?: boolean
+  isOptimistic?: boolean
+  coFrequency?: boolean
+}
+
+export interface FeedMessage extends Message {
+  _showComments: boolean
+  _comments: Comment[]
+  _commentText: string
+  _commentImage: string | null
+  _replyToId: number | string | null
+  _commenting: boolean
+  _read: boolean
+}
+
+export interface MessageDraft {
+  content: string
+  authorAlias?: string
+  mood?: ToneKey | string
+  theme?: ThemeKey | string
+  imageUrl?: string
+  audioUrl?: string
+  messageType?: MessageType | string
+  [key: string]: unknown
+}
+
+export interface CommentDraft {
+  messageId: number | string
+  content: string
+  imageUrl?: string | null
+  parentId?: number | string | null
 }
 
 export interface Bottle {
@@ -48,6 +85,60 @@ export interface Bottle {
   replyContent?: string
   replyAuthorAlias?: string
   replyTime?: string
+}
+
+export interface BottleDraft {
+  content: string
+  authorAlias?: string
+  [key: string]: unknown
+}
+
+export interface GraphNode {
+  id: number | string
+  label: string
+  author?: string
+  theme?: ThemeKey | string
+  [key: string]: unknown
+}
+
+export interface GraphLink {
+  source: number | string
+  target: number | string
+  value?: number
+  [key: string]: unknown
+}
+
+export interface GraphData {
+  nodes: GraphNode[]
+  links: GraphLink[]
+}
+
+export interface OnlineStats {
+  online: number
+  modules?: Record<string, number>
+}
+
+export interface ActivityStats {
+  [key: string]: unknown
+}
+
+export interface TrendingTag {
+  tag?: string
+  name?: string
+  count?: number
+  [key: string]: unknown
+}
+
+export interface IdentityBackup {
+  recoveryKey?: string
+  [key: string]: unknown
+}
+
+export interface BlacklistItem {
+  ip: string
+  reason?: string
+  createTime?: string
+  [key: string]: unknown
 }
 
 export interface StoreItem {

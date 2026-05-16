@@ -2,17 +2,36 @@ import { computed, ref } from 'vue'
 import { ElNotification } from 'element-plus'
 import api, { getOnlineStats, getTrendingTags } from '@/api'
 import { scrollToTop } from '@/utils/browser'
+import type { FeedMessage, Id, Message, OnlineStats, TrendingTag } from '@/types'
 
-export function useFeedPagination({ readIds }) {
-  const messages = ref([])
+interface UseFeedPaginationOptions {
+  readIds: { value: Set<Id> }
+}
+
+export function normalizeFeedMessage(message: Message, readIds: Set<Id>): FeedMessage {
+  return {
+    ...message,
+    _showComments: false,
+    _comments: [],
+    _commentText: '',
+    _commentImage: null,
+    _replyToId: null,
+    _commenting: false,
+    _read: readIds.has(message.id),
+    coFrequency: Boolean((message.commentCount || 0) > 5 || message.coFrequency)
+  }
+}
+
+export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
+  const messages = ref<FeedMessage[]>([])
   const pageNum = ref(1)
   const pageSize = ref(10)
   const total = ref(0)
   const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
-  const trendingTags = ref([])
+  const trendingTags = ref<TrendingTag[]>([])
   const activeTag = ref('')
   const onlineCount = ref(0)
-  const onlineModules = ref({})
+  const onlineModules = ref<Record<string, number>>({})
 
   async function fetchTrending() {
     try {
@@ -24,8 +43,9 @@ export function useFeedPagination({ readIds }) {
   async function fetchOnlineStats() {
     try {
       const res = await getOnlineStats()
-      onlineCount.value = Number(res.data?.online || 0)
-      onlineModules.value = res.data?.modules || {}
+      const data = res.data as OnlineStats | undefined
+      onlineCount.value = Number(data?.online || 0)
+      onlineModules.value = data?.modules || {}
     } catch {}
   }
 
@@ -34,17 +54,7 @@ export function useFeedPagination({ readIds }) {
       const res = activeTag.value
         ? await api.getMessagesByTag(activeTag.value, pageNum.value, pageSize.value)
         : await api.getMessages(pageNum.value, pageSize.value)
-      messages.value = (res.data.records || []).map(message => ({
-        ...message,
-        _showComments: false,
-        _comments: [],
-        _commentText: '',
-        _commentImage: null,
-        _replyToId: null,
-        _commenting: false,
-        _read: readIds.value.has(message.id),
-        coFrequency: message.commentCount > 5 || message.coFrequency
-      }))
+      messages.value = (res.data.records || []).map(message => normalizeFeedMessage(message, readIds.value))
       total.value = Number(res.data.total)
       if (total.value === 0 && pageNum.value === 1 && !activeTag.value) {
         ElNotification({
@@ -57,7 +67,7 @@ export function useFeedPagination({ readIds }) {
     } catch {}
   }
 
-  function handleTagClick(tag) {
+  function handleTagClick(tag: string) {
     activeTag.value = tag
     pageNum.value = 1
     fetchMessages()
@@ -69,7 +79,7 @@ export function useFeedPagination({ readIds }) {
     fetchMessages()
   }
 
-  function handlePageChange(page) {
+  function handlePageChange(page: number) {
     pageNum.value = page
     fetchMessages()
     scrollToTop()

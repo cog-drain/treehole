@@ -1,6 +1,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api, { CMT_TOKEN_KEY, getToken, MSG_TOKEN_KEY } from '@/api'
 import { ACTIVITY_EVENTS, ACTIVITY_MODULES } from '@/constants/activityEvents'
+import type { Comment, FeedMessage, Id } from '@/types'
 
 export function useCommentActions({
   likedIds,
@@ -9,8 +10,19 @@ export function useCommentActions({
   appStore,
   activity,
   fetchMessages
+}: {
+  likedIds: Set<Id>
+  markAsRead: (id: Id) => void
+  isAdmin: { value: boolean }
+  appStore: { addEnergy: (amount: number) => void }
+  activity: {
+    setModule: (module: string) => void
+    track: (event: string, module?: string) => void
+    resolveModule: () => string
+  }
+  fetchMessages: () => void
 }) {
-  async function likeMessage(msg) {
+  async function likeMessage(msg: FeedMessage) {
     if (likedIds.has(msg.id)) {
       ElMessage.info('已经点过赞啦 ❤️')
       return
@@ -25,7 +37,7 @@ export function useCommentActions({
     } catch {}
   }
 
-  async function toggleComments(msg) {
+  async function toggleComments(msg: FeedMessage) {
     msg._showComments = !msg._showComments
     if (msg._showComments) {
       activity.setModule(ACTIVITY_MODULES.comments)
@@ -42,7 +54,7 @@ export function useCommentActions({
     }
   }
 
-  async function publishComment(msg) {
+  async function publishComment(msg: FeedMessage) {
     if (!msg._commentText.trim() && !msg._commentImage) return
     msg._commenting = true
     try {
@@ -67,7 +79,7 @@ export function useCommentActions({
     }
   }
 
-  async function deleteMessage(msg) {
+  async function deleteMessage(msg: FeedMessage) {
     if (!msg.isOwner && !getToken(MSG_TOKEN_KEY, msg.id) && !isAdmin.value) {
       ElMessage.warning('你没有删除权限')
       return
@@ -80,7 +92,7 @@ export function useCommentActions({
     } catch {}
   }
 
-  async function handleDeleteComment({ msg, comment }) {
+  async function handleDeleteComment({ msg, comment }: { msg: FeedMessage; comment: Comment & { isOwner?: boolean } }) {
     if (!comment.isOwner && !getToken(CMT_TOKEN_KEY, comment.id) && !isAdmin.value) {
       ElMessage.warning('你没有删除权限')
       return

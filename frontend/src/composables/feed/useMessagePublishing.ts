@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '@/api'
 import { offlineQueue } from '@/utils/offlineQueue'
+import type { FeedMessage, MessageDraft } from '@/types'
 
 export function useMessagePublishing({
   form,
@@ -20,6 +21,23 @@ export function useMessagePublishing({
   total,
   fetchMessages,
   fetchTrending
+}: {
+  form: MessageDraft
+  imageFile: { value: File | null }
+  isConfessionMode: { value: boolean }
+  isOnline: { value: boolean }
+  recordedBlob: { value: Blob | null }
+  maskedAudioBlob: { value: Blob | null }
+  clearImage: () => void
+  clearAudio: () => void
+  appStore: { addEnergy: (amount: number) => void }
+  emit: (event: 'publish-success', payload: FeedMessage | Record<string, unknown>) => void
+  messages: { value: FeedMessage[] }
+  pageNum: { value: number }
+  pageSize: { value: number }
+  total: { value: number }
+  fetchMessages: () => void
+  fetchTrending: () => void
 }) {
   const publishing = ref(false)
 
@@ -43,9 +61,9 @@ export function useMessagePublishing({
     const localMood = form.mood
     const localTheme = form.theme
     const localMessageType = isConfessionMode.value ? 'confession' : 'normal'
-    const optimisticMessage = {
+    const optimisticMessage: FeedMessage = {
       id: Date.now(),
-      content: localContent,
+      content: String(localContent || ''),
       authorAlias: localAlias || '访客',
       mood: localMood,
       theme: localTheme,
@@ -92,7 +110,7 @@ export function useMessagePublishing({
       if (res && res.code === 202) return
 
       const serverMessage = res?.data?.message
-      const normalizedServerMessage = serverMessage ? {
+      const normalizedServerMessage: FeedMessage | null = serverMessage ? {
         ...serverMessage,
         isOwner: true,
         _showComments: false,
@@ -133,7 +151,7 @@ export function useMessagePublishing({
     }
   }
 
-  function handlePublishButtonClick(isMidnight) {
+  function handlePublishButtonClick(isMidnight: boolean) {
     if (isMidnight && !isConfessionMode.value) {
       isConfessionMode.value = true
       return

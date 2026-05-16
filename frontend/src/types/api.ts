@@ -11,3 +11,11 @@ export interface PageResult<T> {
   current?: number
   size?: number
 }
+
+export type Id = number | string
+
+export interface PageParams {
+  pageNum?: number
+  pageSize?: number
+  tag?: string
+}
