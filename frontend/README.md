@@ -1,6 +1,6 @@
 # Treehole Frontend
 
-赛博树洞前端是一个 Vue 3 + Vite 应用，负责匿名留言、评论楼中楼、告解亭、漂流瓶、意识图谱、能量商店、离线暂存和实时状态展示。
+赛博树洞前端是一个 Vue 3 + Vite 应用，负责匿名留言、评论楼中楼、告解亭、漂流瓶、意识图谱、能量商店、离线暂存、站内通知中心、标签订阅和实时状态展示。
 
 ## 技术栈
 
@@ -57,6 +57,7 @@ pnpm preview
 - 样式优先使用 Tailwind utility 和现有分层 CSS；Element Plus 覆盖放入 `assets/styles/element-overrides.css`，动效放入 `assets/styles/transitions.css`，业务效果放入 `assets/styles/effects.css`。
 - 不再引入暗色主题；新增外观只需要适配当前浅色体系。
 - 重型视觉模块必须懒加载，避免回到大首屏 bundle。
+- 通知、标签订阅、定位 helper、Pinia store 和小型运行时 composable 使用 TypeScript；新增状态逻辑优先放入 composables。
 
 ## 测试策略
 
@@ -94,11 +95,13 @@ pnpm build
 - API 请求封装与 `api/modules/messages`
 - `composables/feed` 的发布、分页、评论行为与留言 UI 状态
 - `useRecorder`、`useWebSocket`、`useHomeRealtime`、`audioProcessor`
+- 通知中心 API、状态管理、实时事件、定位 helper 和标签订阅 API
+- `stores/user`、`stores/app`、网络状态、视口、移动边缘手势、离线在线同步
 - 核心常量、工具函数与基础测试
 
 后续迁移优先级：
 
-1. Pinia stores
+1. 漂流瓶相关剩余 JavaScript composables
 2. 图谱相关 composables 与业务组件
 3. 小型 Vue 组件
 4. 大型业务组件

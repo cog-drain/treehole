@@ -16,6 +16,7 @@
   - **防御性频控策略**：基于 Redis 的 `ID + IP` 双重高并发限流（发帖 10 秒冷却，评论 5 秒冷却），彻底杜绝脚本换号刷屏。
   - **内容硬拦截**：严格的留言（1000字）与评论（500字）长度拦截，防止恶意长文本耗尽服务器内存及 AI 计费 Token。
 - **⚡ 实时回响**：基于 WebSocket 的全双工通信，点赞、评论、新留言实时推送到客户端。
+- **🔔 站内通知中心**：核心互动、告解见证和订阅话题新内容可进入通知中心，支持未读数、实时提醒、已读状态和定位。
 - **📡 Redis 实时状态**：Redis 负责高频缓存、在线人数 ZSet、热度排行、漂流瓶池、表情回响统计与告解见证计数，WebSocket 推送实时在线与互动变化。
 - **🧘 边缘体验增强**：断网离线暂存箱（网络恢复后自动重发）、专注禅定模式（白噪音+沉浸式阅读）。
 
@@ -41,16 +42,16 @@
 在项目根目录创建 `.env`（可参考 `.env.example`）：
 
 ```env
-DB_ROOT_PASSWORD=your_root_password
-DB_USER=student
-DB_USER_PASSWORD=your_password
-DB_NAME=treehole
-AI_API_KEY=your_api_key
+DB_ROOT_PASSWORD=<PLACEHOLDER_DB_ROOT_PASSWORD>
+DB_USER=<PLACEHOLDER_DB_USER>
+DB_USER_PASSWORD=<PLACEHOLDER_DB_PASSWORD>
+DB_NAME=<PLACEHOLDER_DB_NAME>
+AI_API_KEY=<PLACEHOLDER_AI_API_KEY>
 
-FRONTEND_PORT=443
-BACKEND_PORT=24191
-DB_PORT=3306
-REDIS_PORT=6379
+FRONTEND_PORT=<PLACEHOLDER_FRONTEND_PORT>
+BACKEND_PORT=<PLACEHOLDER_BACKEND_PORT>
+DB_PORT=<PLACEHOLDER_DB_PORT>
+REDIS_PORT=<PLACEHOLDER_REDIS_PORT>
 ```
 
 ### 2. 启动服务
@@ -73,6 +74,14 @@ docker compose logs -f backend
 docker compose logs -f db
 docker compose logs -f redis
 ```
+
+云端检查点：
+
+- 后端容器状态为 running，`docker compose logs -f backend` 无数据库、Redis 或端口绑定错误。
+- MariaDB 健康检查通过，`.env` 中 `DB_NAME`、`DB_USER`、`DB_USER_PASSWORD` 已注入后端容器。
+- Redis 容器可用，在线人数、热门标签、回响统计和缓存相关功能不报连接错误。
+- 前端静态服务可访问，`/api`、`/uploads`、`/ws` 能代理到后端。
+- WebSocket 地址 `/ws/treehole/{userId}` 可连接，实时留言、评论、通知和在线人数可更新。
 
 ### 5. 缓存演示验证
 
@@ -130,6 +139,20 @@ CREATE TABLE IF NOT EXISTS `confession_witness` (
 ```
 
 ## 本地开发
+
+本地推荐启动顺序：
+
+```bash
+cd /home/ember/infra
+docker compose up -d
+
+cd /home/ember/test/micro/domTree/backend
+mvn spring-boot:run
+
+cd /home/ember/test/micro/domTree/frontend
+pnpm install
+pnpm dev
+```
 
 ### 前端
 
@@ -215,6 +238,23 @@ docker compose down
 docker volume ls | grep treehole
 # 确认后删除对应 volume，再重新 up -d --build
 ```
+
+### 4) Redis 连接失败或实时统计为空
+
+- 检查 `REDIS_HOST`、`REDIS_PORT` 是否与运行方式一致。
+- 云端 Docker Compose 中后端应连接 `redis:6379`，本地开发通常连接 `/home/ember/infra` 暴露的 Redis 端口。
+- 用 `docker compose ps` 确认 Redis 容器存在并处于运行状态。
+
+### 5) 前端代理或 WebSocket 无响应
+
+- 本地开发确认 Vite dev server 已启动，且后端运行在 `BACKEND_PORT` 对应端口。
+- 云端确认前端容器 Nginx 已加载配置，`/api` 和 `/ws` 都能转发到后端。
+- 浏览器控制台若出现 WebSocket 连接失败，优先检查域名协议、端口、防火墙和前端容器证书。
+
+### 6) 环境变量缺失
+
+- 复制 `.env.example` 为 `.env`，将 `<PLACEHOLDER>` 示例替换为本地或部署环境的真实值。
+- 不要把真实密码、API Key、证书或私有地址写回仓库。
 
 ### 2) 后端日志报权限错误：`/app/logs/spring.log (Permission denied)`
 
