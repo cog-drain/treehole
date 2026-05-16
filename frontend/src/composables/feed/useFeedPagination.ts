@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { ElNotification } from 'element-plus'
 import api, { getOnlineStats, getTrendingTags } from '@/api'
 import { scrollToTop } from '@/utils/browser'
+import { createFeedMessageState } from '@/composables/feed/feedMessageState'
 import type { FeedMessage, Id, Message, OnlineStats, TrendingTag } from '@/types'
 
 interface UseFeedPaginationOptions {
@@ -9,17 +10,7 @@ interface UseFeedPaginationOptions {
 }
 
 export function normalizeFeedMessage(message: Message, readIds: Set<Id>): FeedMessage {
-  return {
-    ...message,
-    _showComments: false,
-    _comments: [],
-    _commentText: '',
-    _commentImage: null,
-    _replyToId: null,
-    _commenting: false,
-    _read: readIds.has(message.id),
-    coFrequency: Boolean((message.commentCount || 0) > 5 || message.coFrequency)
-  }
+  return createFeedMessageState(message, { readIds })
 }
 
 export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {

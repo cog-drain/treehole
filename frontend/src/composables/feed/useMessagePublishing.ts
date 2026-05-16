@@ -2,7 +2,8 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '@/api'
 import { offlineQueue } from '@/utils/offlineQueue'
-import type { FeedMessage, MessageDraft } from '@/types'
+import { createFeedMessageState } from '@/composables/feed/feedMessageState'
+import type { FeedMessage, Message, MessageDraft } from '@/types'
 
 export function useMessagePublishing({
   form,
@@ -61,7 +62,7 @@ export function useMessagePublishing({
     const localMood = form.mood
     const localTheme = form.theme
     const localMessageType = isConfessionMode.value ? 'confession' : 'normal'
-    const optimisticMessage: FeedMessage = {
+    const optimisticMessage = createFeedMessageState({
       id: Date.now(),
       content: String(localContent || ''),
       authorAlias: localAlias || '访客',
@@ -78,15 +79,8 @@ export function useMessagePublishing({
       commentCount: 0,
       createTime: new Date().toISOString(),
       isOwner: true,
-      isOptimistic: true,
-      _showComments: false,
-      _comments: [],
-      _commentText: '',
-      _commentImage: null,
-      _replyToId: null,
-      _commenting: false,
-      _read: false
-    }
+      isOptimistic: true
+    })
 
     try {
       let imageUrl = ''
@@ -109,18 +103,10 @@ export function useMessagePublishing({
       const res = await api.publishMessage({ ...form, imageUrl, audioUrl, messageType: localMessageType })
       if (res && res.code === 202) return
 
-      const serverMessage = res?.data?.message
-      const normalizedServerMessage: FeedMessage | null = serverMessage ? {
-        ...serverMessage,
-        isOwner: true,
-        _showComments: false,
-        _comments: [],
-        _commentText: '',
-        _commentImage: null,
-        _replyToId: null,
-        _commenting: false,
-        _read: false
-      } : null
+      const serverMessage = res?.data?.message as Message | undefined
+      const normalizedServerMessage = serverMessage
+        ? createFeedMessageState(serverMessage, { isOwner: true })
+        : null
 
       ElMessage.success(localMessageType === 'confession' ? '告解已投入烛光 🕯️ (获得 10 ⚡)' : '留言已投入星空 🌌 (获得 10 ⚡)')
       appStore.addEnergy(10)

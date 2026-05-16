@@ -1,5 +1,6 @@
 import { ElMessage, ElNotification } from 'element-plus'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { createFeedMessageState } from '@/composables/feed/feedMessageState'
 import type {
   Comment,
   ConfessionWitnessPayload,
@@ -32,17 +33,7 @@ interface UseHomeRealtimeOptions {
 }
 
 export function normalizeRealtimeMessage(data: Message, userId: string): FeedMessage {
-  return {
-    ...data,
-    isOwner: data.userId === userId,
-    _showComments: false,
-    _comments: [],
-    _commentText: '',
-    _commentImage: null,
-    _replyToId: null,
-    _commenting: false,
-    _read: false
-  }
+  return createFeedMessageState(data, { isOwner: data.userId === userId })
 }
 
 export function insertRealtimeMessage(messages: FeedMessage[], data: Message, userId: string, pageSize: number) {

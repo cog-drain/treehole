@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeFeedMessage } from './useFeedPagination'
+import { createFeedMessageState } from './feedMessageState'
 
-describe('normalizeFeedMessage', () => {
+describe('createFeedMessageState', () => {
   it('adds feed UI state fields', () => {
-    const normalized = normalizeFeedMessage(
+    const normalized = createFeedMessageState(
       { id: 1, content: 'hello', commentCount: 2 },
-      new Set([1])
+      { readIds: new Set([1]) }
     )
 
     expect(normalized._showComments).toBe(false)
@@ -16,20 +16,21 @@ describe('normalizeFeedMessage', () => {
   })
 
   it('marks high-comment messages as co-frequency', () => {
-    const normalized = normalizeFeedMessage(
-      { id: 2, content: 'hot', commentCount: 6 },
-      new Set()
-    )
+    const normalized = createFeedMessageState({ id: 2, content: 'hot', commentCount: 6 })
 
     expect(normalized.coFrequency).toBe(true)
   })
 
   it('preserves existing co-frequency truthy state', () => {
-    const normalized = normalizeFeedMessage(
-      { id: 3, content: 'resonant', coFrequency: true },
-      new Set()
-    )
+    const normalized = createFeedMessageState({ id: 3, content: 'resonant', coFrequency: true })
 
     expect(normalized.coFrequency).toBe(true)
+  })
+
+  it('applies owner and optimistic overrides', () => {
+    const normalized = createFeedMessageState({ id: 4, content: 'local' }, { isOwner: true, isOptimistic: true })
+
+    expect(normalized.isOwner).toBe(true)
+    expect(normalized.isOptimistic).toBe(true)
   })
 })
