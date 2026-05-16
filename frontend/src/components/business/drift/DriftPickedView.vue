@@ -70,22 +70,26 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { RefreshCw } from 'lucide-vue-next'
 import { formatTime } from '@/utils/time'
+import type { Bottle } from '@/types'
 
-defineProps({
-  pickedData: { type: Object, required: true },
-  replyContent: { type: String, default: '' },
-  isReplying: { type: Boolean, default: false }
+withDefaults(defineProps<{
+  pickedData: Bottle
+  replyContent?: string
+  isReplying?: boolean
+}>(), {
+  replyContent: '',
+  isReplying: false
 })
 
-defineEmits([
-  'update:replyContent',
-  'pick',
-  'return',
-  'start-reply',
-  'cancel-reply',
-  'reply'
-])
+defineEmits<{
+  (event: 'update:replyContent', value: string): void
+  (event: 'pick'): void
+  (event: 'return'): void
+  (event: 'start-reply'): void
+  (event: 'cancel-reply'): void
+  (event: 'reply'): void
+}>()
 </script>

@@ -56,13 +56,18 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ChevronLeft } from 'lucide-vue-next'
 import { formatTime } from '@/utils/time'
+import type { Bottle } from '@/types'
 
-defineProps({
-  bottles: { type: Array, default: () => [] }
+withDefaults(defineProps<{
+  bottles?: Bottle[]
+}>(), {
+  bottles: () => []
 })
 
-defineEmits(['back'])
+defineEmits<{
+  (event: 'back'): void
+}>()
 </script>

@@ -32,6 +32,7 @@ export function useCommentActions({
       activity.track(ACTIVITY_EVENTS.likeMessage)
       likedIds.add(msg.id)
       msg.likes = (msg.likes || 0) + 1
+      msg.likeCount = (msg.likeCount || 0) + 1
       ElMessage.success('产生共鸣 ✨ (获得 2 ⚡)')
       appStore.addEnergy(2)
     } catch {}

@@ -1,18 +1,20 @@
 <script setup>
 import { computed } from 'vue'
-import { MessageSquare, Smile } from 'lucide-vue-next'
+import { Heart, MessageSquare, Smile } from 'lucide-vue-next'
 import api from '@/api'
 import { parseReactionMap, REACTION_EMOJIS } from '@/constants/reactions'
 import { messageReactionKey } from '@/constants/storageKeys'
 import { useReactionState } from '@/composables/useReactionState'
 
 const props = defineProps({
-  msg: { type: Object, required: true }
+  msg: { type: Object, required: true },
+  liked: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['toggle-comments', 'react'])
+const emit = defineEmits(['toggle-comments', 'react', 'like'])
 
 const parsedReactions = computed(() => parseReactionMap(props.msg.reactions))
+const likeCount = computed(() => Number(props.msg.likeCount ?? props.msg.likes ?? 0))
 
 const { getReactedEmoji, hasReacted, setReactedEmoji } = useReactionState(messageReactionKey, () => props.msg.id)
 
@@ -61,14 +63,22 @@ async function toggleReaction(emoji) {
       </el-popover>
     </div>
 
-    <button class="comment-toggle-btn" @click="$emit('toggle-comments', msg)">
+    <div class="action-bar-right">
+      <button class="like-toggle-btn" :class="{ 'is-liked': liked }" @click="$emit('like', msg)">
+        <Heart :size="16" :fill="liked ? 'currentColor' : 'none'" />
+        <span class="like-toggle-label">LIKE</span>
+        <span v-if="likeCount > 0" class="like-toggle-count">{{ likeCount }}</span>
+      </button>
+
+      <button class="comment-toggle-btn" @click="$emit('toggle-comments', msg)">
       <div class="relative">
         <MessageSquare :size="16" />
         <span v-if="msg.commentCount > 0 && !msg._read" class="unread-dot"></span>
       </div>
       <span class="comment-toggle-label">{{ msg._showComments ? 'CLOSE' : 'REPLY' }}</span>
       <span v-if="msg.commentCount > 0" class="comment-toggle-count">{{ msg.commentCount }}</span>
-    </button>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -89,6 +99,12 @@ async function toggleReaction(emoji) {
   flex-wrap: wrap;
   flex: 1;
   min-width: 0;
+}
+.action-bar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 .reaction-pill {
   display: inline-flex;
@@ -177,6 +193,7 @@ async function toggleReaction(emoji) {
   border-radius: 12px;
   box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
+.like-toggle-btn,
 .comment-toggle-btn {
   display: flex;
   align-items: center;
@@ -190,10 +207,21 @@ async function toggleReaction(emoji) {
   transition: all 0.2s;
   flex-shrink: 0;
 }
+.like-toggle-btn.is-liked {
+  color: #e11d48;
+  border-color: rgba(225, 29, 72, 0.2);
+  background: rgba(225, 29, 72, 0.08);
+}
+.like-toggle-btn:hover,
 .comment-toggle-btn:hover {
   background: rgba(0, 0, 0, 0.06);
   color: var(--color-text-primary);
 }
+.like-toggle-btn.is-liked:hover {
+  color: #be123c;
+  background: rgba(225, 29, 72, 0.12);
+}
+.like-toggle-btn:active,
 .comment-toggle-btn:active {
   transform: scale(0.95);
 }
@@ -207,16 +235,41 @@ async function toggleReaction(emoji) {
   border-radius: 50%;
   box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
 }
+.like-toggle-label,
 .comment-toggle-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+.like-toggle-count,
 .comment-toggle-count {
   font-size: 10px;
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
   opacity: 0.5;
+}
+
+@media (max-width: 520px) {
+  .action-bar {
+    align-items: flex-start;
+  }
+
+  .action-bar-right {
+    gap: 6px;
+  }
+
+  .like-toggle-btn,
+  .comment-toggle-btn {
+    width: 38px;
+    height: 34px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .like-toggle-label,
+  .comment-toggle-label {
+    display: none;
+  }
 }
 </style>

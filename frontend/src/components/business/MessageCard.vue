@@ -61,6 +61,8 @@ const isNotificationHighlighted = computed(() => String(props.highlightedMessage
     <MessageActionBar
       v-if="!isConfession"
       :msg="msg"
+      :liked="liked"
+      @like="$emit('like', $event)"
       @toggle-comments="$emit('toggle-comments', $event)"
       @react="$emit('react')"
     />

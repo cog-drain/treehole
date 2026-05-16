@@ -1,12 +1,27 @@
 import { computed, ref, watch } from 'vue'
 import api from '@/api'
+import type { Bottle, DriftBottleState } from '@/types'
 
-export function useDriftBottleDialog(props, emit) {
+export interface DriftBottleDialogProps {
+  modelValue: boolean
+  initialState?: DriftBottleState
+  pickedData?: Bottle | null
+  userId?: string
+}
+
+export interface DriftBottleDialogEmit {
+  (event: 'onThrow', content: string): void
+  (event: 'onPick'): void
+  (event: 'onReply', content: string): void
+  (event: 'onReturn'): void
+}
+
+export function useDriftBottleDialog(props: DriftBottleDialogProps, emit: DriftBottleDialogEmit) {
   const visible = ref(props.modelValue)
-  const state = ref(props.initialState)
+  const state = ref<DriftBottleState>(props.initialState || 'init')
   const newContent = ref('')
   const replyContent = ref('')
-  const myBottles = ref([])
+  const myBottles = ref<Bottle[]>([])
 
   const stateTitle = computed(() => {
     switch (state.value) {
@@ -28,7 +43,7 @@ export function useDriftBottleDialog(props, emit) {
   watch(() => props.modelValue, (val) => {
     visible.value = val
     if (val) {
-      state.value = props.initialState
+      state.value = props.initialState || 'init'
     }
   })
 

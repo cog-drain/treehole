@@ -1,12 +1,27 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import api, { pickBottle, returnBottle, throwBottle } from '@/api'
+import type { Bottle, ComposeFormDraft, DriftBottleState } from '@/types'
 
-export function useDriftBottle({ userStore, appStore, form }) {
+interface DriftBottleUserStore {
+  alias: string
+}
+
+interface DriftBottleAppStore {
+  addEnergy: (amount: number) => void
+}
+
+interface UseDriftBottleOptions {
+  userStore: DriftBottleUserStore
+  appStore: DriftBottleAppStore
+  form: Pick<ComposeFormDraft, 'theme'>
+}
+
+export function useDriftBottle({ userStore, appStore, form }: UseDriftBottleOptions) {
   const bottleVisible = ref(false)
-  const bottleState = ref('init')
+  const bottleState = ref<DriftBottleState>('init')
   const newBottleContent = ref('')
-  const pickedBottle = ref(null)
+  const pickedBottle = ref<Bottle | null>(null)
   const replyContent = ref('')
   const replied = ref(false)
 
@@ -18,7 +33,7 @@ export function useDriftBottle({ userStore, appStore, form }) {
     replied.value = false
   }
 
-  async function handleThrowBottle(content) {
+  async function handleThrowBottle(content?: string) {
     try {
       await throwBottle({
         content: content || newBottleContent.value,
@@ -48,11 +63,12 @@ export function useDriftBottle({ userStore, appStore, form }) {
     }
   }
 
-  async function handleReplyBottle(content) {
+  async function handleReplyBottle(content?: string) {
+    const bottle = pickedBottle.value
     const finalContent = content || replyContent.value
-    if (!finalContent?.trim()) return
+    if (!bottle || !finalContent?.trim()) return
     try {
-      await api.replyBottle(pickedBottle.value.id, finalContent, userStore.alias)
+      await api.replyBottle(bottle.id, finalContent, userStore.alias)
       ElMessage.success('你的回信已顺着海流出发 ✨ (获得 5 ⚡)')
       appStore.addEnergy(5)
       bottleVisible.value = false
@@ -60,8 +76,10 @@ export function useDriftBottle({ userStore, appStore, form }) {
   }
 
   async function handleReturnBottle() {
+    const bottle = pickedBottle.value
+    if (!bottle) return
     try {
-      await returnBottle(pickedBottle.value.id)
+      await returnBottle(bottle.id)
       ElMessage.success('瓶子已重回大海的怀抱')
       bottleVisible.value = false
     } catch {}

@@ -65,7 +65,7 @@
   </el-dialog>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import DriftInitialView from './drift/DriftInitialView.vue'
 import DriftThrowView from './drift/DriftThrowView.vue'
 import DriftPickingView from './drift/DriftPickingView.vue'
@@ -73,15 +73,27 @@ import DriftPickedView from './drift/DriftPickedView.vue'
 import DriftInboxView from './drift/DriftInboxView.vue'
 import DriftSentView from './drift/DriftSentView.vue'
 import { useDriftBottleDialog } from '@/composables/useDriftBottleDialog'
+import type { Bottle, DriftBottleState } from '@/types'
 
-const props = defineProps({
-  modelValue: Boolean,
-  initialState: { type: String, default: 'init' },
-  pickedData: Object,
-  userId: String
+const props = withDefaults(defineProps<{
+  modelValue: boolean
+  initialState?: DriftBottleState
+  pickedData?: Bottle | null
+  userId?: string
+}>(), {
+  modelValue: false,
+  initialState: 'init',
+  pickedData: null,
+  userId: ''
 })
 
-const emit = defineEmits(['update:modelValue', 'onThrow', 'onPick', 'onReply', 'onReturn'])
+const emit = defineEmits<{
+  (event: 'update:modelValue', value: boolean): void
+  (event: 'onThrow', content: string): void
+  (event: 'onPick'): void
+  (event: 'onReply', content: string): void
+  (event: 'onReturn'): void
+}>()
 
 const {
   visible,

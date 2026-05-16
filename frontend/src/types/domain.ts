@@ -131,9 +131,12 @@ export interface Bottle {
   replyTime?: string
 }
 
+export type DriftBottleState = 'init' | 'throwing' | 'picking' | 'picked' | 'reply' | 'my-bottles' | 'sent'
+
 export interface BottleDraft {
   content: string
   authorAlias?: string
+  theme?: ThemeKey | string
   [key: string]: unknown
 }
 

@@ -217,8 +217,9 @@
 
   .notification-panel {
     width: calc(100vw - 16px);
-    height: calc(100vh - 16px);
+    height: calc(100dvh - 16px);
     margin: 8px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
     border-radius: 8px;
   }
 }
