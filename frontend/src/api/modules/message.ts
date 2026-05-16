@@ -6,6 +6,9 @@ export const messageApi = {
   // 分页获取留言 (支持 tag 过滤)
   getMessages: (params: PageParams) => request.get<unknown, ApiResponse<PageResult<Message>>>('/messages', { params }),
 
+  // 获取单条留言，用于通知定位
+  getMessage: (id: Id) => request.get<unknown, ApiResponse<Message>>(`/messages/${id}`),
+
   // 发布留言 (包含离线处理逻辑)
   publishMessage: async (data: MessageDraft): Promise<ApiResponse<{ message?: Message } | null>> => {
     try {

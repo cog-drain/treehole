@@ -15,8 +15,10 @@ import com.treehole.mapper.ConfessionWitnessMapper;
 import com.treehole.mapper.MessageMapper;
 import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.MessageService;
+import com.treehole.service.NotificationService;
 import com.treehole.service.RedisRealtimeService;
 import com.treehole.service.TagService;
+import com.treehole.service.TagSubscriptionService;
 import com.treehole.service.AIService;
 import com.treehole.entity.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,6 +54,8 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private final RedisRealtimeService redisRealtimeService;
     private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
     private final ConfessionWitnessMapper confessionWitnessMapper;
+    private final NotificationService notificationService;
+    private final TagSubscriptionService tagSubscriptionService;
 
     private static final String MESSAGE_TYPE_CONFESSION = "confession";
     private static final String MESSAGE_TYPE_NORMAL = "normal";
@@ -125,6 +129,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         this.save(message);
         if (!confession) {
             tagService.extractAndSaveTags(message.getId(), message.getContent());
+            tagSubscriptionService.notifySubscribersForMessage(message);
             redisRealtimeService.incrementMessageRank(message.getId(), 5);
         }
         cacheInvalidationService.evictMessageStructureCaches();
@@ -275,6 +280,22 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                         .gt(Message::getExpiresAt, LocalDateTime.now())));
     }
 
+    @Override
+    public Message getVisibleById(Long id, String viewerId) {
+        if (id == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "留言 ID 不能为空");
+        }
+        LambdaQueryWrapper<Message> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Message::getId, id);
+        applyVisibleMessageFilter(wrapper);
+        Message message = this.getOne(wrapper, false);
+        if (message == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "留言不存在");
+        }
+        hydrateMessageExtras(List.of(message), viewerId);
+        return message;
+    }
+
     private void hydrateMessageExtras(List<Message> messages, String viewerId) {
         injectResonance(messages, viewerId);
         injectConfessionExtras(messages, viewerId);
@@ -360,13 +381,17 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
-    public void like(Long id) {
+    public void like(Long id, String userId) {
+        Message message = this.getById(id);
         LambdaUpdateWrapper<Message> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(Message::getId, id)
                .setSql("likes = likes + 1");
-        this.update(wrapper);
+        boolean updated = this.update(wrapper);
         redisRealtimeService.incrementMessageRank(id, 2);
         cacheInvalidationService.evictMessageListCaches();
+        if (updated && message != null && userId != null && !userId.isBlank()) {
+            notificationService.createForMessageLiked(message, userId);
+        }
     }
 
     @Override
@@ -442,16 +467,21 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         existingWrapper.eq(ConfessionWitness::getMessageId, id)
                 .eq(ConfessionWitness::getUserId, userId);
         Long existing = confessionWitnessMapper.selectCount(existingWrapper);
+        boolean created = false;
         if (existing == null || existing == 0) {
             ConfessionWitness witness = new ConfessionWitness();
             witness.setMessageId(id);
             witness.setUserId(userId);
             try {
                 confessionWitnessMapper.insert(witness);
+                created = true;
             } catch (DuplicateKeyException ignored) {
                 // Another tab or retry already witnessed this confession.
             }
             cacheInvalidationService.evictMessageListCaches();
+        }
+        if (created) {
+            notificationService.createForConfessionWitnessed(message, userId);
         }
 
         LambdaQueryWrapper<ConfessionWitness> countWrapper = new LambdaQueryWrapper<>();

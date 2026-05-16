@@ -2,16 +2,16 @@ import api from '@/api'
 import { offlineQueue } from '@/utils/offlineQueue'
 
 export function useOfflineSyncOnOnline() {
-  function syncOfflineQueue() {
+  function syncOfflineQueue(): void {
     offlineQueue.sync(api)
   }
 
-  function startOfflineSync() {
+  function startOfflineSync(): void {
     window.addEventListener('online', syncOfflineQueue)
     if (window.navigator.onLine) syncOfflineQueue()
   }
 
-  function stopOfflineSync() {
+  function stopOfflineSync(): void {
     window.removeEventListener('online', syncOfflineQueue)
   }
 

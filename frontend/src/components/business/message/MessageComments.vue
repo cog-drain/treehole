@@ -5,7 +5,8 @@ import CommentReplyBox from './CommentReplyBox.vue'
 
 const props = defineProps({
   msg: { type: Object, required: true },
-  isAdmin: { type: Boolean, default: false }
+  isAdmin: { type: Boolean, default: false },
+  highlightedCommentId: { type: [String, Number], default: null }
 })
 
 const emit = defineEmits(['delete-comment', 'publish-comment', 'react'])
@@ -93,6 +94,7 @@ function clearReply() {
         :depth="0"
         :maxDepth="4"
         :defaultExpanded="true"
+        :highlighted-comment-id="highlightedCommentId"
         @reply="setReplyTarget"
         @delete="(comment) => $emit('delete-comment', { msg, comment })"
         @react="$emit('react')"

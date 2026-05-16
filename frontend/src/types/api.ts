@@ -19,3 +19,13 @@ export interface PageParams {
   pageSize?: number
   tag?: string
 }
+
+export interface NotificationPageParams {
+  pageNum?: number
+  pageSize?: number
+  unreadOnly?: boolean
+}
+
+export interface UnreadCountResponse {
+  unreadCount: number
+}

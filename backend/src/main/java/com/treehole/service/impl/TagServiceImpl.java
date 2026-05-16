@@ -11,7 +11,6 @@ import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.RedisRealtimeService;
 import com.treehole.service.TagService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,7 +101,6 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
     }
 
     @Override
-    @Cacheable(cacheNames = "trendingTags", key = "#limit")
     public List<Tag> getTrendingTags(int limit) {
         LambdaQueryWrapper<Tag> wrapper = new LambdaQueryWrapper<>();
         wrapper.gt(Tag::getUsageCount, 0); // 只查使用次数 > 0 的

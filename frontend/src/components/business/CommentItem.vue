@@ -1,5 +1,9 @@
 <template>
-  <div class="comment-node" :class="{ 'is-collapsed': isCollapsed }">
+  <div
+    :id="'comment-' + comment.id"
+    class="comment-node"
+    :class="{ 'is-collapsed': isCollapsed, 'notification-highlight': isHighlighted }"
+  >
     <CommentCollapsed v-if="isCollapsed" :comment="comment" @expand="isCollapsed = false" />
 
     <div v-else class="comment-expanded">
@@ -21,6 +25,7 @@
           :is-admin="isAdmin"
           :depth="depth"
           :max-depth="maxDepth"
+          :highlighted-comment-id="highlightedCommentId"
           @reply="$emit('reply', $event)"
           @delete="$emit('delete', $event)"
           @react="$emit('react')"
@@ -31,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import CommentActions from './comment/CommentActions.vue'
 import CommentBody from './comment/CommentBody.vue'
 import CommentChildren from './comment/CommentChildren.vue'
@@ -43,12 +48,14 @@ const props = defineProps({
   isAdmin: { type: Boolean, default: false },
   depth: { type: Number, default: 0 },
   maxDepth: { type: Number, default: 4 },
-  defaultExpanded: { type: Boolean, default: true }
+  defaultExpanded: { type: Boolean, default: true },
+  highlightedCommentId: { type: [String, Number], default: null }
 })
 
 const emit = defineEmits(['reply', 'delete', 'react'])
 
 const isCollapsed = ref(!props.defaultExpanded)
+const isHighlighted = computed(() => String(props.highlightedCommentId || '') === String(props.comment.id))
 </script>
 
 <style scoped>

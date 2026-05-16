@@ -1,5 +1,15 @@
 <template>
-  <div class="fixed right-8 bottom-8 flex flex-col gap-4 z-[1001]">
+  <div class="home-fab-stack fixed right-8 bottom-8 flex flex-col gap-3 z-[1001]">
+    <button
+      class="notification-fab w-12 h-12 rounded-full glass-effect flex items-center justify-center text-slate-400 hover:text-sky-400 transition-all active:scale-90 border-sky-500/20"
+      :class="{ 'has-unread': notificationUnreadCount > 0 }"
+      title="通知中心"
+      @click="$emit('open-notifications')"
+    >
+      <Bell :size="20" />
+      <span v-if="notificationUnreadCount > 0" class="notification-fab-badge">{{ notificationBadge }}</span>
+    </button>
+
     <div ref="zenRoot" class="relative group">
       <ZenMenu
         :visible="zenState.showZenMenu"
@@ -42,11 +52,13 @@
 
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
-import { Fingerprint, Moon, Volume2, Waves } from 'lucide-vue-next'
+import { Bell, Fingerprint, Moon, Volume2, Waves } from 'lucide-vue-next'
 import ZenMenu from './ZenMenu.vue'
 
 const props = defineProps({
-  zenState: { type: Object, required: true }
+  zenState: { type: Object, required: true },
+  notificationUnreadCount: { type: Number, default: 0 },
+  notificationBadge: { type: String, default: '0' }
 })
 
 const emit = defineEmits([
@@ -59,7 +71,8 @@ const emit = defineEmits([
   'minimize-zen',
   'stop-zen-mode',
   'open-bottle',
-  'open-identity'
+  'open-identity',
+  'open-notifications'
 ])
 
 const zenRoot = ref(null)
@@ -73,3 +86,48 @@ function handleDocumentClick(event) {
 onMounted(() => document.addEventListener('click', handleDocumentClick))
 onUnmounted(() => document.removeEventListener('click', handleDocumentClick))
 </script>
+
+<style scoped>
+.notification-fab {
+  position: relative;
+}
+
+.notification-fab.has-unread {
+  color: #0ea5e9;
+  border-color: rgba(14, 165, 233, 0.42);
+  box-shadow: 0 0 22px rgba(14, 165, 233, 0.18);
+}
+
+.notification-fab-badge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e11d48;
+  color: white;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  border: 2px solid rgba(15, 23, 42, 0.85);
+}
+
+@media (max-width: 640px) {
+  .home-fab-stack {
+    right: 14px;
+    bottom: 18px;
+    gap: 10px;
+  }
+
+  .home-fab-stack > button,
+  .home-fab-stack .group > button {
+    width: 44px;
+    height: 44px;
+  }
+}
+</style>

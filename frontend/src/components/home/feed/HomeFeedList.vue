@@ -1,12 +1,14 @@
 <template>
-  <div v-if="viewMode === 'list'" class="space-y-12">
-    <div v-if="total > 0" class="space-y-12">
+  <div v-if="viewMode === 'list'" class="space-y-8 sm:space-y-10">
+    <div v-if="total > 0" class="space-y-8 sm:space-y-10">
       <TransitionGroup name="msg-list">
         <MessageCard
           v-for="(msg, index) in messages"
           :key="msg.id"
           :msg="msg"
           :liked="likedIds.has(msg.id)"
+          :highlighted-message-id="highlightedMessageId"
+          :highlighted-comment-id="highlightedCommentId"
           :class="['theme-' + (msg.theme || 'default'), 'animate__animated animate__fadeInUp']"
           :style="{ animationDelay: (index * 100) + 'ms' }"
           :is-admin="isAdmin"
@@ -22,7 +24,7 @@
         />
       </TransitionGroup>
 
-      <div class="flex justify-center pt-16 pb-32">
+      <div class="flex justify-center pt-10 pb-28 sm:pt-14 sm:pb-32">
         <nav class="flex items-center gap-1 p-2 bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] ring-1 ring-white/5">
           <button
             class="w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 group disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10"
@@ -59,11 +61,11 @@
       </div>
     </div>
 
-    <div v-else class="py-24 text-center space-y-6">
+    <div v-else class="py-20 text-center space-y-5">
       <div class="text-6xl opacity-20 grayscale">🌌</div>
       <div class="space-y-2">
-        <h4 class="text-slate-400 font-medium">这里还是一片虚无</h4>
-        <p class="text-xs text-slate-600">你是第一个发现这里的人吗？</p>
+        <h4 class="text-slate-400 font-medium">这里暂时没有留言</h4>
+        <p class="text-xs text-slate-600">换个话题，或留下第一句话。</p>
       </div>
     </div>
   </div>
@@ -80,7 +82,9 @@ defineProps({
   isAdmin: { type: Boolean, default: false },
   pageNum: { type: Number, default: 1 },
   total: { type: Number, default: 0 },
-  totalPages: { type: Number, default: 1 }
+  totalPages: { type: Number, default: 1 },
+  highlightedMessageId: { type: [String, Number], default: null },
+  highlightedCommentId: { type: [String, Number], default: null }
 })
 
 defineEmits([

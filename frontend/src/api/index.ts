@@ -7,6 +7,8 @@ import { fileApi } from './modules/file'
 import { statsApi } from './modules/stats'
 import { aiApi } from './modules/ai'
 import { graphApi } from './modules/graph'
+import { notificationApi } from './modules/notification'
+import { tagSubscriptionApi } from './modules/tagSubscription'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
 import { getJson, setJson } from '@/utils/storage'
 import type { Id } from '@/types'
@@ -52,6 +54,7 @@ const api = {
   publishMessage: messageApi.publishMessage,
   getMessages: (pageNum = 1, pageSize = 10) => messageApi.getMessages({ pageNum, pageSize }),
   getMessagesByTag: (tag: string, pageNum = 1, pageSize = 10) => messageApi.getMessages({ tag, pageNum, pageSize }),
+  getMessageById: messageApi.getMessage,
   likeMessage: messageApi.likeMessage,
   deleteMessage: messageApi.deleteMessage,
   getRandomMessage: messageApi.getRandom,
@@ -92,18 +95,34 @@ const api = {
 
   // AI / Graph 模块
   chatWithAI: aiApi.chat,
-  getGraphData: graphApi.getGraphData
+  getGraphData: graphApi.getGraphData,
+
+  // Notification 模块
+  getNotifications: notificationApi.getNotifications,
+  getUnreadCount: notificationApi.getUnreadCount,
+  markNotificationRead: notificationApi.markNotificationRead,
+  markAllNotificationsRead: notificationApi.markAllNotificationsRead,
+
+  // Tag Subscription 模块
+  getTagSubscriptions: tagSubscriptionApi.getSubscriptions,
+  subscribeTag: tagSubscriptionApi.subscribe,
+  unsubscribeTag: tagSubscriptionApi.unsubscribe
 }
 
 export default api
 
 // ── 导出具名函数供解构使用 ──
 export const { 
-  publishMessage, getMessages, getMessagesByTag, likeMessage, deleteMessage, 
+  publishMessage, getMessages, getMessagesByTag, getMessageById, likeMessage, deleteMessage, 
   getRandomMessage, getTrendingTags, reactToMessage, witnessMessage,
   getComments, publishComment, deleteComment, reactToComment,
   throwBottle, pickBottle, replyBottle, returnBottle, getMyBottles,
   backupIdentity, restoreIdentity,
   adminLogin, resetAdminPassword, banIP, unbanIP, getBlacklist, adminDeleteMessage, adminDeleteComment,
-  uploadFile, getOnlineStats, getActivityStats, chatWithAI, getGraphData
+  uploadFile, getOnlineStats, getActivityStats, chatWithAI, getGraphData,
+  getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead,
+  getTagSubscriptions, subscribeTag, unsubscribeTag
 } = api
+
+export { notificationApi }
+export { tagSubscriptionApi }

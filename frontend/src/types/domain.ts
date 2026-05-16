@@ -6,6 +6,31 @@ export type MessageType = 'normal' | 'confession'
 
 export type VoiceEffectKey = 'original' | 'robot' | 'deep' | 'ethereal'
 
+export type NotificationType =
+  | 'MESSAGE_COMMENTED'
+  | 'MESSAGE_LIKED'
+  | 'COMMENT_REPLIED'
+  | 'COMMENT_LIKED'
+  | 'CONFESSION_WITNESSED'
+  | 'TAG_NEW_MESSAGES'
+
+export type NotificationTargetType = 'MESSAGE' | 'COMMENT' | 'CONFESSION' | 'TAG'
+
+export interface TreeholeNotification {
+  id: number | string
+  type: NotificationType
+  targetType: NotificationTargetType
+  messageId?: number | string | null
+  commentId?: number | string | null
+  parentCommentId?: number | string | null
+  tagId?: number | string | null
+  tagName?: string | null
+  title: string
+  summary?: string | null
+  read: boolean
+  createTime?: string
+}
+
 export interface UserIdentity {
   userId: string
   createdAt: number
@@ -146,6 +171,7 @@ export type RealtimeEventType =
   | 'ONLINE_STATS_UPDATE'
   | 'CONFESSOR_REPLY'
   | 'CONFESSION_WITNESS_UPDATE'
+  | 'NOTIFICATION_CREATED'
 
 export interface RealtimeEnvelope<T = unknown> {
   type?: RealtimeEventType
@@ -174,10 +200,20 @@ export interface ActivityStats {
 }
 
 export interface TrendingTag {
+  id?: number | string
   tag?: string
   name?: string
+  usageCount?: number
   count?: number
   [key: string]: unknown
+}
+
+export interface TagSubscription {
+  id: number | string
+  tagId: number | string
+  tagName: string
+  usageCount?: number
+  createTime?: string
 }
 
 export interface IdentityBackup {

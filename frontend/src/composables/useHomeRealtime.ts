@@ -10,7 +10,8 @@ import type {
   Message,
   OnlineStats,
   ReactionUpdatePayload,
-  RealtimeEventType
+  RealtimeEventType,
+  TreeholeNotification
 } from '@/types'
 
 interface RefLike<T> {
@@ -29,6 +30,7 @@ interface UseHomeRealtimeOptions {
   userStore: UserStoreLike
   onlineCount: RefLike<number>
   onlineModules: RefLike<Record<string, number>>
+  onNotificationCreated?: (notification: TreeholeNotification) => void
   emit: (event: 'new-broadcast' | 'resonance-boom', payload?: FeedMessage) => void
 }
 
@@ -76,6 +78,7 @@ export function useHomeRealtime({
   userStore,
   onlineCount,
   onlineModules,
+  onNotificationCreated,
   emit
 }: UseHomeRealtimeOptions) {
   let watcherInstance: ReturnType<typeof ElNotification> | null = null
@@ -137,6 +140,9 @@ export function useHomeRealtime({
     onConfessionWitnessUpdate(data: ConfessionWitnessPayload) {
       const target = messages.value.find(message => message.id === data.messageId)
       if (target) target.witnessCount = Number(data.witnessCount || 0)
+    },
+    onNotificationCreated(data: TreeholeNotification) {
+      onNotificationCreated?.(data)
     }
   })
 }

@@ -37,7 +37,13 @@
         @seek-preview="seekPreview"
       />
 
-      <TrendingTags :tags="trendingTags" :active-tag="activeTag" @tag-click="handleTagClick" />
+      <TrendingTags
+        :tags="trendingTags"
+        :active-tag="activeTag"
+        :subscribed-tag-ids="subscribedTagIds"
+        @tag-click="handleTagClick"
+        @toggle-subscription="toggleTagSubscription"
+      />
 
       <FeedHeader :view-mode="viewMode" :online-count="onlineCount" @set-view-mode="setViewMode" />
 
@@ -51,6 +57,8 @@
         :page-num="pageNum"
         :total="total"
         :total-pages="totalPages"
+        :highlighted-message-id="highlightedMessageId"
+        :highlighted-comment-id="highlightedCommentId"
         @like="likeMessage"
         @toggle-comments="toggleComments"
         @delete="deleteMessage"
@@ -76,6 +84,8 @@
 
     <HomeFabStack
       :zen-state="zenState"
+      :notification-unread-count="notificationUnreadCount"
+      :notification-badge="notificationBadge"
       @toggle-zen-menu="toggleZenMenu"
       @close-zen-menu="closeZenMenu"
       @select-zen-sound="selectZenSound"
@@ -86,6 +96,16 @@
       @stop-zen-mode="stopZenMode"
       @open-bottle="openBottleCenter"
       @open-identity="openIdentity"
+      @open-notifications="openNotificationCenter"
+    />
+
+    <NotificationCenter
+      :state="notificationState"
+      @close="notifications.closeCenter"
+      @notification-click="handleNotificationClick"
+      @mark-read="notifications.markRead"
+      @mark-all="notifications.markAllRead"
+      @load-more="notifications.loadMore"
     />
 
     <HomeDialogs
@@ -124,6 +144,7 @@
 
 <script setup>
 import { computed, defineAsyncComponent, ref, onMounted, onUnmounted, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import ActiveTagBanner from '@/components/home/ActiveTagBanner.vue'
 import ComposeBox from '@/components/home/ComposeBox.vue'
 import FeedHeader from '@/components/home/FeedHeader.vue'
@@ -131,9 +152,18 @@ import HomeDialogs from '@/components/home/HomeDialogs.vue'
 import HomeFabStack from '@/components/home/HomeFabStack.vue'
 import HomeFeedList from '@/components/home/feed/HomeFeedList.vue'
 import HomeGraphPanel from '@/components/home/HomeGraphPanel.vue'
+import NotificationCenter from '@/components/home/NotificationCenter.vue'
 import TrendingTags from '@/components/home/TrendingTags.vue'
 import CyberWatermark from '@/components/common/CyberWatermark.vue'
+import api from '@/api'
 import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
+import {
+  canLocateNotificationTarget,
+  getCommentElementId,
+  getMessageElementId,
+  resolveNotificationTarget
+} from '@/composables/useNotificationTarget'
+import { useNotifications } from '@/composables/useNotifications'
 
 const ZenGarden = defineAsyncComponent(() => import('@/components/zen/ZenGarden.vue'))
 
@@ -166,6 +196,7 @@ const adminPanel = useAdminPanel()
 const identityVault = useIdentityVault()
 const networkStatus = useNetworkStatus()
 const viewport = useViewport()
+const notifications = useNotifications()
 
 const props = defineProps({
   storeVisible: {
@@ -208,6 +239,7 @@ let connectWS = () => {}
 let disconnectWS = () => {}
 let setActivityModule = () => {}
 let trackActivity = () => {}
+let highlightTimer = null
 
 const { isOnline, startNetworkListeners, stopNetworkListeners } = networkStatus
 
@@ -254,10 +286,15 @@ const feed = useFeedMessages({
 
 const {
   messages, pageNum, pageSize, total, totalPages, trendingTags, activeTag, publishing,
-  onlineCount, onlineModules, likedIds, fetchTrending, fetchOnlineStats, fetchMessages, publishMessage,
+  subscribedTagIds, onlineCount, onlineModules, likedIds, fetchTrending, fetchTagSubscriptions, fetchOnlineStats, fetchMessages, publishMessage,
   handlePublishButtonClick: handleFeedPublishButtonClick, likeMessage, toggleComments, publishComment,
-  deleteMessage, handleDeleteComment, handleTagClick, clearTagFilter, handlePageChange
+  deleteMessage, handleDeleteComment, handleTagClick, toggleTagSubscription, clearTagFilter, handlePageChange, locateMessageById
 } = feed
+
+const highlightedMessageId = ref(null)
+const highlightedCommentId = ref(null)
+const notificationUnreadCount = computed(() => notifications.unreadCount.value)
+const notificationBadge = computed(() => notifications.unreadBadge.value)
 
 const driftBottle = useDriftBottle({ userStore, appStore, form })
 const {
@@ -287,6 +324,16 @@ const adminState = computed(() => ({
 const offlineState = computed(() => ({
   offlineDialogVisible: offlineDialogVisible.value, isOnline: isOnline.value,
   offlineList: offlineList.value, offlineQueueCount: offlineQueueCount.value
+}))
+
+const notificationState = computed(() => ({
+  visible: notifications.visible.value,
+  notifications: notifications.notifications.value,
+  unreadCount: notifications.unreadCount.value,
+  loading: notifications.loading.value,
+  loadingMore: notifications.loadingMore.value,
+  hasMore: notifications.hasMore.value,
+  error: notifications.error.value
 }))
 
 function handlePublishButtonClick() {
@@ -350,6 +397,7 @@ const realtime = useHomeRealtime({
   userStore,
   onlineCount,
   onlineModules,
+  onNotificationCreated: notifications.handleRealtimeNotification,
   emit
 })
 connectWS = realtime.connect
@@ -376,6 +424,92 @@ function openStore() {
   emit('open-store')
 }
 
+async function openNotificationCenter() {
+  trackActivity('open_notifications', ACTIVITY_MODULES.feed)
+  await notifications.openCenter()
+}
+
+async function handleNotificationClick(notification) {
+  const target = resolveNotificationTarget(notification)
+  if (!canLocateNotificationTarget(target)) {
+    await markNotificationReadQuietly(notification.id)
+    ElMessage.info('这条内容暂时无法定位')
+    return
+  }
+
+  try {
+    if (target.targetType === 'COMMENT') {
+      await locateCommentTarget(target.messageId, target.commentId)
+    } else if (target.targetType === 'TAG') {
+      await locateTagTarget(target.tagName)
+    } else {
+      await locateMessageTarget(target.messageId)
+    }
+    await markNotificationReadQuietly(notification.id)
+    notifications.closeCenter()
+  } catch {
+    await markNotificationReadQuietly(notification.id)
+    ElMessage.warning('目标内容暂时不可达')
+  }
+}
+
+async function locateMessageTarget(messageId) {
+  const message = await locateMessageById(messageId)
+  setViewMode('list')
+  startHighlight(message.id, null)
+  await scrollToElement(getMessageElementId(message.id))
+}
+
+async function locateCommentTarget(messageId, commentId) {
+  const message = await locateMessageById(messageId)
+  setViewMode('list')
+  if (!message._showComments) {
+    message._showComments = true
+  }
+  const res = await api.getComments(message.id)
+  message._comments = res.data || []
+  message.commentCount = Math.max(Number(message.commentCount || 0), message._comments.length)
+  startHighlight(message.id, commentId)
+  await scrollToElement(getCommentElementId(commentId))
+}
+
+async function locateTagTarget(tagName) {
+  if (!tagName) throw new Error('missing tag')
+  setViewMode('list')
+  handleTagClick(tagName)
+}
+
+function startHighlight(messageId, commentId) {
+  highlightedMessageId.value = messageId
+  highlightedCommentId.value = commentId
+  if (highlightTimer) window.clearTimeout(highlightTimer)
+  highlightTimer = window.setTimeout(() => {
+    highlightedMessageId.value = null
+    highlightedCommentId.value = null
+    highlightTimer = null
+  }, 3000)
+}
+
+function scrollToElement(id) {
+  return new Promise((resolve, reject) => {
+    window.requestAnimationFrame(() => {
+      const element = document.getElementById(id)
+      if (!element) {
+        reject(new Error('target not found'))
+        return
+      }
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      resolve()
+    })
+  })
+}
+
+async function markNotificationReadQuietly(id) {
+  try {
+    await notifications.markRead(id)
+  } catch {}
+}
+
 watch(() => props.storeVisible, (visible) => {
   const module = visible ? ACTIVITY_MODULES.shop : resolveActivityModule()
   setActivityModule(module)
@@ -386,6 +520,7 @@ function loadInitialFeed() {
   setTimeout(() => {
     fetchMessages()
     fetchTrending()
+    fetchTagSubscriptions()
   }, 300)
   fetchOnlineStats()
   onlineStatsTimer = window.setInterval(fetchOnlineStats, 5000)
@@ -402,6 +537,7 @@ function startHomeRuntime() {
   form.authorAlias = userStore.alias
 
   connectWS(userStore.userId)
+  notifications.fetchUnreadCount()
   setActivityModule(resolveActivityModule())
   trackActivity(ACTIVITY_EVENTS.viewFeed, ACTIVITY_MODULES.feed)
 
@@ -418,8 +554,10 @@ function stopHomeRuntime() {
   stopNetworkListeners()
   if (onlineStatsTimer) window.clearInterval(onlineStatsTimer)
   if (clockTimer) window.clearInterval(clockTimer)
+  if (highlightTimer) window.clearTimeout(highlightTimer)
   onlineStatsTimer = null
   clockTimer = null
+  highlightTimer = null
 }
 
 onMounted(startHomeRuntime)

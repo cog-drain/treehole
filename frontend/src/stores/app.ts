@@ -1,32 +1,29 @@
 /**
  * 全局应用 Store — 统一管理主题、能量、已购商品
- * 
- * 替代 App.vue 中 7 个分散的 localStorage 调用
  */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
 import { getJson, getString, remove, setJson, setString } from '@/utils/storage'
 
-export const useAppStore = defineStore('app', () => {
-  // ── 能量商店 ──
-  const energy = ref(1000)
-  const ownedItems = ref([])
+type StoreToggleKey = 'lain' | 'p5' | 'p5Aoa' | 'alterEgo' | 'camo'
 
-  // ── 动效开关 ──
+export const useAppStore = defineStore('app', () => {
+  const energy = ref(1000)
+  const ownedItems = ref<string[]>([])
+
   const lainEnabled = ref(false)
   const p5EffectEnabled = ref(false)
   const p5AoaEnabled = ref(false)
   const alterEgoEnabled = ref(false)
   const camoEnabled = ref(false)
 
-  // ── 初始化 ──
-  function init() {
+  function init(): void {
     document.documentElement.classList.remove('dark')
     remove('theme')
 
-    energy.value = parseInt(getString(STORAGE_KEYS.energy, '1000'))
-    ownedItems.value = getJson(STORAGE_KEYS.ownedItems, [])
+    energy.value = parseInt(getString(STORAGE_KEYS.energy, '1000'), 10)
+    ownedItems.value = getJson<string[]>(STORAGE_KEYS.ownedItems, [])
     lainEnabled.value = getString(STORAGE_KEYS.lainEnabled) === 'true'
     p5EffectEnabled.value = getString(STORAGE_KEYS.p5Enabled) === 'true'
     p5AoaEnabled.value = getString(STORAGE_KEYS.p5AoaEnabled) === 'true'
@@ -34,30 +31,26 @@ export const useAppStore = defineStore('app', () => {
     camoEnabled.value = getString(STORAGE_KEYS.camoEnabled) === 'true'
   }
 
-  // ── 持久化 ──
-  function persist() {
-    setString(STORAGE_KEYS.energy, energy.value)
+  function persist(): void {
+    setString(STORAGE_KEYS.energy, String(energy.value))
     setJson(STORAGE_KEYS.ownedItems, ownedItems.value)
-    setString(STORAGE_KEYS.lainEnabled, lainEnabled.value)
-    setString(STORAGE_KEYS.p5Enabled, p5EffectEnabled.value)
-    setString(STORAGE_KEYS.p5AoaEnabled, p5AoaEnabled.value)
-    setString(STORAGE_KEYS.alterEgoEnabled, alterEgoEnabled.value)
-    setString(STORAGE_KEYS.camoEnabled, camoEnabled.value)
+    setString(STORAGE_KEYS.lainEnabled, String(lainEnabled.value))
+    setString(STORAGE_KEYS.p5Enabled, String(p5EffectEnabled.value))
+    setString(STORAGE_KEYS.p5AoaEnabled, String(p5AoaEnabled.value))
+    setString(STORAGE_KEYS.alterEgoEnabled, String(alterEgoEnabled.value))
+    setString(STORAGE_KEYS.camoEnabled, String(camoEnabled.value))
   }
 
-  // ── 增加能量 ──
-  function addEnergy(amount) {
+  function addEnergy(amount: number): void {
     energy.value += amount
     persist()
   }
 
-  // ── 购买商品 ──
-  function buy(id, cost) {
+  function buy(id: string, cost: number): boolean {
     if (energy.value < cost) return false
     energy.value -= cost
     ownedItems.value.push(id)
 
-    // 购买后自动启用
     if (id === 'p5_effect') p5EffectEnabled.value = true
     if (id === 'p5_all_out_attack') p5AoaEnabled.value = true
     if (id === 'alter_ego') alterEgoEnabled.value = true
@@ -68,8 +61,7 @@ export const useAppStore = defineStore('app', () => {
     return true
   }
 
-  // ── 切换开关 ──
-  function toggle(key) {
+  function toggle(key: StoreToggleKey): void {
     const map = {
       lain: lainEnabled,
       p5: p5EffectEnabled,
@@ -84,8 +76,17 @@ export const useAppStore = defineStore('app', () => {
   }
 
   return {
-    energy, ownedItems,
-    lainEnabled, p5EffectEnabled, p5AoaEnabled, alterEgoEnabled, camoEnabled,
-    init, addEnergy, buy, toggle, persist
+    energy,
+    ownedItems,
+    lainEnabled,
+    p5EffectEnabled,
+    p5AoaEnabled,
+    alterEgoEnabled,
+    camoEnabled,
+    init,
+    addEnergy,
+    buy,
+    toggle,
+    persist
   }
 })

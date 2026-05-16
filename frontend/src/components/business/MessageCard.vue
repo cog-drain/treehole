@@ -13,7 +13,9 @@ const appStore = useAppStore()
 const props = defineProps({
   msg: Object,
   liked: Boolean,
-  isAdmin: Boolean
+  isAdmin: Boolean,
+  highlightedMessageId: { type: [String, Number], default: null },
+  highlightedCommentId: { type: [String, Number], default: null }
 })
 
 const emit = defineEmits(['like', 'toggle-comments', 'delete', 'delete-comment', 'publish-comment', 'tag-click', 'admin-ban', 'react', 'witness'])
@@ -25,6 +27,7 @@ const isResonant = computed(() => props.msg.coFrequency && !props.msg.isOwner)
 const toneMap = TONE_MODES
 const toneInfo = computed(() => props.msg.mood && toneMap[props.msg.mood] ? toneMap[props.msg.mood] : null)
 const isConfession = computed(() => props.msg.messageType === 'confession')
+const isNotificationHighlighted = computed(() => String(props.highlightedMessageId || '') === String(props.msg.id))
 </script>
 
 <template>
@@ -34,6 +37,7 @@ const isConfession = computed(() => props.msg.messageType === 'confession')
     :class="[
       'theme-' + (msg.theme || 'default'),
       isConfession ? 'confession-card' : '',
+      isNotificationHighlighted ? 'notification-highlight' : '',
       isResonant ? 'shadow-[0_0_50px_rgba(139,92,246,0.2)] border-purple-500/30 scale-[1.01]' : '',
       msg.isOwner && appStore.camoEnabled ? 'camo-effect' : ''
     ]"
@@ -65,6 +69,7 @@ const isConfession = computed(() => props.msg.messageType === 'confession')
       v-if="!isConfession && msg._showComments"
       :msg="msg"
       :is-admin="isAdmin"
+      :highlighted-comment-id="highlightedCommentId"
       @delete-comment="$emit('delete-comment', $event)"
       @publish-comment="$emit('publish-comment', $event)"
       @react="$emit('react')"

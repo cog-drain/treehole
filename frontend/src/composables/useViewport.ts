@@ -5,16 +5,16 @@ const MOBILE_BREAKPOINT = 768
 export function useViewport() {
   const isMobile = ref(window.innerWidth < MOBILE_BREAKPOINT)
 
-  function checkMobile() {
+  function checkMobile(): void {
     isMobile.value = window.innerWidth < MOBILE_BREAKPOINT
   }
 
-  function startViewportListeners() {
+  function startViewportListeners(): void {
     checkMobile()
     window.addEventListener('resize', checkMobile)
   }
 
-  function stopViewportListeners() {
+  function stopViewportListeners(): void {
     window.removeEventListener('resize', checkMobile)
   }
 

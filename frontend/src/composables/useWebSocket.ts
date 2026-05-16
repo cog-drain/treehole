@@ -14,7 +14,8 @@ import type {
   OnlineStats,
   ReactionUpdatePayload,
   RealtimeEnvelope,
-  RealtimeEventType
+  RealtimeEventType,
+  TreeholeNotification
 } from '@/types'
 
 interface BottleReplyPayload {
@@ -29,6 +30,7 @@ export interface WebSocketCallbacks {
   onOnlineStatsUpdate?: (data: OnlineStats) => void
   onConfessorReply?: (data: ConfessorReplyPayload) => void
   onConfessionWitnessUpdate?: (data: ConfessionWitnessPayload) => void
+  onNotificationCreated?: (data: TreeholeNotification) => void
 }
 
 const debugLog = (...args: unknown[]) => {
@@ -166,6 +168,10 @@ export function useWebSocket(callbacks: WebSocketCallbacks = {}) {
 
           case 'CONFESSION_WITNESS_UPDATE':
             callbacks.onConfessionWitnessUpdate?.(data as ConfessionWitnessPayload)
+            break
+
+          case 'NOTIFICATION_CREATED':
+            callbacks.onNotificationCreated?.(data as TreeholeNotification)
             break
         }
       } catch (e) {

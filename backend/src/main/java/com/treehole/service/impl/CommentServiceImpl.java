@@ -9,6 +9,7 @@ import com.treehole.mapper.CommentMapper;
 import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.CommentService;
 import com.treehole.service.MessageService;
+import com.treehole.service.NotificationService;
 import com.treehole.service.RedisRealtimeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -37,6 +38,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     private MessageService messageService;
     private final CacheInvalidationService cacheInvalidationService;
     private final RedisRealtimeService redisRealtimeService;
+    private final NotificationService notificationService;
     
     @Autowired
     private ObjectMapper objectMapper;
@@ -44,9 +46,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
 
-    public CommentServiceImpl(CacheInvalidationService cacheInvalidationService, RedisRealtimeService redisRealtimeService) {
+    public CommentServiceImpl(CacheInvalidationService cacheInvalidationService, RedisRealtimeService redisRealtimeService, NotificationService notificationService) {
         this.cacheInvalidationService = cacheInvalidationService;
         this.redisRealtimeService = redisRealtimeService;
+        this.notificationService = notificationService;
     }
 
     @Autowired
@@ -103,6 +106,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         redisRealtimeService.incrementMessageRank(comment.getMessageId(), 3);
         cacheInvalidationService.evictCommentAndMessageListCaches();
 
+        createCommentNotifications(targetMessage, comment, userId);
+
         // 核心：广播新评论
         try {
             Map<String, Object> broadcastData = new HashMap<>();
@@ -119,6 +124,24 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         result.put("comment", comment);
         result.put("userId", userId);
         return result;
+    }
+
+    private void createCommentNotifications(Message targetMessage, Comment comment, String actorId) {
+        if (comment.getParentId() == null) {
+            notificationService.createForMessageCommented(targetMessage, comment, actorId);
+            return;
+        }
+
+        Comment parentComment = this.getById(comment.getParentId());
+        if (parentComment == null) {
+            notificationService.createForMessageCommented(targetMessage, comment, actorId);
+            return;
+        }
+
+        notificationService.createForCommentReplied(targetMessage, parentComment, comment, actorId);
+        if (!Objects.equals(parentComment.getUserId(), targetMessage.getUserId())) {
+            notificationService.createForMessageCommented(targetMessage, comment, actorId);
+        }
     }
 
     @Override
@@ -212,6 +235,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
                     .set(Comment::getReactions, json));
                 redisRealtimeService.incrementMessageRank(comment.getMessageId(), 1);
                 cacheInvalidationService.evictCommentCaches();
+                Message message = messageService.getById(comment.getMessageId());
+                notificationService.createForCommentLiked(message, comment, userId);
                 
                 // WebSocket 广播评论表情更新
                 Map<String, Object> broadcastData = new HashMap<>();

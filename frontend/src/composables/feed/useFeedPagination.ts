@@ -1,9 +1,9 @@
 import { computed, ref } from 'vue'
-import { ElNotification } from 'element-plus'
+import { ElMessage, ElNotification } from 'element-plus'
 import api, { getOnlineStats, getTrendingTags } from '@/api'
 import { scrollToTop } from '@/utils/browser'
 import { createFeedMessageState } from '@/composables/feed/feedMessageState'
-import type { FeedMessage, Id, Message, OnlineStats, TrendingTag } from '@/types'
+import type { FeedMessage, Id, Message, OnlineStats, TagSubscription, TrendingTag } from '@/types'
 
 interface UseFeedPaginationOptions {
   readIds: { value: Set<Id> }
@@ -20,6 +20,8 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
   const total = ref(0)
   const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
   const trendingTags = ref<TrendingTag[]>([])
+  const tagSubscriptions = ref<TagSubscription[]>([])
+  const subscribedTagIds = computed(() => new Set(tagSubscriptions.value.map(item => String(item.tagId))))
   const activeTag = ref('')
   const onlineCount = ref(0)
   const onlineModules = ref<Record<string, number>>({})
@@ -28,6 +30,13 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
     try {
       const res = await getTrendingTags(12)
       trendingTags.value = res.data || []
+    } catch {}
+  }
+
+  async function fetchTagSubscriptions() {
+    try {
+      const res = await api.getTagSubscriptions()
+      tagSubscriptions.value = res.data || []
     } catch {}
   }
 
@@ -58,10 +67,40 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
     } catch {}
   }
 
+  async function locateMessageById(messageId: Id): Promise<FeedMessage> {
+    const existing = messages.value.find(message => String(message.id) === String(messageId))
+    if (existing) return existing
+
+    const res = await api.getMessageById(messageId)
+    const target = normalizeFeedMessage(res.data, readIds.value)
+    messages.value = [target, ...messages.value.filter(message => String(message.id) !== String(messageId))]
+    total.value = Math.max(total.value, messages.value.length)
+    return target
+  }
+
   function handleTagClick(tag: string) {
     activeTag.value = tag
     pageNum.value = 1
     fetchMessages()
+  }
+
+  async function toggleTagSubscription(tag: TrendingTag) {
+    if (!tag.id) return
+    const tagId = tag.id
+    const wasSubscribed = subscribedTagIds.value.has(String(tagId))
+    try {
+      if (wasSubscribed) {
+        await api.unsubscribeTag(tagId)
+        tagSubscriptions.value = tagSubscriptions.value.filter(item => String(item.tagId) !== String(tagId))
+        ElMessage.success('已取消订阅')
+      } else {
+        const res = await api.subscribeTag(tagId)
+        if (res.data) tagSubscriptions.value = [res.data, ...tagSubscriptions.value]
+        ElMessage.success('已订阅话题')
+      }
+    } catch {
+      ElMessage.warning('订阅状态暂时无法更新')
+    }
   }
 
   function clearTagFilter() {
@@ -83,13 +122,18 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
     total,
     totalPages,
     trendingTags,
+    tagSubscriptions,
+    subscribedTagIds,
     activeTag,
     onlineCount,
     onlineModules,
     fetchTrending,
+    fetchTagSubscriptions,
     fetchOnlineStats,
     fetchMessages,
+    locateMessageById,
     handleTagClick,
+    toggleTagSubscription,
     clearTagFilter,
     handlePageChange
   }

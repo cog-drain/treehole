@@ -8,6 +8,7 @@
       :depth="depth + 1"
       :max-depth="maxDepth"
       :default-expanded="depth + 1 < autoExpandDepth"
+      :highlighted-comment-id="highlightedCommentId"
       @reply="$emit('reply', $event)"
       @delete="$emit('delete', $event)"
       @react="$emit('react')"
@@ -27,6 +28,7 @@
         :depth="0"
         :max-depth="maxDepth"
         :default-expanded="false"
+        :highlighted-comment-id="highlightedCommentId"
         @reply="$emit('reply', $event)"
         @delete="$emit('delete', $event)"
         @react="$emit('react')"
@@ -43,7 +45,8 @@ const props = defineProps({
   comment: { type: Object, required: true },
   isAdmin: { type: Boolean, default: false },
   depth: { type: Number, default: 0 },
-  maxDepth: { type: Number, default: 4 }
+  maxDepth: { type: Number, default: 4 },
+  highlightedCommentId: { type: [String, Number], default: null }
 })
 
 defineEmits(['reply', 'delete', 'react'])
