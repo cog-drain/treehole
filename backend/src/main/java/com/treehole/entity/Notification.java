@@ -46,8 +46,16 @@ public class Notification {
     private String summary;
 
     @TableField("is_read")
-    private Boolean read;
+    private Boolean readStatus;
 
     @TableField("create_time")
     private LocalDateTime createTime;
+
+    public Boolean getRead() {
+        return readStatus;
+    }
+
+    public void setRead(Boolean read) {
+        this.readStatus = read;
+    }
 }

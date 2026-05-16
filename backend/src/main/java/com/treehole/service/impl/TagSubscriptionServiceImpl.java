@@ -133,7 +133,7 @@ public class TagSubscriptionServiceImpl extends ServiceImpl<TagSubscriptionMappe
                     .set(Notification::getMessageId, message.getId())
                     .set(Notification::getSummary, summary(tag.getName(), count))
                     .set(Notification::getCreateTime, LocalDateTime.now())
-                    .set(Notification::getRead, false));
+                    .set(Notification::getReadStatus, false));
             return;
         }
 

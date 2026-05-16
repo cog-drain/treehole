@@ -150,7 +150,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         Page<Notification> page = new Page<>(Math.max(1, pageNum), Math.min(Math.max(1, pageSize), 100));
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Notification::getRecipientId, recipientId);
-        if (unreadOnly) wrapper.eq(Notification::getRead, false);
+        if (unreadOnly) wrapper.eq(Notification::getReadStatus, false);
         wrapper.orderByDesc(Notification::getCreateTime).orderByDesc(Notification::getId);
         return this.page(page, wrapper).convert(this::toDTO);
     }
@@ -159,7 +159,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     public long countUnread(String recipientId) {
         requireIdentity(recipientId);
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Notification::getRecipientId, recipientId).eq(Notification::getRead, false);
+        wrapper.eq(Notification::getRecipientId, recipientId).eq(Notification::getReadStatus, false);
         return this.count(wrapper);
     }
 
@@ -170,7 +170,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         boolean updated = this.update(new LambdaUpdateWrapper<Notification>()
                 .eq(Notification::getId, notificationId)
                 .eq(Notification::getRecipientId, recipientId)
-                .set(Notification::getRead, true));
+                .set(Notification::getReadStatus, true));
         if (!updated) throw new BusinessException(ErrorCode.NOT_FOUND, "通知不存在");
     }
 
@@ -179,8 +179,8 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         requireIdentity(recipientId);
         this.update(new LambdaUpdateWrapper<Notification>()
                 .eq(Notification::getRecipientId, recipientId)
-                .eq(Notification::getRead, false)
-                .set(Notification::getRead, true));
+                .eq(Notification::getReadStatus, false)
+                .set(Notification::getReadStatus, true));
     }
 
     private Notification baseNotification(

@@ -59,6 +59,14 @@ class NotificationServiceImplTests {
     }
 
     @Test
+    void notificationSelectShouldAvoidReadKeywordAlias() {
+        String selectSql = TableInfoHelper.getTableInfo(Notification.class).getAllSqlSelect();
+
+        assertFalse(selectSql.contains(" AS read,"));
+        assertTrue(selectSql.contains("is_read"));
+    }
+
+    @Test
     void createShouldPersistValidMessageCommentNotification() {
         Message message = message(10L, "owner");
         Comment comment = comment(20L, 10L, "actor", null);
