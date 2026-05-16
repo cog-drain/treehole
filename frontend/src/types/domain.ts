@@ -17,6 +17,8 @@ export interface Comment {
   parentId?: number | string | null
   content: string
   authorAlias?: string
+  userId?: string
+  isOwner?: boolean
   createTime?: string
   likeCount?: number
   reactions?: string | Record<string, number>
@@ -27,6 +29,7 @@ export interface Comment {
 export interface Message {
   id: number | string
   content: string
+  userId?: string
   authorAlias?: string
   theme?: ThemeKey | string
   mood?: ToneKey | string
@@ -132,6 +135,38 @@ export interface GraphData {
 export interface OnlineStats {
   online: number
   modules?: Record<string, number>
+}
+
+export type RealtimeEventType =
+  | 'NEW_MESSAGE'
+  | 'NEW_COMMENT'
+  | 'OBSERVER_MESSAGE'
+  | 'REACTION_UPDATE'
+  | 'COMMENT_REACTION_UPDATE'
+  | 'ONLINE_STATS_UPDATE'
+  | 'CONFESSOR_REPLY'
+  | 'CONFESSION_WITNESS_UPDATE'
+
+export interface RealtimeEnvelope<T = unknown> {
+  type?: RealtimeEventType
+  msg?: string
+  data?: T
+}
+
+export interface ReactionUpdatePayload {
+  messageId: number | string
+  commentId?: number | string
+  reactions: string | Record<string, number>
+}
+
+export interface ConfessorReplyPayload {
+  messageId: number | string
+  reply: string
+}
+
+export interface ConfessionWitnessPayload {
+  messageId: number | string
+  witnessCount: number
 }
 
 export interface ActivityStats {

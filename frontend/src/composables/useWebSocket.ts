@@ -5,16 +5,40 @@
  * 通过回调 (callbacks) 将业务逻辑委托给调用方
  */
 import { onUnmounted } from 'vue'
-import { ElMessage, ElNotification } from 'element-plus'
+import { ElNotification } from 'element-plus'
+import type {
+  Comment,
+  ConfessionWitnessPayload,
+  ConfessorReplyPayload,
+  Message,
+  OnlineStats,
+  ReactionUpdatePayload,
+  RealtimeEnvelope,
+  RealtimeEventType
+} from '@/types'
 
-const debugLog = (...args) => {
+interface BottleReplyPayload {
+  replyContent?: string
+}
+
+export interface WebSocketCallbacks {
+  onNewMessage?: (data: Message) => void
+  onNewComment?: (data: Comment) => void
+  onObserverMessage?: (data: string) => void
+  onReactionUpdate?: (type: RealtimeEventType, data: ReactionUpdatePayload) => void
+  onOnlineStatsUpdate?: (data: OnlineStats) => void
+  onConfessorReply?: (data: ConfessorReplyPayload) => void
+  onConfessionWitnessUpdate?: (data: ConfessionWitnessPayload) => void
+}
+
+const debugLog = (...args: unknown[]) => {
   if (import.meta.env.DEV) console.debug(...args)
 }
 
-export function useWebSocket(callbacks = {}) {
-  let ws = null
-  let reconnectTimer = null
-  let heartbeatTimer = null
+export function useWebSocket(callbacks: WebSocketCallbacks = {}) {
+  let ws: WebSocket | null = null
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null
   let currentModule = 'feed'
   const HEARTBEAT_INTERVAL = 25000
 
@@ -38,7 +62,7 @@ export function useWebSocket(callbacks = {}) {
     }
   }
 
-  function sendActivity(action, module = currentModule) {
+  function sendActivity(action: string, module = currentModule) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return
     try {
       ws.send(JSON.stringify({ type: 'ACTIVITY', module, action, ts: Date.now() }))
@@ -47,12 +71,12 @@ export function useWebSocket(callbacks = {}) {
     }
   }
 
-  function setModule(module) {
+  function setModule(module: string) {
     currentModule = module || 'unknown'
     sendHeartbeat()
   }
 
-  function trackAction(action, module = currentModule) {
+  function trackAction(action: string, module = currentModule) {
     if (!action) return
     sendActivity(action, module)
   }
@@ -63,7 +87,7 @@ export function useWebSocket(callbacks = {}) {
     heartbeatTimer = window.setInterval(sendHeartbeat, HEARTBEAT_INTERVAL)
   }
 
-  function connect(userId) {
+  function connect(userId: string) {
     if (!userId) {
       console.error('WebSocket: userId is required')
       return
@@ -90,13 +114,14 @@ export function useWebSocket(callbacks = {}) {
 
     ws.onmessage = (event) => {
       try {
-        const { type, msg, data } = JSON.parse(event.data)
+        const { type, msg, data } = JSON.parse(event.data) as RealtimeEnvelope
 
         // 漂流瓶回响
         if (msg === 'BOTTLE_REPLIED') {
+          const reply = data as BottleReplyPayload
           ElNotification({
             title: '🌊 奇妙的回响',
-            message: `你在海边投下的瓶子收到了回信：\n"${data.replyContent}"`,
+            message: `你在海边投下的瓶子收到了回信：\n"${reply.replyContent}"`,
             type: 'success',
             position: 'bottom-right',
             duration: 0,
@@ -109,37 +134,38 @@ export function useWebSocket(callbacks = {}) {
         // 消息路由
         switch (type) {
           case 'NEW_MESSAGE':
-            callbacks.onNewMessage?.(data)
+            callbacks.onNewMessage?.(data as Message)
             break
 
           case 'NEW_COMMENT':
-            callbacks.onNewComment?.(data)
+            callbacks.onNewComment?.(data as Comment)
             break
 
           case 'OBSERVER_MESSAGE': {
             const now = Date.now()
-            if (data === lastObserverMessage && (now - lastObserverTime < 5000)) return
-            lastObserverMessage = data
+            const message = String(data)
+            if (message === lastObserverMessage && (now - lastObserverTime < 5000)) return
+            lastObserverMessage = message
             lastObserverTime = now
-            callbacks.onObserverMessage?.(data)
+            callbacks.onObserverMessage?.(message)
             break
           }
 
           case 'REACTION_UPDATE':
           case 'COMMENT_REACTION_UPDATE':
-            callbacks.onReactionUpdate?.(type, data)
+            callbacks.onReactionUpdate?.(type, data as ReactionUpdatePayload)
             break
 
           case 'ONLINE_STATS_UPDATE':
-            callbacks.onOnlineStatsUpdate?.(data)
+            callbacks.onOnlineStatsUpdate?.(data as OnlineStats)
             break
 
           case 'CONFESSOR_REPLY':
-            callbacks.onConfessorReply?.(data)
+            callbacks.onConfessorReply?.(data as ConfessorReplyPayload)
             break
 
           case 'CONFESSION_WITNESS_UPDATE':
-            callbacks.onConfessionWitnessUpdate?.(data)
+            callbacks.onConfessionWitnessUpdate?.(data as ConfessionWitnessPayload)
             break
         }
       } catch (e) {
@@ -150,7 +176,7 @@ export function useWebSocket(callbacks = {}) {
     ws.onclose = () => {
       stopHeartbeat()
       debugLog('WebSocket: Disconnected, retrying in 5s...')
-      reconnectTimer = setTimeout(() => connect(userId), 5000)
+      reconnectTimer = window.setTimeout(() => connect(userId), 5000)
     }
   }
 
