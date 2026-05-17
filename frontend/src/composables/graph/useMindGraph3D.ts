@@ -1,5 +1,5 @@
 import { onMounted, onUnmounted, ref, watch, type Ref } from 'vue'
-import api from '@/api'
+import { graphApi } from '@/api/modules/graph'
 import type { GraphData, GraphNode } from '@/types'
 import type { ForceGraphInstance, ForceGraph3DFactory } from '3d-force-graph'
 import type * as THREE from 'three'
@@ -64,7 +64,7 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
     async function init3DGraph(): Promise<void> {
         loading.value = true
         try {
-            const res = await api.getGraphData()
+            const res = await graphApi.getGraphData()
             const data = res.data
 
             if (!data.nodes || data.nodes.length === 0) return

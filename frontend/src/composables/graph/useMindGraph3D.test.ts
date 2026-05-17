@@ -59,8 +59,8 @@ vi.mock('vue', () => ({
     }
 }))
 
-vi.mock('@/api', () => ({
-    default: apiMock
+vi.mock('@/api/modules/graph', () => ({
+    graphApi: apiMock
 }))
 
 vi.mock('3d-force-graph', () => ({

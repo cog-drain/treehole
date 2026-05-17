@@ -1,11 +1,11 @@
-import api from '@/api'
+import { messageApi } from '@/api/modules/message'
 import { offlineQueue } from '@/utils/offlineQueue'
 
 export function useOfflineSyncOnOnline() {
     let started = false
 
     function syncOfflineQueue(): void {
-        offlineQueue.sync(api)
+        offlineQueue.sync(messageApi)
     }
 
     function startOfflineSync(): void {

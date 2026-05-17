@@ -15,8 +15,8 @@ vi.mock('element-plus', () => ({
     ElMessageBox: messageBox
 }))
 
-vi.mock('@/api', () => ({
-    default: {
+vi.mock('@/api/modules/identity', () => ({
+    identityApi: {
         adminLogin: vi.fn(),
         getBlacklist: vi.fn(),
         unbanIP: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('@/api', () => ({
     }
 }))
 
-import api from '@/api'
+import { identityApi } from '@/api/modules/identity'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
 import { useAdminPanel } from './useAdminPanel'
 
@@ -47,8 +47,8 @@ describe('useAdminPanel', () => {
     })
 
     it('logs in, stores the admin token, and fetches blacklist data', async () => {
-        vi.mocked(api.adminLogin).mockResolvedValue({ code: 200, data: 'token-1' })
-        vi.mocked(api.getBlacklist).mockResolvedValue({ code: 200, data: [{ ip: '127.0.0.1' }] })
+        vi.mocked(identityApi.adminLogin).mockResolvedValue({ code: 200, data: 'token-1' })
+        vi.mocked(identityApi.getBlacklist).mockResolvedValue({ code: 200, data: [{ ip: '127.0.0.1' }] })
         const admin = useAdminPanel()
         admin.adminLoginVisible.value = true
         admin.adminPassword.value = 'secret'
@@ -63,7 +63,7 @@ describe('useAdminPanel', () => {
     })
 
     it('clears password input after failed login', async () => {
-        vi.mocked(api.adminLogin).mockRejectedValue(new Error('bad password'))
+        vi.mocked(identityApi.adminLogin).mockRejectedValue(new Error('bad password'))
         const admin = useAdminPanel()
         admin.adminPassword.value = 'wrong'
 
@@ -93,30 +93,30 @@ describe('useAdminPanel', () => {
 
     it('changes password only when both fields are present, then exits', async () => {
         localStorage.setItem(STORAGE_KEYS.adminToken, 'token-1')
-        vi.mocked(api.resetAdminPassword).mockResolvedValue({ code: 200, data: null })
+        vi.mocked(identityApi.resetAdminPassword).mockResolvedValue({ code: 200, data: null })
         const admin = useAdminPanel()
         admin.pwdForm.oldPassword = 'old'
 
         await admin.handleChangePassword()
-        expect(api.resetAdminPassword).not.toHaveBeenCalled()
+        expect(identityApi.resetAdminPassword).not.toHaveBeenCalled()
 
         admin.pwdForm.newPassword = 'new'
         await admin.handleChangePassword()
 
-        expect(api.resetAdminPassword).toHaveBeenCalledWith('old', 'new')
+        expect(identityApi.resetAdminPassword).toHaveBeenCalledWith('old', 'new')
         expect(admin.isAdmin.value).toBe(false)
         expect(localStorage.getItem(STORAGE_KEYS.adminToken)).toBeNull()
     })
 
     it('uses the prompt reason when banning an IP and refreshes blacklist', async () => {
         messageBox.prompt.mockResolvedValue({ value: 'spam' })
-        vi.mocked(api.banIP).mockResolvedValue({ code: 200, data: null })
-        vi.mocked(api.getBlacklist).mockResolvedValue({ code: 200, data: [{ ip: '10.0.0.1' }] })
+        vi.mocked(identityApi.banIP).mockResolvedValue({ code: 200, data: null })
+        vi.mocked(identityApi.getBlacklist).mockResolvedValue({ code: 200, data: [{ ip: '10.0.0.1' }] })
         const admin = useAdminPanel()
 
         await admin.handleBanIP('10.0.0.1')
 
-        expect(api.banIP).toHaveBeenCalledWith('10.0.0.1', 'spam')
+        expect(identityApi.banIP).toHaveBeenCalledWith('10.0.0.1', 'spam')
         expect(admin.blacklist.value).toEqual([{ ip: '10.0.0.1' }])
         expect(message.success).toHaveBeenCalledWith('已封禁该 IP')
     })

@@ -1,6 +1,6 @@
 import { reactive, ref, type Ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import api from '@/api'
+import { identityApi } from '@/api/modules/identity'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
 import { getString, remove, setString } from '@/utils/storage'
 import type { BlacklistItem } from '@/types'
@@ -35,7 +35,7 @@ export function useAdminPanel() {
         const pwd = adminPassword.value.trim()
         if (!pwd) return
         try {
-            const res = await api.adminLogin(pwd)
+            const res = await identityApi.adminLogin(pwd)
             if (res.data) {
                 isAdmin.value = true
                 setString(STORAGE_KEYS.adminToken, res.data as string)
@@ -50,7 +50,7 @@ export function useAdminPanel() {
 
     async function fetchBlacklist(): Promise<void> {
         try {
-            blacklist.value = (await api.getBlacklist()).data || []
+            blacklist.value = (await identityApi.getBlacklist()).data || []
         } catch {
             /* network error */
         }
@@ -58,7 +58,7 @@ export function useAdminPanel() {
 
     async function handleUnban(ip: string): Promise<void> {
         try {
-            await api.unbanIP(ip)
+            await identityApi.unbanIP(ip)
             ElMessage.success('IP 已解封')
             fetchBlacklist()
         } catch {
@@ -71,7 +71,7 @@ export function useAdminPanel() {
         const newPassword = (pwdForm.newPassword || '').trim()
         if (!oldPassword || !newPassword) return
         try {
-            await api.resetAdminPassword(oldPassword, newPassword)
+            await identityApi.resetAdminPassword(oldPassword, newPassword)
             ElMessage.success('密码修改成功')
             exitAdmin()
         } catch {
@@ -94,7 +94,7 @@ export function useAdminPanel() {
                 cancelButtonText: '取消',
                 inputPlaceholder: '违反社区守则'
             })
-            await api.banIP(ip, value || '违反社区守则')
+            await identityApi.banIP(ip, value || '违反社区守则')
             ElMessage.success('已封禁该 IP')
             fetchBlacklist()
         } catch {

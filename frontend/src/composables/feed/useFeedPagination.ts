@@ -1,6 +1,8 @@
 import { computed, ref } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
-import api, { getOnlineStats, getTrendingTags } from '@/api'
+import { messageApi } from '@/api/modules/message'
+import { statsApi } from '@/api/modules/stats'
+import { tagSubscriptionApi } from '@/api/modules/tagSubscription'
 import { scrollToTop } from '@/utils/browser'
 import { createFeedMessageState } from '@/composables/feed/feedMessageState'
 import type { FeedMessage, Id, Message, OnlineStats, TagSubscription, TrendingTag } from '@/types'
@@ -28,7 +30,7 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
 
     async function fetchTrending() {
         try {
-            const res = await getTrendingTags(12)
+            const res = await messageApi.getTrendingTags(12)
             trendingTags.value = res.data || []
         } catch (error) {
             console.warn('Failed to load trending tags', error)
@@ -37,7 +39,7 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
 
     async function fetchTagSubscriptions() {
         try {
-            const res = await api.getTagSubscriptions()
+            const res = await tagSubscriptionApi.getSubscriptions()
             tagSubscriptions.value = res.data || []
         } catch (error) {
             console.warn('Failed to load tag subscriptions', error)
@@ -46,7 +48,7 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
 
     async function fetchOnlineStats() {
         try {
-            const res = await getOnlineStats()
+            const res = await statsApi.getOnlineStats()
             const data = res.data as OnlineStats | undefined
             onlineCount.value = Number(data?.online || 0)
             onlineModules.value = data?.modules || {}
@@ -58,8 +60,12 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
     async function fetchMessages() {
         try {
             const res = activeTag.value
-                ? await api.getMessagesByTag(activeTag.value, pageNum.value, pageSize.value)
-                : await api.getMessages(pageNum.value, pageSize.value)
+                ? await messageApi.getMessages({
+                      tag: activeTag.value,
+                      pageNum: pageNum.value,
+                      pageSize: pageSize.value
+                  })
+                : await messageApi.getMessages({ pageNum: pageNum.value, pageSize: pageSize.value })
             messages.value = (res.data.records || []).map(message => normalizeFeedMessage(message, readIds.value))
             total.value = Number(res.data.total)
             if (total.value === 0 && pageNum.value === 1 && !activeTag.value) {
@@ -80,7 +86,7 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
         const existing = messages.value.find(message => String(message.id) === String(messageId))
         if (existing) return existing
 
-        const res = await api.getMessageById(messageId)
+        const res = await messageApi.getMessage(messageId)
         const target = normalizeFeedMessage(res.data, readIds.value)
         messages.value = [target, ...messages.value.filter(message => String(message.id) !== String(messageId))]
         total.value = Math.max(total.value, messages.value.length)
@@ -99,11 +105,11 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
         const wasSubscribed = subscribedTagIds.value.has(String(tagId))
         try {
             if (wasSubscribed) {
-                await api.unsubscribeTag(tagId)
+                await tagSubscriptionApi.unsubscribe(tagId)
                 tagSubscriptions.value = tagSubscriptions.value.filter(item => String(item.tagId) !== String(tagId))
                 ElMessage.success('已取消订阅')
             } else {
-                const res = await api.subscribeTag(tagId)
+                const res = await tagSubscriptionApi.subscribe(tagId)
                 if (res.data) tagSubscriptions.value = [res.data, ...tagSubscriptions.value]
                 ElMessage.success('已订阅话题')
             }

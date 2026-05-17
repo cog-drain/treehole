@@ -7,9 +7,14 @@ vi.mock('element-plus', () => ({
     ElMessage: { success: vi.fn(), error: vi.fn(), warning: vi.fn() }
 }))
 
-vi.mock('@/api', () => ({
-    default: {
-        uploadFile: vi.fn(),
+vi.mock('@/api/modules/file', () => ({
+    fileApi: {
+        upload: vi.fn()
+    }
+}))
+
+vi.mock('@/api/modules/message', () => ({
+    messageApi: {
         publishMessage: vi.fn()
     }
 }))
@@ -18,7 +23,7 @@ vi.mock('@/utils/offlineQueue', () => ({
     offlineQueue: { push: vi.fn() }
 }))
 
-import api from '@/api'
+import { messageApi } from '@/api/modules/message'
 import { offlineQueue } from '@/utils/offlineQueue'
 function createOptions(overrides: Record<string, unknown> = {}) {
     const messages = ref<FeedMessage[]>([])
@@ -58,12 +63,12 @@ describe('useMessagePublishing', () => {
 
             await publishMessage()
 
-            expect(api.publishMessage).not.toHaveBeenCalled()
+            expect(messageApi.publishMessage).not.toHaveBeenCalled()
         })
 
         it('creates optimistic message, publishes and updates state on success', async () => {
             const mockMessage = { id: 99, content: 'hi', userId: 'u1' }
-            vi.mocked(api.publishMessage).mockResolvedValue({
+            vi.mocked(messageApi.publishMessage).mockResolvedValue({
                 code: 200,
                 data: { message: mockMessage }
             })
@@ -78,7 +83,7 @@ describe('useMessagePublishing', () => {
 
             await promise
 
-            expect(api.publishMessage).toHaveBeenCalled()
+            expect(messageApi.publishMessage).toHaveBeenCalled()
             expect(messages.value.length).toBeGreaterThan(0)
             expect(messages.value.at(0)?.isOptimistic).toBeUndefined()
             expect(publishing.value).toBe(false)
@@ -99,7 +104,7 @@ describe('useMessagePublishing', () => {
         })
 
         it('falls back to offline queue on Network Error', async () => {
-            vi.mocked(api.publishMessage).mockRejectedValue(
+            vi.mocked(messageApi.publishMessage).mockRejectedValue(
                 Object.assign(new Error('Network Error'), { name: 'Error' })
             )
             const { options } = createOptions({
@@ -121,11 +126,11 @@ describe('useMessagePublishing', () => {
             handlePublishButtonClick(true)
 
             expect(options.isConfessionMode.value).toBe(true)
-            expect(api.publishMessage).not.toHaveBeenCalled()
+            expect(messageApi.publishMessage).not.toHaveBeenCalled()
         })
 
         it('calls publishMessage outside midnight window', async () => {
-            vi.mocked(api.publishMessage).mockResolvedValue({
+            vi.mocked(messageApi.publishMessage).mockResolvedValue({
                 code: 200,
                 data: { message: { id: 1, content: 'x' } }
             })
@@ -136,7 +141,7 @@ describe('useMessagePublishing', () => {
 
             await handlePublishButtonClick(false)
 
-            expect(api.publishMessage).toHaveBeenCalled()
+            expect(messageApi.publishMessage).toHaveBeenCalled()
         })
     })
 

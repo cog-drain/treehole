@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { notificationApi } from '@/api'
+import { notificationApi } from '@/api/modules/notification'
 import type { Id, TreeholeNotification } from '@/types'
 
 const DEFAULT_PAGE_SIZE = 20

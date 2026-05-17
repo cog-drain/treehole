@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import api from '@/api'
+import { messageApi } from '@/api/modules/message'
 import { offlineQueue } from '@/utils/offlineQueue'
 import type { OfflineQueueItem } from '@/utils/offlineQueue'
 
@@ -47,7 +47,7 @@ export function useOfflineQueueDialog({ form, userStore }: DialogParams) {
     }
 
     async function syncOfflineQueue(): Promise<void> {
-        await offlineQueue.sync(api)
+        await offlineQueue.sync(messageApi)
         offlineList.value = offlineQueue.get()
         if (offlineList.value.length === 0) offlineDialogVisible.value = false
     }

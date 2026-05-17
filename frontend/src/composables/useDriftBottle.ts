@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import api, { pickBottle, returnBottle, throwBottle } from '@/api'
+import { bottleApi } from '@/api/modules/bottle'
 import type { Bottle, ComposeFormDraft, DriftBottleState } from '@/types'
 
 interface DriftBottleUserStore {
@@ -35,7 +35,7 @@ export function useDriftBottle({ userStore, appStore, form }: UseDriftBottleOpti
 
     async function handleThrowBottle(content?: string) {
         try {
-            await throwBottle({
+            await bottleApi.throwBottle({
                 content: content || newBottleContent.value,
                 authorAlias: userStore.alias,
                 theme: form.theme || 'default'
@@ -55,7 +55,7 @@ export function useDriftBottle({ userStore, appStore, form }: UseDriftBottleOpti
             await new Promise(resolve => {
                 setTimeout(resolve, 1500)
             })
-            const res = await pickBottle()
+            const res = await bottleApi.pickBottle()
             if (res.data) {
                 pickedBottle.value = res.data
                 bottleState.value = 'picked'
@@ -75,7 +75,7 @@ export function useDriftBottle({ userStore, appStore, form }: UseDriftBottleOpti
         const finalContent = content || replyContent.value
         if (!bottle || !finalContent?.trim()) return
         try {
-            await api.replyBottle(bottle.id, finalContent, userStore.alias)
+            await bottleApi.replyBottle(bottle.id, finalContent, userStore.alias)
             ElMessage.success('你的回信已顺着海流出发 ✨ (获得 5 ⚡)')
             appStore.addEnergy(5)
             bottleVisible.value = false
@@ -89,7 +89,7 @@ export function useDriftBottle({ userStore, appStore, form }: UseDriftBottleOpti
         const bottle = pickedBottle.value
         if (!bottle) return
         try {
-            await returnBottle(bottle.id)
+            await bottleApi.returnBottle(bottle.id)
             ElMessage.success('瓶子已重回大海的怀抱')
             bottleVisible.value = false
         } catch (error) {

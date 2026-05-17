@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import api from '@/api'
+import { fileApi } from '@/api/modules/file'
+import { messageApi } from '@/api/modules/message'
 import { offlineQueue } from '@/utils/offlineQueue'
 import { createFeedMessageState } from '@/composables/feed/feedMessageState'
 import type { FeedMessage, Message, MessageDraft } from '@/types'
@@ -88,19 +89,19 @@ export function useMessagePublishing({
             if (imageFile.value) {
                 const fd = new FormData()
                 fd.append('file', imageFile.value)
-                imageUrl = (await api.uploadFile(fd)).data
+                imageUrl = (await fileApi.upload(fd)).data
             }
             if (maskedAudioBlob.value) {
                 const fd = new FormData()
                 const ext = maskedAudioBlob.value.type.includes('webm') ? 'webm' : 'wav'
                 fd.append('file', maskedAudioBlob.value, `voice.${ext}`)
-                audioUrl = (await api.uploadFile(fd)).data
+                audioUrl = (await fileApi.upload(fd)).data
             }
 
             optimisticMessage.imageUrl = imageUrl
             optimisticMessage.audioUrl = audioUrl
 
-            const res = await api.publishMessage({ ...form, imageUrl, audioUrl, messageType: localMessageType })
+            const res = await messageApi.publishMessage({ ...form, imageUrl, audioUrl, messageType: localMessageType })
             if (res && res.code === 202) return
 
             const serverMessage = res?.data?.message as Message | undefined

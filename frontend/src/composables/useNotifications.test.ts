@@ -9,7 +9,7 @@ const api = vi.hoisted(() => ({
     markAllNotificationsRead: vi.fn()
 }))
 
-vi.mock('@/api', () => ({
+vi.mock('@/api/modules/notification', () => ({
     notificationApi: api
 }))
 

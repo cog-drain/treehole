@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import api from '@/api'
+import { messageApi } from '@/api/modules/message'
 import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
 
 export function useNetworkStatus() {
@@ -10,7 +10,7 @@ export function useNetworkStatus() {
     function handleOnline(): void {
         isOnline.value = true
         if (offlineQueueCount.value > 0) {
-            offlineQueue.sync(api)
+            offlineQueue.sync(messageApi)
         }
     }
 

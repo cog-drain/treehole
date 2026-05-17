@@ -1,6 +1,8 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
-import api, { CMT_TOKEN_KEY, getToken, MSG_TOKEN_KEY } from '@/api'
+import { commentApi } from '@/api/modules/comment'
+import { messageApi } from '@/api/modules/message'
 import { ACTIVITY_EVENTS, ACTIVITY_MODULES } from '@/constants/activityEvents'
+import { CMT_TOKEN_KEY, getToken, MSG_TOKEN_KEY } from '@/utils/tokens'
 import type { Comment, FeedMessage, Id } from '@/types'
 
 export function useCommentActions({
@@ -28,7 +30,7 @@ export function useCommentActions({
             return
         }
         try {
-            await api.likeMessage(msg.id)
+            await messageApi.likeMessage(msg.id)
             activity.track(ACTIVITY_EVENTS.likeMessage)
             likedIds.add(msg.id)
             msg.likes = (msg.likes || 0) + 1
@@ -49,7 +51,7 @@ export function useCommentActions({
             msg._read = true
             markAsRead(msg.id)
             try {
-                const res = await api.getComments(msg.id)
+                const res = await commentApi.getComments(msg.id)
                 msg._comments = res.data || []
                 if (msg._comments.some(comment => comment.coFrequency)) msg.coFrequency = true
             } catch (error) {
@@ -65,13 +67,13 @@ export function useCommentActions({
         if (!msg._commentText.trim() && !msg._commentImage) return
         msg._commenting = true
         try {
-            await api.publishComment({
+            await commentApi.publishComment({
                 messageId: msg.id,
                 content: msg._commentText.trim(),
                 imageUrl: msg._commentImage,
                 parentId: msg._replyToId || null
             })
-            const cmtRes = await api.getComments(msg.id)
+            const cmtRes = await commentApi.getComments(msg.id)
             msg._comments = [...(cmtRes.data || [])]
             msg.commentCount = (msg.commentCount || 0) + 1
             msg._commentText = ''
@@ -96,7 +98,7 @@ export function useCommentActions({
         }
         try {
             await ElMessageBox.confirm('确定要删除这条树洞吗？', '提示', { type: 'warning' })
-            await api.deleteMessage(msg.id)
+            await messageApi.deleteMessage(msg.id)
             ElMessage.success('已删除')
             fetchMessages()
         } catch (error) {
@@ -117,9 +119,9 @@ export function useCommentActions({
         }
         try {
             await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', { type: 'warning' })
-            await api.deleteComment(comment.id)
+            await commentApi.deleteComment(comment.id)
             ElMessage.success('评论已删除')
-            const res = await api.getComments(msg.id)
+            const res = await commentApi.getComments(msg.id)
             msg._comments = res.data || []
             msg.commentCount = Math.max(0, (msg.commentCount ?? 0) - 1)
         } catch (error) {
@@ -130,7 +132,7 @@ export function useCommentActions({
     async function witnessMessage(msg: FeedMessage) {
         if (msg.witnessedByMe) return
         try {
-            const res = await api.witnessMessage(msg.id)
+            const res = await messageApi.witnessMessage(msg.id)
             const data = res.data as { witnessCount?: number } | undefined
             msg.witnessCount = data?.witnessCount ?? (msg.witnessCount || 0) + 1
             msg.witnessedByMe = true

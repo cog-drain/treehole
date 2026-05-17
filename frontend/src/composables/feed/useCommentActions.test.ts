@@ -7,21 +7,30 @@ vi.mock('element-plus', () => ({
     ElMessageBox: { confirm: vi.fn() }
 }))
 
-vi.mock('@/api', () => ({
-    default: {
+vi.mock('@/api/modules/message', () => ({
+    messageApi: {
         likeMessage: vi.fn(),
+        deleteMessage: vi.fn(),
+        witnessMessage: vi.fn()
+    }
+}))
+
+vi.mock('@/api/modules/comment', () => ({
+    commentApi: {
         getComments: vi.fn(),
         publishComment: vi.fn(),
-        deleteMessage: vi.fn(),
-        deleteComment: vi.fn(),
-        witnessMessage: vi.fn()
-    },
+        deleteComment: vi.fn()
+    }
+}))
+
+vi.mock('@/utils/tokens', () => ({
     CMT_TOKEN_KEY: 'cmt_token',
     getToken: vi.fn(() => ''),
     MSG_TOKEN_KEY: 'msg_token'
 }))
 
-import api from '@/api'
+import { commentApi } from '@/api/modules/comment'
+import { messageApi } from '@/api/modules/message'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 function createOptions(overrides: Record<string, unknown> = {}) {
@@ -80,7 +89,7 @@ describe('useCommentActions', () => {
 
     describe('likeMessage', () => {
         it('calls API and increments likes on success', async () => {
-            vi.mocked(api.likeMessage).mockResolvedValue({ code: 200, data: null })
+            vi.mocked(messageApi.likeMessage).mockResolvedValue({ code: 200, data: null })
             const { options, likedIds, energyLog, activityLog } = createOptions()
             const { likeMessage } = useCommentActions(options)
             const msg = createMsg()
@@ -101,12 +110,12 @@ describe('useCommentActions', () => {
 
             await likeMessage(msg)
 
-            expect(api.likeMessage).not.toHaveBeenCalled()
+            expect(messageApi.likeMessage).not.toHaveBeenCalled()
             expect(vi.mocked(ElMessage.info)).toHaveBeenCalledWith('已经点过赞啦 ❤️')
         })
 
         it('silently catches API errors', async () => {
-            vi.mocked(api.likeMessage).mockRejectedValue(new Error('fail'))
+            vi.mocked(messageApi.likeMessage).mockRejectedValue(new Error('fail'))
             const { options } = createOptions()
             const { likeMessage } = useCommentActions(options)
 
@@ -116,7 +125,7 @@ describe('useCommentActions', () => {
 
     describe('toggleComments', () => {
         it('opens comments, fetches them, and tracks activity', async () => {
-            vi.mocked(api.getComments).mockResolvedValue({ code: 200, data: [{ id: 10, content: 'c1' }] })
+            vi.mocked(commentApi.getComments).mockResolvedValue({ code: 200, data: [{ id: 10, content: 'c1' }] })
             const { options, readIds, activityLog } = createOptions()
             const { toggleComments } = useCommentActions(options)
             const msg = createMsg()
@@ -150,19 +159,19 @@ describe('useCommentActions', () => {
 
             await publishComment(msg)
 
-            expect(api.publishComment).not.toHaveBeenCalled()
+            expect(commentApi.publishComment).not.toHaveBeenCalled()
         })
 
         it('publishes comment and refreshes list', async () => {
-            vi.mocked(api.publishComment).mockResolvedValue({ code: 200, data: { id: 20, content: 'new' } })
-            vi.mocked(api.getComments).mockResolvedValue({ code: 200, data: [{ id: 20, content: 'new' }] })
+            vi.mocked(commentApi.publishComment).mockResolvedValue({ code: 200, data: { id: 20, content: 'new' } })
+            vi.mocked(commentApi.getComments).mockResolvedValue({ code: 200, data: [{ id: 20, content: 'new' }] })
             const { options, energyLog } = createOptions()
             const { publishComment } = useCommentActions(options)
             const msg = createMsg({ _commentText: 'hello' })
 
             await publishComment(msg)
 
-            expect(api.publishComment).toHaveBeenCalledWith({
+            expect(commentApi.publishComment).toHaveBeenCalledWith({
                 messageId: 1,
                 content: 'hello',
                 imageUrl: null,
@@ -187,14 +196,14 @@ describe('useCommentActions', () => {
 
         it('deletes and re-fetches after confirmation', async () => {
             vi.mocked(ElMessageBox.confirm).mockResolvedValue('confirm' as never)
-            vi.mocked(api.deleteMessage).mockResolvedValue({ code: 200, data: null })
+            vi.mocked(messageApi.deleteMessage).mockResolvedValue({ code: 200, data: null })
             const { options } = createOptions()
             const { deleteMessage } = useCommentActions(options)
             const msg = createMsg()
 
             await deleteMessage(msg)
 
-            expect(api.deleteMessage).toHaveBeenCalledWith(1)
+            expect(messageApi.deleteMessage).toHaveBeenCalledWith(1)
             expect(options.fetchMessages).toHaveBeenCalled()
         })
     })
@@ -212,15 +221,15 @@ describe('useCommentActions', () => {
 
         it('deletes comment and refreshes after confirmation', async () => {
             vi.mocked(ElMessageBox.confirm).mockResolvedValue('confirm' as never)
-            vi.mocked(api.deleteComment).mockResolvedValue({ code: 200, data: null })
-            vi.mocked(api.getComments).mockResolvedValue({ code: 200, data: [] })
+            vi.mocked(commentApi.deleteComment).mockResolvedValue({ code: 200, data: null })
+            vi.mocked(commentApi.getComments).mockResolvedValue({ code: 200, data: [] })
             const { options } = createOptions()
             const { handleDeleteComment } = useCommentActions(options)
             const msg = createMsg({ commentCount: 2 })
 
             await handleDeleteComment({ msg, comment: { id: 5, content: '', isOwner: true } })
 
-            expect(api.deleteComment).toHaveBeenCalledWith(5)
+            expect(commentApi.deleteComment).toHaveBeenCalledWith(5)
             expect(msg.commentCount).toBe(1)
         })
     })
@@ -233,11 +242,11 @@ describe('useCommentActions', () => {
 
             await witnessMessage(msg)
 
-            expect(api.witnessMessage).not.toHaveBeenCalled()
+            expect(messageApi.witnessMessage).not.toHaveBeenCalled()
         })
 
         it('calls API and updates witness state on success', async () => {
-            vi.mocked(api.witnessMessage).mockResolvedValue({ code: 200, data: { witnessCount: 5 } })
+            vi.mocked(messageApi.witnessMessage).mockResolvedValue({ code: 200, data: { witnessCount: 5 } })
             const { options } = createOptions()
             const { witnessMessage } = useCommentActions(options)
             const msg = createMsg({ witnessCount: 1 })

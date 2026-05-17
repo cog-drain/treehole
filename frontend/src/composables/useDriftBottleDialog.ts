@@ -1,5 +1,5 @@
 import { computed, ref, watch } from 'vue'
-import api from '@/api'
+import { bottleApi } from '@/api/modules/bottle'
 import type { Bottle, DriftBottleState } from '@/types'
 
 export interface DriftBottleDialogProps {
@@ -88,7 +88,7 @@ export function useDriftBottleDialog(props: DriftBottleDialogProps, emit: DriftB
     async function handleOpenInbox() {
         state.value = 'my-bottles'
         try {
-            const res = await api.getMyBottles()
+            const res = await bottleApi.getMyBottles()
             myBottles.value = res.data || []
         } catch (e) {
             console.error('Fetch my bottles failed:', e)

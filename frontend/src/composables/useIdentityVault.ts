@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import api from '@/api'
+import { identityApi } from '@/api/modules/identity'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
 import { setJson } from '@/utils/storage'
 import { reloadPage } from '@/utils/browser'
@@ -12,7 +12,7 @@ export function useIdentityVault() {
 
     async function handleBackup(): Promise<void> {
         try {
-            const res = await api.backupIdentity()
+            const res = await identityApi.backup()
             recoveryKey.value = (res.data as Record<string, string>).recoveryKey ?? ''
             ElMessage.success('备份密钥已生成')
         } catch {
@@ -22,7 +22,7 @@ export function useIdentityVault() {
 
     async function handleRestore(): Promise<void> {
         try {
-            const res = await api.restoreIdentity(inputKey.value)
+            const res = await identityApi.restore(inputKey.value)
             if (res.code === 0 || res.code === 200) {
                 setJson(STORAGE_KEYS.identity, { userId: res.data, createdAt: Date.now() })
                 ElMessage.success('身份还原成功，正在重载...')
