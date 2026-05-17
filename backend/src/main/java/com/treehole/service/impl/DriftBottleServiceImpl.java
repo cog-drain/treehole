@@ -8,7 +8,7 @@ import com.treehole.common.ErrorCode;
 import com.treehole.entity.DriftBottle;
 import com.treehole.mapper.DriftBottleMapper;
 import com.treehole.service.DriftBottleService;
-import com.treehole.service.RedisRealtimeService;
+import com.treehole.service.RealtimeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, DriftBottle> implements DriftBottleService {
 
-    private final RedisRealtimeService redisRealtimeService;
+    private final RealtimeService realtimeService;
 
     @Override
     @Transactional
@@ -34,7 +34,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
         bottle.setUserId(userId);
         bottle.setState(0); // 漂流中
         this.save(bottle);
-        redisRealtimeService.addBottleToPool(bottle.getId());
+        realtimeService.addBottleToPool(bottle.getId());
     }
 
     @Override
@@ -55,7 +55,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
                .set(DriftBottle::getState, 0)
                .set(DriftBottle::getPickerId, null);
         this.update(reclaim);
-        staleBottles.forEach(b -> redisRealtimeService.addBottleToPool(b.getId()));
+        staleBottles.forEach(b -> realtimeService.addBottleToPool(b.getId()));
 
         // 2. 优先从 Redis 候选池随机抽样，避免数据库 ORDER BY RAND() 成为热路径
         DriftBottle bottle = pickFromRedisPool(userId);
@@ -78,7 +78,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
     }
 
     private DriftBottle pickFromRedisPool(String userId) {
-        Set<String> candidates = redisRealtimeService.sampleBottleIds(10);
+        Set<String> candidates = realtimeService.sampleBottleIds(10);
         if (candidates == null || candidates.isEmpty()) return null;
 
         for (String candidate : candidates) {
@@ -91,7 +91,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
 
             DriftBottle bottle = this.getById(bottleId);
             if (bottle == null || bottle.getState() == null || bottle.getState() != 0) {
-                redisRealtimeService.removeBottleFromPool(bottleId);
+                realtimeService.removeBottleFromPool(bottleId);
                 continue;
             }
             if (userId.equals(bottle.getUserId()) || userId.equals(bottle.getLastPickerId())) {
@@ -111,7 +111,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
                      .set(DriftBottle::getState, 1)
                      .set(DriftBottle::getPickerId, userId);
         this.update(updateWrapper);
-        redisRealtimeService.removeBottleFromPool(bottle.getId());
+        realtimeService.removeBottleFromPool(bottle.getId());
 
         bottle.setState(1);
         bottle.setPickerId(userId);
@@ -133,7 +133,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
         bottle.setReplyTime(LocalDateTime.now());
         bottle.setState(2); // 已归还/完成
         this.updateById(bottle);
-        redisRealtimeService.removeBottleFromPool(id);
+        realtimeService.removeBottleFromPool(id);
 
         // 实时通知原作者
         try {
@@ -159,7 +159,7 @@ public class DriftBottleServiceImpl extends ServiceImpl<DriftBottleMapper, Drift
         bottle.setPickerId(null);
         bottle.setLastPickerId(userId); // 标记此用户已看过并放回
         this.updateById(bottle);
-        redisRealtimeService.addBottleToPool(id);
+        realtimeService.addBottleToPool(id);
     }
 
     @Override

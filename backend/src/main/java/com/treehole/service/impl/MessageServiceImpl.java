@@ -16,7 +16,7 @@ import com.treehole.mapper.MessageMapper;
 import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.MessageService;
 import com.treehole.service.NotificationService;
-import com.treehole.service.RedisRealtimeService;
+import com.treehole.service.RealtimeService;
 import com.treehole.service.TagService;
 import com.treehole.service.TagSubscriptionService;
 import com.treehole.service.AIService;
@@ -30,6 +30,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -51,8 +52,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private final AIService aiService;
     private final ObjectMapper objectMapper;
     private final CacheInvalidationService cacheInvalidationService;
-    private final RedisRealtimeService redisRealtimeService;
-    private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+    private final RealtimeService realtimeService;
     private final ConfessionWitnessMapper confessionWitnessMapper;
     private final NotificationService notificationService;
     private final TagSubscriptionService tagSubscriptionService;
@@ -77,16 +77,14 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         // 发帖频率限流：同一用户 10 秒内只能发一条
         String rateKey = "treehole:rate:msg:id:" + userId;
-        Boolean isAllowed = stringRedisTemplate.opsForValue().setIfAbsent(rateKey, "1", java.time.Duration.ofSeconds(10));
-        if (Boolean.FALSE.equals(isAllowed)) {
+        if (!realtimeService.tryAcquireRateLimit(rateKey, Duration.ofSeconds(10))) {
             throw new BusinessException(ErrorCode.FREQ_LIMIT, "发帖太频繁啦，请休息片刻 (10秒冷却)");
         }
 
         // IP 双重限流：同一 IP 10 秒内只能发一条 (防刷)
         if (message.getIpAddress() != null && !message.getIpAddress().isBlank()) {
             String ipRateKey = "treehole:rate:msg:ip:" + message.getIpAddress();
-            Boolean ipAllowed = stringRedisTemplate.opsForValue().setIfAbsent(ipRateKey, "1", java.time.Duration.ofSeconds(10));
-            if (Boolean.FALSE.equals(ipAllowed)) {
+            if (!realtimeService.tryAcquireRateLimit(ipRateKey, Duration.ofSeconds(10))) {
                 throw new BusinessException(ErrorCode.FREQ_LIMIT, "该 IP 发帖太频繁，请稍后再试");
             }
         }
@@ -133,7 +131,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         if (!confession) {
             tagService.extractAndSaveTags(message.getId(), message.getContent());
             tagSubscriptionService.notifySubscribersForMessage(message);
-            redisRealtimeService.incrementMessageRank(message.getId(), 5);
+            realtimeService.incrementMessageRank(message.getId(), 5);
         }
         cacheInvalidationService.evictMessageStructureCaches();
 
@@ -177,7 +175,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 this.update(new LambdaUpdateWrapper<Message>()
                     .eq(Message::getId, message.getId())
                     .setSql("comment_count = comment_count + 1"));
-                redisRealtimeService.incrementMessageRank(message.getId(), 3);
+                realtimeService.incrementMessageRank(message.getId(), 3);
                 cacheInvalidationService.evictCommentAndMessageListCaches();
 
                 // 通过 WebSocket 广播这条“温暖的回响”
@@ -390,7 +388,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         wrapper.eq(Message::getId, id)
                .setSql("likes = likes + 1");
         boolean updated = this.update(wrapper);
-        redisRealtimeService.incrementMessageRank(id, 2);
+        realtimeService.incrementMessageRank(id, 2);
         cacheInvalidationService.evictMessageListCaches();
         if (updated && message != null && userId != null && !userId.isBlank()) {
             notificationService.createForMessageLiked(message, userId);
@@ -415,7 +413,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         tagService.decrementTagsForMessage(id);
         this.removeById(id);
-        redisRealtimeService.removeMessageRank(id);
+        realtimeService.removeMessageRank(id);
         cacheInvalidationService.evictMessageStructureCaches();
         cacheInvalidationService.evictCommentCaches();
     }
@@ -432,12 +430,12 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         synchronized (("msg_react_" + id).intern()) {
             try {
-                Map<String, Integer> reactionMap = redisRealtimeService.updateReaction("msg", id, userId, emoji, message.getReactions());
-                String json = redisRealtimeService.toReactionJson(reactionMap);
+                Map<String, Integer> reactionMap = realtimeService.updateReaction("msg", id, userId, emoji, message.getReactions());
+                String json = realtimeService.toReactionJson(reactionMap);
                 this.update(new LambdaUpdateWrapper<Message>()
                     .eq(Message::getId, id)
                     .set(Message::getReactions, json));
-                redisRealtimeService.incrementMessageRank(id, 1);
+                realtimeService.incrementMessageRank(id, 1);
                 cacheInvalidationService.evictMessageListCaches();
                 
                 // WebSocket 广播表情更新
@@ -514,7 +512,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         for (Message message : expired) {
             tagService.decrementTagsForMessage(message.getId());
-            redisRealtimeService.removeMessageRank(message.getId());
+            realtimeService.removeMessageRank(message.getId());
         }
         this.removeBatchByIds(expired.stream().map(Message::getId).toList());
         cacheInvalidationService.evictMessageStructureCaches();

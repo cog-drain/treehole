@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.treehole.entity.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,8 +19,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@Profile("!demo")
 @RequiredArgsConstructor
-public class RedisRealtimeService {
+public class RedisRealtimeService implements RealtimeService {
 
     private static final String BOTTLE_POOL_KEY = "treehole:bottle:pool";
     private static final String MESSAGE_RANK_KEY = "treehole:rank:messages";
@@ -32,18 +35,28 @@ public class RedisRealtimeService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
+    @Override
+    public boolean tryAcquireRateLimit(String key, Duration ttl) {
+        Boolean allowed = redisTemplate.opsForValue().setIfAbsent(key, "1", ttl);
+        return !Boolean.FALSE.equals(allowed);
+    }
+
+    @Override
     public void addBottleToPool(Long bottleId) {
         if (bottleId != null) redisTemplate.opsForSet().add(BOTTLE_POOL_KEY, bottleId.toString());
     }
 
+    @Override
     public void removeBottleFromPool(Long bottleId) {
         if (bottleId != null) redisTemplate.opsForSet().remove(BOTTLE_POOL_KEY, bottleId.toString());
     }
 
+    @Override
     public Set<String> sampleBottleIds(int count) {
         return redisTemplate.opsForSet().distinctRandomMembers(BOTTLE_POOL_KEY, count);
     }
 
+    @Override
     public Map<String, Integer> updateReaction(String type, Long targetId, String userId, String emoji, String dbSnapshotJson) {
         String usersKey = "treehole:react:" + type + ":" + targetId + ":users";
         String countsKey = "treehole:react:" + type + ":" + targetId + ":counts";
@@ -70,6 +83,7 @@ public class RedisRealtimeService {
         return readReactionCounts(countsKey);
     }
 
+    @Override
     public String toReactionJson(Map<String, Integer> reactionCounts) {
         try {
             return objectMapper.writeValueAsString(reactionCounts);
@@ -78,22 +92,26 @@ public class RedisRealtimeService {
         }
     }
 
+    @Override
     public void incrementMessageRank(Long messageId, double score) {
         if (messageId == null) return;
         Double newScore = redisTemplate.opsForZSet().incrementScore(MESSAGE_RANK_KEY, messageId.toString(), score);
         if (newScore != null && newScore <= 0) redisTemplate.opsForZSet().remove(MESSAGE_RANK_KEY, messageId.toString());
     }
 
+    @Override
     public void removeMessageRank(Long messageId) {
         if (messageId != null) redisTemplate.opsForZSet().remove(MESSAGE_RANK_KEY, messageId.toString());
     }
 
+    @Override
     public void incrementTagRank(String tagName, double score) {
         if (tagName == null || tagName.isBlank()) return;
         Double newScore = redisTemplate.opsForZSet().incrementScore(TAG_RANK_KEY, tagName, score);
         if (newScore != null && newScore <= 0) redisTemplate.opsForZSet().remove(TAG_RANK_KEY, tagName);
     }
 
+    @Override
     public List<Tag> mergeTagRank(List<Tag> dbTags, int limit) {
         Set<String> rankedNames = redisTemplate.opsForZSet().reverseRange(TAG_RANK_KEY, 0, Math.max(0, limit - 1));
         if (rankedNames == null || rankedNames.isEmpty()) return dbTags;
@@ -113,6 +131,7 @@ public class RedisRealtimeService {
                 .toList();
     }
 
+    @Override
     public void markUserOnline(String userId, String sessionId) {
         String member = sessionMember(userId, sessionId);
         if (member == null) return;
@@ -120,6 +139,7 @@ public class RedisRealtimeService {
         pruneOfflineUsers();
     }
 
+    @Override
     public void markUserModuleActive(String userId, String sessionId, String module) {
         String member = sessionMember(userId, sessionId);
         if (member == null) return;
@@ -128,12 +148,14 @@ public class RedisRealtimeService {
         pruneOfflineUsers();
     }
 
+    @Override
     public void recordAction(String action) {
         String normalizedAction = normalizeToken(action, null);
         if (normalizedAction == null) return;
         redisTemplate.opsForZSet().incrementScore(ACTION_RANK_KEY, normalizedAction, 1);
     }
 
+    @Override
     public Map<String, Long> countActiveModules() {
         pruneOfflineUsers();
         Map<String, Long> counts = new LinkedHashMap<>();
@@ -143,6 +165,7 @@ public class RedisRealtimeService {
         return counts;
     }
 
+    @Override
     public Map<String, Long> topActions(int limit) {
         Set<String> actions = redisTemplate.opsForZSet().reverseRange(ACTION_RANK_KEY, 0, Math.max(0, limit - 1));
         if (actions == null || actions.isEmpty()) return Collections.emptyMap();
@@ -155,6 +178,7 @@ public class RedisRealtimeService {
         return result;
     }
 
+    @Override
     public void markUserOffline(String userId, String sessionId) {
         String member = sessionMember(userId, sessionId);
         if (member == null) return;
@@ -164,6 +188,7 @@ public class RedisRealtimeService {
         }
     }
 
+    @Override
     public long countOnlineUsers() {
         pruneOfflineUsers();
         Set<String> members = redisTemplate.opsForZSet().range(ONLINE_USERS_KEY, 0, -1);

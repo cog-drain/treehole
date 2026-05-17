@@ -100,6 +100,187 @@ docker compose exec redis redis-cli KEYS 'treehole::*'
 docker compose exec redis redis-cli TTL 'treehole::graphData::latest'
 ```
 
+## Windows 原生部署（后端 Jar + 前端静态文件）
+
+如果要在另一台 Windows 设备上不用 Docker 运行完整应用，可以采用：
+
+- MySQL 8 或 MariaDB：持久化业务数据。
+- Memurai：Windows 原生 Redis-compatible 服务，用于缓存、限流、在线状态、热度排行和实时统计。
+- Java 17：运行 Spring Boot 后端 Jar。
+- Nginx for Windows：托管 Vite 打包后的静态文件，并反代 `/api`、`/uploads`、`/ws` 到后端。
+
+前端生产代码当前使用相对路径：
+
+- API：`/api`
+- 上传文件访问：`/uploads`
+- WebSocket：`/ws/treehole/{userId}`
+
+因此 Windows 原生部署时通常不需要配置 `VITE_API_BASE_URL`，关键是 Nginx 反代路径要正确。
+
+### 1. 准备 Windows 目录
+
+推荐目录结构：
+
+```text
+C:\treehole\
+  backend\
+    treehole-backend.jar
+  frontend\
+    index.html
+    assets\
+  storage\
+    uploads\
+    logs\
+  .env
+```
+
+仓库内提供了三个模板：
+
+- `.env.windows.example`：Windows 原生运行环境变量模板。
+- `scripts/windows/start-backend.ps1`：读取 `C:\treehole\.env` 并启动 Jar。
+- `deploy/windows/nginx-treehole.conf`：Windows Nginx 站点配置模板。
+
+### 2. 准备 `.env`
+
+复制模板到 Windows 运行目录：
+
+```powershell
+copy .env.windows.example C:\treehole\.env
+```
+
+按实际情况替换占位符：
+
+```env
+SPRING_PROFILES_ACTIVE=prod
+BACKEND_PORT=24191
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=treehole
+DB_USER=treehole_user
+DB_USER_PASSWORD=your_db_password
+
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+
+AI_API_KEY=your_ai_key
+
+UPLOAD_PATH=C:/treehole/storage/uploads
+LOG_PATH=C:/treehole/storage/logs
+```
+
+注意：
+
+- `.env` 不会被 `java -jar` 自动读取，需要通过 PowerShell 脚本或系统服务注入。
+- Windows 路径建议在环境变量中写成 `C:/treehole/storage/uploads` 这种格式。
+- 当前 `prod` 配置没有读取 `REDIS_PASSWORD`，如果给 Redis-compatible 服务加密码，需要同步扩展后端配置。
+
+### 3. 初始化数据库
+
+先在 MySQL/MariaDB 中创建数据库和业务账号，然后在项目根目录执行：
+
+```powershell
+mysql -u treehole_user -p treehole < database\01_init.sql
+```
+
+如果是已有数据库升级，还需要执行最新迁移：
+
+```powershell
+mysql -u treehole_user -p treehole < database\03_add_camo_effect.sql
+```
+
+如需导入演示数据：
+
+```powershell
+mysql -u treehole_user -p treehole < database\02_test_data.sql
+```
+
+### 4. 打包并复制后端 Jar
+
+```powershell
+cd backend
+mvn clean package -DskipTests
+copy target\*.jar C:\treehole\backend\treehole-backend.jar
+cd ..
+```
+
+启动后端：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\start-backend.ps1
+```
+
+如果脚本不在当前仓库目录执行，可以指定路径：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\start-backend.ps1 `
+  -EnvFile C:\treehole\.env `
+  -JarPath C:\treehole\backend\treehole-backend.jar
+```
+
+后端检查：
+
+```powershell
+curl http://127.0.0.1:24191/api/messages
+```
+
+### 5. 打包并复制前端静态文件
+
+```powershell
+cd frontend
+pnpm install
+pnpm build
+```
+
+将 `frontend\dist\` 下的内容复制到：
+
+```text
+C:\treehole\frontend\
+```
+
+### 6. 配置 Windows Nginx
+
+将 `deploy/windows/nginx-treehole.conf` 合并到 Windows Nginx 配置中，或作为站点配置引用。默认配置假设：
+
+- 静态文件目录：`C:/treehole/frontend`
+- 后端地址：`http://127.0.0.1:24191`
+- 对外 HTTP 端口：`80`
+
+核心反代路径：
+
+```nginx
+location /api/ {
+    proxy_pass http://127.0.0.1:24191;
+}
+
+location /uploads/ {
+    proxy_pass http://127.0.0.1:24191;
+}
+
+location /ws/ {
+    proxy_pass http://127.0.0.1:24191;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+```
+
+启动或重载 Nginx 后访问：
+
+```text
+http://localhost
+```
+
+如果要让局域网其它设备访问，使用 Windows 设备的局域网 IP，并在 Windows 防火墙中开放 `80` 端口。
+
+### 7. Windows 启动顺序
+
+1. 启动 MySQL/MariaDB。
+2. 启动 Memurai。
+3. 运行 `scripts/windows/start-backend.ps1` 启动后端 Jar。
+4. 启动或重载 Nginx。
+5. 浏览器访问 `http://localhost` 或 `http://<Windows设备IP>`。
+
 ## 测试数据导入
 
 `database/02_test_data.sql` 可重复导入（`INSERT IGNORE`），并会在末尾刷新 `message.comment_count`。

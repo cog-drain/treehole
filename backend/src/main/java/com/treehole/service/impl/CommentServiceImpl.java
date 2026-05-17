@@ -10,7 +10,7 @@ import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.CommentService;
 import com.treehole.service.MessageService;
 import com.treehole.service.NotificationService;
-import com.treehole.service.RedisRealtimeService;
+import com.treehole.service.RealtimeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -22,6 +22,7 @@ import com.treehole.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,18 +38,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     private MessageService messageService;
     private final CacheInvalidationService cacheInvalidationService;
-    private final RedisRealtimeService redisRealtimeService;
+    private final RealtimeService realtimeService;
     private final NotificationService notificationService;
     
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
-
-    public CommentServiceImpl(CacheInvalidationService cacheInvalidationService, RedisRealtimeService redisRealtimeService, NotificationService notificationService) {
+    public CommentServiceImpl(CacheInvalidationService cacheInvalidationService, RealtimeService realtimeService, NotificationService notificationService) {
         this.cacheInvalidationService = cacheInvalidationService;
-        this.redisRealtimeService = redisRealtimeService;
+        this.realtimeService = realtimeService;
         this.notificationService = notificationService;
     }
 
@@ -82,16 +80,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         // 评论频率限流：同一用户 5 秒内只能发一条
         String rateKey = "treehole:rate:cmt:id:" + userId;
-        Boolean isAllowed = stringRedisTemplate.opsForValue().setIfAbsent(rateKey, "1", java.time.Duration.ofSeconds(5));
-        if (Boolean.FALSE.equals(isAllowed)) {
+        if (!realtimeService.tryAcquireRateLimit(rateKey, Duration.ofSeconds(5))) {
             throw new BusinessException(ErrorCode.FREQ_LIMIT, "评论太频繁啦，请休息片刻 (5秒冷却)");
         }
 
         // IP 双重限流：同一 IP 5 秒内只能发一条 (防刷)
         if (comment.getIpAddress() != null && !comment.getIpAddress().isBlank()) {
             String ipRateKey = "treehole:rate:cmt:ip:" + comment.getIpAddress();
-            Boolean ipAllowed = stringRedisTemplate.opsForValue().setIfAbsent(ipRateKey, "1", java.time.Duration.ofSeconds(5));
-            if (Boolean.FALSE.equals(ipAllowed)) {
+            if (!realtimeService.tryAcquireRateLimit(ipRateKey, Duration.ofSeconds(5))) {
                 throw new BusinessException(ErrorCode.FREQ_LIMIT, "该 IP 评论太频繁，请稍后再试");
             }
         }
@@ -103,7 +99,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         messageService.update().setSql("comment_count = comment_count + 1")
                 .eq("id", comment.getMessageId()).update();
-        redisRealtimeService.incrementMessageRank(comment.getMessageId(), 3);
+        realtimeService.incrementMessageRank(comment.getMessageId(), 3);
         cacheInvalidationService.evictCommentAndMessageListCaches();
 
         createCommentNotifications(targetMessage, comment, userId);
@@ -212,7 +208,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         this.removeById(id);
         messageService.update().setSql("comment_count = CASE WHEN comment_count > 0 THEN comment_count - 1 ELSE 0 END")
                 .eq("id", comment.getMessageId()).update();
-        redisRealtimeService.incrementMessageRank(comment.getMessageId(), -3);
+        realtimeService.incrementMessageRank(comment.getMessageId(), -3);
         cacheInvalidationService.evictCommentAndMessageListCaches();
     }
 
@@ -228,12 +224,12 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         synchronized (("cmt_react_" + id).intern()) {
             try {
-                Map<String, Integer> reactionMap = redisRealtimeService.updateReaction("cmt", id, userId, emoji, comment.getReactions());
-                String json = redisRealtimeService.toReactionJson(reactionMap);
+                Map<String, Integer> reactionMap = realtimeService.updateReaction("cmt", id, userId, emoji, comment.getReactions());
+                String json = realtimeService.toReactionJson(reactionMap);
                 this.update(new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Comment>()
                     .eq(Comment::getId, id)
                     .set(Comment::getReactions, json));
-                redisRealtimeService.incrementMessageRank(comment.getMessageId(), 1);
+                realtimeService.incrementMessageRank(comment.getMessageId(), 1);
                 cacheInvalidationService.evictCommentCaches();
                 Message message = messageService.getById(comment.getMessageId());
                 notificationService.createForCommentLiked(message, comment, userId);

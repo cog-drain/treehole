@@ -1,7 +1,7 @@
 package com.treehole.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.treehole.service.RedisRealtimeService;
+import com.treehole.service.RealtimeService;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
@@ -23,23 +23,23 @@ public class WebSocketServer {
     
     // 用户 ID -> Session ID -> Session，支持同一身份多标签页同时在线
     private static final Map<String, Map<String, Session>> USER_SESSIONS = new ConcurrentHashMap<>();
-    private static RedisRealtimeService redisRealtimeService;
+    private static RealtimeService realtimeService;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
             .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Autowired
-    public void setRedisRealtimeService(RedisRealtimeService redisRealtimeService) {
-        WebSocketServer.redisRealtimeService = redisRealtimeService;
+    public void setRealtimeService(RealtimeService realtimeService) {
+        WebSocketServer.realtimeService = realtimeService;
     }
 
     @OnOpen
     public void onOpen(Session session, @PathParam("userId") String userId) {
         if (userId != null && !userId.isBlank()) {
             USER_SESSIONS.computeIfAbsent(userId, ignored -> new ConcurrentHashMap<>()).put(session.getId(), session);
-            if (redisRealtimeService != null) {
-                redisRealtimeService.markUserOnline(userId, session.getId());
-                redisRealtimeService.markUserModuleActive(userId, session.getId(), "feed");
+            if (realtimeService != null) {
+                realtimeService.markUserOnline(userId, session.getId());
+                realtimeService.markUserModuleActive(userId, session.getId(), "feed");
             }
             log.info("User {} connected, total online: {}", userId, getOnlineCount());
             broadcastOnlineStats();
@@ -54,7 +54,7 @@ public class WebSocketServer {
                 sessions.remove(session.getId());
                 if (sessions.isEmpty()) USER_SESSIONS.remove(userId, sessions);
             }
-            if (redisRealtimeService != null) redisRealtimeService.markUserOffline(userId, session.getId());
+            if (realtimeService != null) realtimeService.markUserOffline(userId, session.getId());
             log.info("User {} disconnected, total online: {}", userId, getOnlineCount());
             broadcastOnlineStats();
         }
@@ -62,14 +62,14 @@ public class WebSocketServer {
 
     @OnMessage
     public void onMessage(String message, Session session, @PathParam("userId") String userId) {
-        if (redisRealtimeService == null) return;
-        redisRealtimeService.markUserOnline(userId, session.getId());
+        if (realtimeService == null) return;
+        realtimeService.markUserOnline(userId, session.getId());
         try {
             Map<?, ?> payload = OBJECT_MAPPER.readValue(message, Map.class);
             String module = payload.get("module") == null ? null : payload.get("module").toString();
             String action = payload.get("action") == null ? null : payload.get("action").toString();
-            redisRealtimeService.markUserModuleActive(userId, session.getId(), module);
-            redisRealtimeService.recordAction(action);
+            realtimeService.markUserModuleActive(userId, session.getId(), module);
+            realtimeService.recordAction(action);
         } catch (Exception ignored) {
         }
     }
@@ -130,7 +130,7 @@ public class WebSocketServer {
                     "type", "ONLINE_STATS_UPDATE",
                     "data", Map.of(
                             "online", getOnlineCount(),
-                            "modules", redisRealtimeService == null ? Map.of() : redisRealtimeService.countActiveModules()
+                            "modules", realtimeService == null ? Map.of() : realtimeService.countActiveModules()
                     )
             ));
             broadcast(json);
@@ -140,6 +140,6 @@ public class WebSocketServer {
     }
 
     public static long getOnlineCount() {
-        return redisRealtimeService == null ? USER_SESSIONS.keySet().size() : redisRealtimeService.countOnlineUsers();
+        return realtimeService == null ? USER_SESSIONS.keySet().size() : realtimeService.countOnlineUsers();
     }
 }

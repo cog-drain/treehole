@@ -11,6 +11,8 @@ backend/target/
 .env
 .env.*
 !.env.example
+!.env.windows.example
+!.env.demo.windows.example
 
 # Maven 封装器
 backend/.mvn/
