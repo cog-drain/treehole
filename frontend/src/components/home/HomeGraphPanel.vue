@@ -4,7 +4,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { defineAsyncComponent } from 'vue'
 
 const MindGraph = defineAsyncComponent(() => import('@/components/business/MindGraph.vue'))
@@ -13,5 +13,7 @@ defineProps({
     viewMode: { type: String, required: true }
 })
 
-defineEmits(['node-click'])
+defineEmits<{
+    (event: 'node-click', nodeId: number | string): void
+}>()
 </script>

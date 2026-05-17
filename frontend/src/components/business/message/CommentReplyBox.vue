@@ -1,12 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { Loader2, Send, X } from 'lucide-vue-next'
+import type { Comment, FeedMessage } from '@/types'
 
-defineProps({
-    msg: { type: Object, required: true },
-    replyTarget: { type: Object, default: null }
-})
+defineProps<{
+    msg: FeedMessage
+    replyTarget?: Comment | null
+}>()
 
-defineEmits(['clear-reply', 'publish-comment'])
+defineEmits(['clear-reply', 'publish-comment', 'update-comment-text'])
 </script>
 
 <template>
@@ -28,10 +29,11 @@ defineEmits(['clear-reply', 'publish-comment'])
         <div class="comment-input-row">
             <div class="comment-input-wrap">
                 <textarea
-                    v-model="msg._commentText"
+                    :value="msg._commentText"
                     class="comment-input"
                     :placeholder="replyTarget ? `回复 ${replyTarget.authorAlias}...` : '写下你的回响...'"
                     rows="1"
+                    @input="$emit('update-comment-text', ($event.target as HTMLTextAreaElement).value)"
                     @keyup.enter.ctrl="() => $emit('publish-comment', msg)"
                     @keyup.enter.meta="() => $emit('publish-comment', msg)"
                 ></textarea>

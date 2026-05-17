@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { Lock, LogOut, ShieldAlert, Users } from 'lucide-vue-next'
 
 defineProps({

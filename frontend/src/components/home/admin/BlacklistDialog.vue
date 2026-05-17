@@ -1,8 +1,16 @@
-<script setup>
-defineProps({
-    visible: { type: Boolean, default: false },
-    blacklist: { type: Array, default: () => [] }
-})
+<script setup lang="ts">
+import type { BlacklistItem } from '@/types'
+
+withDefaults(
+    defineProps<{
+        visible?: boolean
+        blacklist?: BlacklistItem[]
+    }>(),
+    {
+        visible: false,
+        blacklist: () => []
+    }
+)
 
 defineEmits(['update:visible', 'unban'])
 </script>

@@ -8,14 +8,19 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import MindGraphLoading from './graph/MindGraphLoading.vue'
 import MindGraphOverlay from './graph/MindGraphOverlay.vue'
 import { useMindGraph3D } from '@/composables/graph/useMindGraph3D'
 
-const props = defineProps({
-    visible: Boolean
-})
+const props = withDefaults(
+    defineProps<{
+        visible?: boolean
+    }>(),
+    {
+        visible: false
+    }
+)
 
 const emit = defineEmits(['node-click'])
 

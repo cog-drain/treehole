@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import ConfessionPanel from './ConfessionPanel.vue'
 import MessageActionBar from './message/MessageActionBar.vue'
@@ -6,15 +6,25 @@ import MessageBody from './message/MessageBody.vue'
 import MessageComments from './message/MessageComments.vue'
 import MessageHeader from './message/MessageHeader.vue'
 import { TONE_MODES } from '@/constants/toneModes'
+import type { FeedMessage, Id } from '@/types'
 
-const props = defineProps({
-    msg: Object,
-    liked: Boolean,
-    isAdmin: Boolean,
-    camoEnabled: { type: Boolean, default: false },
-    highlightedMessageId: { type: [String, Number], default: null },
-    highlightedCommentId: { type: [String, Number], default: null }
-})
+const props = withDefaults(
+    defineProps<{
+        msg: FeedMessage
+        liked?: boolean
+        isAdmin?: boolean
+        camoEnabled?: boolean
+        highlightedMessageId?: Id | null
+        highlightedCommentId?: Id | null
+    }>(),
+    {
+        liked: false,
+        isAdmin: false,
+        camoEnabled: false,
+        highlightedMessageId: null,
+        highlightedCommentId: null
+    }
+)
 
 const _emit = defineEmits([
     'like',
@@ -22,6 +32,9 @@ const _emit = defineEmits([
     'delete',
     'delete-comment',
     'publish-comment',
+    'set-reply-target',
+    'clear-reply',
+    'update-comment-text',
     'tag-click',
     'admin-ban',
     'react',
@@ -33,7 +46,10 @@ const isResonant = computed(() => props.msg.coFrequency && !props.msg.isOwner)
 
 // --- Local UI State ---
 const toneMap = TONE_MODES
-const toneInfo = computed(() => (props.msg.mood && toneMap[props.msg.mood] ? toneMap[props.msg.mood] : null))
+const toneInfo = computed(() => {
+    const mood = props.msg.mood
+    return mood && mood in toneMap ? toneMap[mood as keyof typeof toneMap] : null
+})
 const isConfession = computed(() => props.msg.messageType === 'confession')
 const isNotificationHighlighted = computed(() => String(props.highlightedMessageId || '') === String(props.msg.id))
 </script>
@@ -85,6 +101,9 @@ const isNotificationHighlighted = computed(() => String(props.highlightedMessage
             :highlighted-comment-id="highlightedCommentId"
             @delete-comment="$emit('delete-comment', $event)"
             @publish-comment="$emit('publish-comment', $event)"
+            @set-reply-target="$emit('set-reply-target', $event)"
+            @clear-reply="$emit('clear-reply', $event)"
+            @update-comment-text="$emit('update-comment-text', $event)"
             @react="$emit('react')"
         />
     </div>

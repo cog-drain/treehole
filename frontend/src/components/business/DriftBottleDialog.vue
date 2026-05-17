@@ -112,21 +112,3 @@ const {
     handleOpenInbox
 } = useDriftBottleDialog(props, emit)
 </script>
-
-<style>
-body .el-overlay-dialog .el-dialog.drift-bottle-dialog {
-    background: transparent !important;
-    box-shadow: none !important;
-    border: none !important;
-}
-
-.zen-textarea-light .el-textarea__inner {
-    background: transparent !important;
-    border: none !important;
-    padding: 1.5rem !important;
-    border-radius: 1.5rem !important;
-    font-size: 0.875rem !important;
-    line-height: 1.6 !important;
-    color: #334155 !important;
-}
-</style>

@@ -1,10 +1,10 @@
-<script setup>
+<script setup lang="ts">
 defineProps({
     visible: { type: Boolean, default: false },
     form: { type: Object, required: true }
 })
 
-defineEmits(['update:visible', 'submit'])
+defineEmits(['update:visible', 'update:old-password', 'update:new-password', 'submit'])
 </script>
 
 <template>
@@ -23,16 +23,18 @@ defineEmits(['update:visible', 'submit'])
 
             <div class="space-y-4">
                 <input
-                    v-model="form.oldPassword"
+                    :value="form.oldPassword"
                     type="password"
                     class="w-full bg-white/5 border border-white/5 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/40 transition-all text-center tracking-widest"
                     placeholder="CURRENT PASSWORD"
+                    @input="$emit('update:old-password', ($event.target as HTMLInputElement).value)"
                 />
                 <input
-                    v-model="form.newPassword"
+                    :value="form.newPassword"
                     type="password"
                     class="w-full bg-white/5 border border-white/5 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/40 transition-all text-center tracking-widest"
                     placeholder="NEW PASSWORD"
+                    @input="$emit('update:new-password', ($event.target as HTMLInputElement).value)"
                 />
             </div>
 

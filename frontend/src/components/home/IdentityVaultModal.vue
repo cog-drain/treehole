@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { Copy, Fingerprint, ShieldAlert, X, Zap } from 'lucide-vue-next'
 
 defineProps({
@@ -97,7 +97,7 @@ defineEmits(['close', 'open-store', 'backup', 'restore', 'copy-key', 'update:inp
                                 type="text"
                                 class="flex-1 bg-black/5 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-400"
                                 placeholder="treehole-xxx"
-                                @input="$emit('update:input-key', $event.target.value)"
+                                @input="$emit('update:input-key', ($event.target as HTMLInputElement).value)"
                             />
                             <button
                                 :disabled="!inputKey"

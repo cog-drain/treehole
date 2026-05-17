@@ -18,6 +18,9 @@
                     @delete="$emit('delete', $event)"
                     @delete-comment="$emit('delete-comment', $event)"
                     @publish-comment="$emit('publish-comment', $event)"
+                    @set-reply-target="$emit('set-reply-target', $event)"
+                    @clear-reply="$emit('clear-reply', $event)"
+                    @update-comment-text="$emit('update-comment-text', $event)"
                     @react="$emit('react')"
                     @witness="$emit('witness')"
                     @tag-click="$emit('tag-click', $event)"
@@ -74,22 +77,35 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import MessageCard from '@/components/business/MessageCard.vue'
+import type { FeedMessage, Id } from '@/types'
 
-defineProps({
-    viewMode: { type: String, required: true },
-    messages: { type: Array, default: () => [] },
-    likedIds: { type: Object, required: true },
-    isAdmin: { type: Boolean, default: false },
-    camoEnabled: { type: Boolean, default: false },
-    pageNum: { type: Number, default: 1 },
-    total: { type: Number, default: 0 },
-    totalPages: { type: Number, default: 1 },
-    highlightedMessageId: { type: [String, Number], default: null },
-    highlightedCommentId: { type: [String, Number], default: null }
-})
+withDefaults(
+    defineProps<{
+        viewMode: string
+        messages?: FeedMessage[]
+        likedIds: Set<Id>
+        isAdmin?: boolean
+        camoEnabled?: boolean
+        pageNum?: number
+        total?: number
+        totalPages?: number
+        highlightedMessageId?: Id | null
+        highlightedCommentId?: Id | null
+    }>(),
+    {
+        messages: () => [],
+        isAdmin: false,
+        camoEnabled: false,
+        pageNum: 1,
+        total: 0,
+        totalPages: 1,
+        highlightedMessageId: null,
+        highlightedCommentId: null
+    }
+)
 
 defineEmits([
     'like',
@@ -97,6 +113,9 @@ defineEmits([
     'delete',
     'delete-comment',
     'publish-comment',
+    'set-reply-target',
+    'clear-reply',
+    'update-comment-text',
     'react',
     'witness',
     'tag-click',

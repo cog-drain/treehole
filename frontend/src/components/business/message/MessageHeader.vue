@@ -1,14 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import { Ban, Trash2, Zap } from 'lucide-vue-next'
 import { formatTime } from '@/utils/time'
+import type { FeedMessage } from '@/types'
 
-defineProps({
-    msg: { type: Object, required: true },
-    isAdmin: { type: Boolean, default: false },
-    isConfession: { type: Boolean, default: false },
-    isResonant: { type: Boolean, default: false },
-    toneInfo: { type: Object, default: null }
-})
+defineProps<{
+    msg: FeedMessage & { ipAddress?: string }
+    isAdmin?: boolean
+    isConfession?: boolean
+    isResonant?: boolean
+    toneInfo?: { emoji: string; label: string } | null
+}>()
 
 defineEmits(['delete', 'admin-ban'])
 

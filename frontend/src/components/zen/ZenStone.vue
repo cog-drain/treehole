@@ -293,24 +293,3 @@ const stonePath = computed(() => {
     transform-origin: center;
 }
 </style>
-
-<style>
-/* 全局样式：重塑 Element Plus Tooltip 的视觉灵魂 */
-.el-popper.is-light.zen-tooltip-popper {
-    background: rgba(10, 15, 30, 0.85) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 16px !important;
-    box-shadow:
-        0 25px 50px -12px rgba(0, 0, 0, 0.7),
-        0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-    padding: 0 !important;
-}
-
-/* 箭头同步材质 */
-.el-popper.is-light.zen-tooltip-popper .el-popper__arrow::before {
-    background: rgba(10, 15, 30, 0.85) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-</style>

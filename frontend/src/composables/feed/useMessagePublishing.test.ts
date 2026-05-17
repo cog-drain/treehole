@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import { useMessagePublishing } from './useMessagePublishing'
+import type { FeedMessage } from '@/types'
 
 vi.mock('element-plus', () => ({
     ElMessage: { success: vi.fn(), error: vi.fn(), warning: vi.fn() }
@@ -20,7 +21,7 @@ vi.mock('@/utils/offlineQueue', () => ({
 import api from '@/api'
 import { offlineQueue } from '@/utils/offlineQueue'
 function createOptions(overrides: Record<string, unknown> = {}) {
-    const messages = ref<any[]>([])
+    const messages = ref<FeedMessage[]>([])
     return {
         options: {
             form: { content: '', authorAlias: '', mood: '', theme: 'default' },
@@ -79,7 +80,7 @@ describe('useMessagePublishing', () => {
 
             expect(api.publishMessage).toHaveBeenCalled()
             expect(messages.value.length).toBeGreaterThan(0)
-            expect(messages.value[0].isOptimistic).toBeUndefined()
+            expect(messages.value.at(0)?.isOptimistic).toBeUndefined()
             expect(publishing.value).toBe(false)
         })
 

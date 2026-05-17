@@ -1,15 +1,52 @@
-<script setup>
+<script setup lang="ts">
 import { Dices } from 'lucide-vue-next'
 import ComposeToolbar from '@/components/home/compose/ComposeToolbar.vue'
 import VoicePanel from '@/components/home/compose/VoicePanel.vue'
+import type { ComposeFormDraft, ThemeKey, VoiceEffectOption } from '@/types'
 
-defineProps({
-    composeState: { type: Object, required: true },
-    voiceState: { type: Object, required: true },
-    themesList: { type: Array, default: () => [] },
-    toneMap: { type: Object, default: () => ({}) },
-    formatDuration: { type: Function, required: true }
-})
+interface ComposeState {
+    form: ComposeFormDraft
+    isConfessionMode: boolean
+    isMidnight: boolean
+    isZenMode: boolean
+    adminLoginVisible: boolean
+    isMobile: boolean
+    isOnline: boolean
+    publishing: boolean
+    offlineQueueCount: number
+    imagePreview: string | null
+    showTonePanel: boolean
+    toneSelectorRef: unknown
+}
+
+interface VoiceState {
+    showVoicePanel: boolean
+    isRecording: boolean
+    recordingTime: number
+    recordedBlob: Blob | null
+    rawAudioUrl: string
+    maskedAudioUrl: string
+    isPlayingPreview: boolean
+    previewCurrentTime: number
+    previewDuration: number
+    audioPreviewRef: unknown
+    voiceEffect: string
+    voiceEffects: VoiceEffectOption[]
+}
+
+withDefaults(
+    defineProps<{
+        composeState: ComposeState
+        voiceState: VoiceState
+        themesList?: readonly { value: ThemeKey }[]
+        toneMap?: Record<string, unknown>
+        formatDuration: (seconds: number) => string
+    }>(),
+    {
+        themesList: () => [],
+        toneMap: () => ({})
+    }
+)
 
 defineEmits([
     'refresh-identity',
@@ -20,6 +57,7 @@ defineEmits([
     'toggle-voice-panel',
     'toggle-tone-panel',
     'set-tone',
+    'set-tone-selector-ref',
     'set-theme',
     'toggle-confession',
     'open-offline-box',
@@ -31,7 +69,10 @@ defineEmits([
     'toggle-preview-playback',
     'preview-time-update',
     'preview-ended',
-    'seek-preview'
+    'seek-preview',
+    'update-author-alias',
+    'update-content',
+    'set-audio-preview-ref'
 ])
 </script>
 
@@ -51,11 +92,12 @@ defineEmits([
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="relative flex-1 group/input w-full">
                     <input
-                        v-model="composeState.form.authorAlias"
+                        :value="composeState.form.authorAlias"
                         class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all placeholder:text-slate-500"
                         type="text"
                         placeholder="👤 你的匿名昵称"
                         maxlength="20"
+                        @input="$emit('update-author-alias', ($event.target as HTMLInputElement).value)"
                     />
                     <button
                         class="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-blue-400 transition-colors"
@@ -98,7 +140,7 @@ defineEmits([
 
             <div class="relative">
                 <textarea
-                    v-model="composeState.form.content"
+                    :value="composeState.form.content"
                     class="w-full bg-transparent border-none text-lg leading-relaxed placeholder:text-slate-600 focus:outline-none resize-none min-h-[120px]"
                     :placeholder="
                         composeState.isConfessionMode
@@ -107,6 +149,7 @@ defineEmits([
                     "
                     maxlength="500"
                     rows="4"
+                    @input="$emit('update-content', ($event.target as HTMLTextAreaElement).value)"
                     @paste="$emit('paste', $event)"
                     @keydown.ctrl.enter="$emit('publish')"
                     @keydown.meta.enter="$emit('publish')"
@@ -124,6 +167,7 @@ defineEmits([
                 @toggle-voice-panel="$emit('toggle-voice-panel')"
                 @toggle-tone-panel="$emit('toggle-tone-panel', $event)"
                 @set-tone="$emit('set-tone', $event)"
+                @set-tone-selector-ref="$emit('set-tone-selector-ref', $event)"
                 @toggle-confession="$emit('toggle-confession')"
                 @open-offline-box="$emit('open-offline-box')"
                 @publish-button-click="$emit('publish-button-click')"
@@ -166,6 +210,7 @@ defineEmits([
                     @preview-time-update="$emit('preview-time-update')"
                     @preview-ended="$emit('preview-ended')"
                     @seek-preview="$emit('seek-preview', $event)"
+                    @set-audio-preview-ref="$emit('set-audio-preview-ref', $event)"
                 />
             </TransitionGroup>
         </div>

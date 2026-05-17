@@ -1,21 +1,37 @@
-<script setup>
+<script setup lang="ts">
 import { Pause, Play, Trash2 } from 'lucide-vue-next'
+import type { VoiceEffectOption } from '@/types'
 
-const props = defineProps({
-    showVoicePanel: { type: Boolean, default: false },
-    isRecording: { type: Boolean, default: false },
-    recordingTime: { type: Number, default: 0 },
-    recordedBlob: { default: null },
-    rawAudioUrl: { type: String, default: '' },
-    maskedAudioUrl: { type: String, default: '' },
-    isPlayingPreview: { type: Boolean, default: false },
-    previewCurrentTime: { type: Number, default: 0 },
-    previewDuration: { type: Number, default: 0 },
-    audioPreviewRef: { type: Object, default: null },
-    voiceEffect: { type: String, default: 'robot' },
-    voiceEffects: { type: Array, default: () => [] },
-    formatDuration: { type: Function, required: true }
-})
+withDefaults(
+    defineProps<{
+        showVoicePanel?: boolean
+        isRecording?: boolean
+        recordingTime?: number
+        recordedBlob?: Blob | null
+        rawAudioUrl?: string
+        maskedAudioUrl?: string
+        isPlayingPreview?: boolean
+        previewCurrentTime?: number
+        previewDuration?: number
+        audioPreviewRef?: unknown
+        voiceEffect?: string
+        voiceEffects?: VoiceEffectOption[]
+        formatDuration: (seconds: number) => string
+    }>(),
+    {
+        showVoicePanel: false,
+        isRecording: false,
+        recordingTime: 0,
+        recordedBlob: null,
+        rawAudioUrl: '',
+        maskedAudioUrl: '',
+        isPlayingPreview: false,
+        previewCurrentTime: 0,
+        previewDuration: 0,
+        voiceEffect: 'robot',
+        voiceEffects: () => []
+    }
+)
 
 const emit = defineEmits([
     'toggle-recording',
@@ -25,16 +41,17 @@ const emit = defineEmits([
     'toggle-preview-playback',
     'preview-time-update',
     'preview-ended',
-    'seek-preview'
+    'seek-preview',
+    'set-audio-preview-ref'
 ])
 
 const waveformBars = [8, 14, 10, 16, 7, 18, 12, 15, 9, 17, 11, 13]
 
-function bindAudioPreview(el) {
-    if (props.audioPreviewRef) props.audioPreviewRef.value = el
+function bindAudioPreview(el: Element | null) {
+    emit('set-audio-preview-ref', el)
 }
 
-function setVoiceEffect(effectId) {
+function setVoiceEffect(effectId: string) {
     emit('set-voice-effect', effectId)
     emit('reapply-voice-mask')
 }

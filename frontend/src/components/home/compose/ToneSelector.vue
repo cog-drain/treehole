@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { Sparkles, X } from 'lucide-vue-next'
 
-const props = defineProps({
+defineProps({
     form: { type: Object, required: true },
     toneMap: { type: Object, default: () => ({}) },
     showTonePanel: { type: Boolean, default: false },
@@ -9,10 +9,10 @@ const props = defineProps({
     isMobile: { type: Boolean, default: false }
 })
 
-defineEmits(['toggle-tone-panel', 'set-tone'])
+const emit = defineEmits(['toggle-tone-panel', 'set-tone', 'set-tone-selector-ref'])
 
 function bindToneSelector(el) {
-    if (props.toneSelectorRef) props.toneSelectorRef.value = el
+    emit('set-tone-selector-ref', el)
 }
 </script>
 

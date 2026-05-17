@@ -53,16 +53,30 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { Bell, Fingerprint, Moon, Volume2, Waves } from 'lucide-vue-next'
 import ZenMenu from './ZenMenu.vue'
 
-const props = defineProps({
-    zenState: { type: Object, required: true },
-    notificationUnreadCount: { type: Number, default: 0 },
-    notificationBadge: { type: String, default: '0' }
-})
+interface ZenState {
+    showZenMenu: boolean
+    zenSounds: Array<{ id: string; icon: string; name: string }>
+    currentZenSound: { id: string; icon: string; name: string } | null
+    zenVolume: number
+    isZenMode: boolean
+}
+
+const props = withDefaults(
+    defineProps<{
+        zenState: ZenState
+        notificationUnreadCount?: number
+        notificationBadge?: string
+    }>(),
+    {
+        notificationUnreadCount: 0,
+        notificationBadge: '0'
+    }
+)
 
 const emit = defineEmits([
     'toggle-zen-menu',
@@ -78,10 +92,10 @@ const emit = defineEmits([
     'open-notifications'
 ])
 
-const zenRoot = ref(null)
+const zenRoot = ref<HTMLElement | null>(null)
 
-function handleDocumentClick(event) {
-    if (props.zenState.showZenMenu && zenRoot.value && !zenRoot.value.contains(event.target)) {
+function handleDocumentClick(event: MouseEvent) {
+    if (props.zenState.showZenMenu && zenRoot.value && !zenRoot.value.contains(event.target as Node | null)) {
         emit('close-zen-menu')
     }
 }

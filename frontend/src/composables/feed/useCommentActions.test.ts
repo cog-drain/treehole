@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCommentActions } from './useCommentActions'
+import type { Comment, FeedMessage } from '@/types'
 
 vi.mock('element-plus', () => ({
     ElMessage: { success: vi.fn(), info: vi.fn(), warning: vi.fn() },
@@ -50,15 +51,15 @@ function createOptions(overrides: Record<string, unknown> = {}) {
     }
 }
 
-function createMsg(overrides: Record<string, unknown> = {}) {
+function createMsg(overrides: Partial<FeedMessage> = {}): FeedMessage {
     return {
-        id: 1 as string | number,
+        id: 1,
         content: 'test',
         likes: 0,
         likeCount: 0,
         commentCount: 0,
         _showComments: false,
-        _comments: [] as any[],
+        _comments: [] as Comment[],
         _commentText: '',
         _commentImage: null as string | null,
         _replyToId: null as string | number | null,
@@ -69,7 +70,7 @@ function createMsg(overrides: Record<string, unknown> = {}) {
         witnessedByMe: false,
         coFrequency: false,
         ...overrides
-    } as any
+    }
 }
 
 describe('useCommentActions', () => {
@@ -153,7 +154,7 @@ describe('useCommentActions', () => {
         })
 
         it('publishes comment and refreshes list', async () => {
-            vi.mocked(api.publishComment).mockResolvedValue({ code: 200, data: null as any })
+            vi.mocked(api.publishComment).mockResolvedValue({ code: 200, data: { id: 20, content: 'new' } })
             vi.mocked(api.getComments).mockResolvedValue({ code: 200, data: [{ id: 20, content: 'new' }] })
             const { options, energyLog } = createOptions()
             const { publishComment } = useCommentActions(options)

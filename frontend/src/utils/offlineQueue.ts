@@ -78,7 +78,9 @@ export const offlineQueue = {
             try {
                 const { id: _id, timestamp: _timestamp, ...payload } = item
 
-                await new Promise(resolve => setTimeout(resolve, 300))
+                await new Promise(resolve => {
+                    setTimeout(resolve, 300)
+                })
 
                 await api.publishMessage(payload)
             } catch (err) {

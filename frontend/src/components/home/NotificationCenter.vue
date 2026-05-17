@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { Bell, Check, CheckCheck, Loader2, X } from 'lucide-vue-next'
 import { formatRelativeTime } from '@/utils/time'
 

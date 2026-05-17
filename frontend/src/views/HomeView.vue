@@ -23,6 +23,7 @@
                 @toggle-voice-panel="toggleVoicePanel"
                 @toggle-tone-panel="setTonePanel"
                 @set-tone="setTone"
+                @set-tone-selector-ref="setToneSelectorRef"
                 @set-theme="setTheme"
                 @toggle-confession="toggleConfession"
                 @open-offline-box="openOfflineBox"
@@ -35,6 +36,9 @@
                 @preview-time-update="onPreviewTimeUpdate"
                 @preview-ended="onPreviewEnded"
                 @seek-preview="seekPreview"
+                @update-author-alias="setAuthorAlias"
+                @update-content="setComposeContent"
+                @set-audio-preview-ref="setAudioPreviewRef"
             />
 
             <TrendingTags
@@ -65,6 +69,9 @@
                 @delete="deleteMessage"
                 @delete-comment="handleDeleteComment"
                 @publish-comment="publishComment"
+                @set-reply-target="setReplyTarget"
+                @clear-reply="clearReplyTarget"
+                @update-comment-text="setCommentText"
                 @react="trackActivity(ACTIVITY_EVENTS.react)"
                 @witness="handleWitness"
                 @tag-click="handleTagClick"
@@ -128,6 +135,8 @@
             @reply-bottle="handleReplyBottle"
             @return-bottle="handleReturnBottle"
             @update:admin-password="setAdminPassword"
+            @update:old-password="setOldPassword"
+            @update:new-password="setNewPassword"
             @admin-login="handleAdminLogin"
             @close-admin-login="closeAdminLogin"
             @open-blacklist="openBlacklist"
@@ -145,7 +154,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, defineAsyncComponent, ref, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import ActiveTagBanner from '@/components/home/ActiveTagBanner.vue'
@@ -186,6 +195,16 @@ import { useViewport } from '@/composables/useViewport'
 import { ACTIVITY_EVENTS, ACTIVITY_MODULES } from '@/constants/activityEvents'
 import { TONE_MODES } from '@/constants/toneModes'
 import { CARD_THEMES } from '@/constants/themes'
+import type {
+    ActivityEvent,
+    ActivityModule,
+    Comment,
+    FeedMessage,
+    Id,
+    ThemeKey,
+    ToneKey,
+    VoiceEffectKey
+} from '@/types'
 
 const userStore = useUserStore()
 const appStore = useAppStore()
@@ -198,13 +217,20 @@ const networkStatus = useNetworkStatus()
 const viewport = useViewport()
 const notifications = useNotifications()
 
-const props = defineProps({
-    storeVisible: {
-        type: Boolean,
-        default: false
+const props = withDefaults(
+    defineProps<{
+        storeVisible?: boolean
+    }>(),
+    {
+        storeVisible: false
     }
-})
-const emit = defineEmits(['publish-success', 'open-store', 'resonance-boom', 'new-broadcast'])
+)
+const emit = defineEmits<{
+    (event: 'publish-success'): void
+    (event: 'open-store'): void
+    (event: 'resonance-boom'): void
+    (event: 'new-broadcast'): void
+}>()
 
 const {
     isZenMode,
@@ -277,14 +303,14 @@ const {
     handleBanIP
 } = adminPanel
 
-const viewMode = ref('list')
+const viewMode = ref<'list' | 'graph'>('list')
 const { isMobile, startViewportListeners, stopViewportListeners } = viewport
 
-let connectWS = () => {}
-let disconnectWS = () => {}
-let setActivityModule = () => {}
-let trackActivity = () => {}
-let resolveActivityModule = () => ACTIVITY_MODULES.feed
+let connectWS: (userId: string) => void = () => {}
+let disconnectWS: () => void = () => {}
+let setActivityModule: (module: ActivityModule) => void = () => {}
+let trackActivity: (event: ActivityEvent, module?: ActivityModule) => void = () => {}
+let resolveActivityModule: () => ActivityModule = () => ACTIVITY_MODULES.feed
 
 const { isOnline, startNetworkListeners, stopNetworkListeners } = networkStatus
 
@@ -383,7 +409,7 @@ const notificationState = computed(() => ({
     error: notifications.error.value
 }))
 
-function handleWitness(msgId) {
+function handleWitness(msgId: Id) {
     const msg = messages.value.find(m => m.id === msgId)
     if (msg) witnessMessage(msg)
     trackActivity(ACTIVITY_EVENTS.witnessConfession, ACTIVITY_MODULES.comments)
@@ -393,20 +419,46 @@ function handlePublishButtonClick() {
     handleFeedPublishButtonClick(isMidnight.value)
 }
 
-function setTonePanel(visible) {
+function setTonePanel(visible: boolean) {
     showTonePanel.value = visible
 }
-function setTone(tone) {
+function setToneSelectorRef(element: HTMLElement | null) {
+    toneSelectorRef.value = element
+}
+function setAuthorAlias(value: string) {
+    form.authorAlias = value
+}
+function setComposeContent(value: string) {
+    form.content = value
+}
+function setTone(tone: ToneKey) {
     form.mood = tone
 }
-function setTheme(theme) {
+function setTheme(theme: ThemeKey) {
     form.theme = theme
 }
 function toggleConfession() {
     isConfessionMode.value = !isConfessionMode.value
 }
-function setVoiceEffect(effect) {
+function setVoiceEffect(effect: VoiceEffectKey) {
     voiceEffect.value = effect
+}
+function setAudioPreviewRef(element: HTMLAudioElement | null) {
+    audioPreviewRef.value = element
+}
+
+function setReplyTarget({ msg, comment }: { msg: FeedMessage; comment: Comment }) {
+    msg._replyToId = comment.id
+    msg._commentText = `@${comment.authorAlias} `
+}
+
+function clearReplyTarget(msg: FeedMessage) {
+    msg._replyToId = null
+    msg._commentText = ''
+}
+
+function setCommentText({ msg, value }: { msg: FeedMessage; value: string }) {
+    msg._commentText = value
 }
 
 function toggleZenMenu() {
@@ -415,7 +467,7 @@ function toggleZenMenu() {
 function closeZenMenu() {
     showZenMenu.value = false
 }
-function setZenVolume(volume) {
+function setZenVolume(volume: number) {
     zenVolume.value = volume
 }
 function openIdentity() {
@@ -424,14 +476,20 @@ function openIdentity() {
 function closeIdentity() {
     showIdentityModal.value = false
 }
-function setInputKey(value) {
+function setInputKey(value: string) {
     inputKey.value = value
 }
-function setBottleVisible(visible) {
+function setBottleVisible(visible: boolean) {
     bottleVisible.value = visible
 }
-function setAdminPassword(value) {
+function setAdminPassword(value: string) {
     adminPassword.value = value
+}
+function setOldPassword(value: string) {
+    pwdForm.oldPassword = value
+}
+function setNewPassword(value: string) {
+    pwdForm.newPassword = value
 }
 function closeAdminLogin() {
     adminLoginVisible.value = false
@@ -442,13 +500,13 @@ function openBlacklist() {
 function openPassword() {
     showPasswordModal.value = true
 }
-function setBlacklistVisible(visible) {
+function setBlacklistVisible(visible: boolean) {
     showBlacklistModal.value = visible
 }
-function setPasswordVisible(visible) {
+function setPasswordVisible(visible: boolean) {
     showPasswordModal.value = visible
 }
-function setOfflineDialogVisible(visible) {
+function setOfflineDialogVisible(visible: boolean) {
     offlineDialogVisible.value = visible
 }
 
@@ -496,8 +554,8 @@ const feed = useFeedMessages({
     emit,
     isAdmin,
     activity: {
-        setModule: (...args) => setActivityModule(...args),
-        track: (...args) => trackActivity(...args),
+        setModule: module => setActivityModule(module as ActivityModule),
+        track: (event, module) => trackActivity(event as ActivityEvent, module as ActivityModule | undefined),
         resolveModule: () => resolveActivityModule()
     }
 })

@@ -1,33 +1,40 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Pause, Play } from 'lucide-vue-next'
 import { openExternalImage } from '@/utils/browser'
 import { formatDuration } from '@/utils/time'
+import type { FeedMessage } from '@/types'
 
-const props = defineProps({
-    msg: { type: Object, required: true },
-    toneInfo: { type: Object, default: null }
-})
+interface ContentPart {
+    text: string
+    isTag: boolean
+}
+
+const props = defineProps<{
+    msg: FeedMessage
+    toneInfo?: { class: string } | null
+}>()
 
 defineEmits(['tag-click'])
 
 const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
-const audioRef = ref(null)
+const audioRef = ref<HTMLAudioElement | null>(null)
 const blockedDomains = ['pixabay.com', 'githubusercontent.com', 'archive.org']
 
 const safeAudioUrl = computed(() => {
-    if (!props.msg.audioUrl) return null
-    return blockedDomains.some(domain => props.msg.audioUrl.includes(domain)) ? null : props.msg.audioUrl
+    const audioUrl = props.msg.audioUrl
+    if (!audioUrl) return null
+    return blockedDomains.some(domain => audioUrl.includes(domain)) ? null : audioUrl
 })
 
-function parseContent(content) {
+function parseContent(content: string): ContentPart[] {
     if (!content) return []
-    const parts = []
+    const parts: ContentPart[] = []
     const regex = /(#[^\s#]+)/g
     let lastIndex = 0
-    let match
+    let match: RegExpExecArray | null
     while ((match = regex.exec(content)) !== null) {
         if (match.index > lastIndex) parts.push({ text: content.substring(lastIndex, match.index), isTag: false })
         parts.push({ text: match[0], isTag: true })
@@ -55,7 +62,7 @@ function onEnded() {
     currentTime.value = 0
 }
 
-function seek(val) {
+function seek(val: number) {
     if (!audioRef.value) return
     audioRef.value.currentTime = val
 }
@@ -86,7 +93,7 @@ const openImage = openExternalImage
         >
             <audio
                 ref="audioRef"
-                :src="safeAudioUrl"
+                :src="safeAudioUrl || undefined"
                 class="hidden"
                 @timeupdate="onTimeUpdate"
                 @ended="onEnded"

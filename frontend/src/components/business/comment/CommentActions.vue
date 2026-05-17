@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { MessageSquare, Smile, Trash2 } from 'lucide-vue-next'
 import { commentApi } from '@/api/modules/comment'

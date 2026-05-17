@@ -30,14 +30,18 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
         try {
             const res = await getTrendingTags(12)
             trendingTags.value = res.data || []
-        } catch {}
+        } catch (error) {
+            console.warn('Failed to load trending tags', error)
+        }
     }
 
     async function fetchTagSubscriptions() {
         try {
             const res = await api.getTagSubscriptions()
             tagSubscriptions.value = res.data || []
-        } catch {}
+        } catch (error) {
+            console.warn('Failed to load tag subscriptions', error)
+        }
     }
 
     async function fetchOnlineStats() {
@@ -46,7 +50,9 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
             const data = res.data as OnlineStats | undefined
             onlineCount.value = Number(data?.online || 0)
             onlineModules.value = data?.modules || {}
-        } catch {}
+        } catch (error) {
+            console.warn('Failed to load online stats', error)
+        }
     }
 
     async function fetchMessages() {
@@ -64,7 +70,10 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
                     position: 'bottom-left'
                 })
             }
-        } catch {}
+        } catch (error) {
+            console.warn('Failed to load messages', error)
+            ElMessage.warning('留言暂时无法加载')
+        }
     }
 
     async function locateMessageById(messageId: Id): Promise<FeedMessage> {

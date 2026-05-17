@@ -1,28 +1,45 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import CommentItem from '@/components/business/CommentItem.vue'
 import CommentReplyBox from './CommentReplyBox.vue'
+import type { Comment, FeedMessage, Id } from '@/types'
 
-const props = defineProps({
-    msg: { type: Object, required: true },
-    isAdmin: { type: Boolean, default: false },
-    highlightedCommentId: { type: [String, Number], default: null }
-})
+const props = withDefaults(
+    defineProps<{
+        msg: FeedMessage
+        isAdmin?: boolean
+        highlightedCommentId?: Id | null
+    }>(),
+    {
+        isAdmin: false,
+        highlightedCommentId: null
+    }
+)
 
-const _emit = defineEmits(['delete-comment', 'publish-comment', 'react'])
+const _emit = defineEmits([
+    'delete-comment',
+    'publish-comment',
+    'react',
+    'set-reply-target',
+    'clear-reply',
+    'update-comment-text'
+])
 
 const commentTree = computed(() => {
     const list = props.msg._comments || []
-    const map = {}
-    const tree = []
-    list.forEach(comment => {
-        map[comment.id] = { ...comment, children: [] }
+    const map: Record<string, Comment> = {}
+    const tree: Comment[] = []
+    list.forEach((comment: Comment) => {
+        map[String(comment.id)] = { ...comment, children: [] }
     })
-    list.forEach(comment => {
-        if (comment.parentId && map[comment.parentId]) {
-            map[comment.parentId].children.push(map[comment.id])
+    list.forEach((comment: Comment) => {
+        const node = map[String(comment.id)]
+        if (!node) return
+        const parent = comment.parentId ? map[String(comment.parentId)] : null
+        if (parent) {
+            parent.children?.push(node)
         } else {
-            tree.push(map[comment.id])
+            tree.push(node)
         }
     })
     return tree
@@ -38,7 +55,7 @@ const sortOptions = [
 const sortedCommentTree = computed(() => {
     const tree = [...commentTree.value]
     if (commentSort.value === 'newest') {
-        tree.sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+        tree.sort((a, b) => new Date(b.createTime ?? 0).getTime() - new Date(a.createTime ?? 0).getTime())
     } else if (commentSort.value === 'hottest') {
         tree.sort((a, b) => (b.children?.length || 0) - (a.children?.length || 0))
     }
@@ -51,14 +68,12 @@ const replyTarget = computed(() => {
     return list.find(comment => comment.id === props.msg._replyToId) || null
 })
 
-function setReplyTarget(comment) {
-    props.msg._replyToId = comment.id
-    props.msg._commentText = `@${comment.authorAlias} `
+function setReplyTarget(comment: Comment) {
+    _emit('set-reply-target', { msg: props.msg, comment })
 }
 
 function clearReply() {
-    props.msg._replyToId = null
-    props.msg._commentText = ''
+    _emit('clear-reply', props.msg)
 }
 </script>
 
@@ -94,7 +109,7 @@ function clearReply() {
                 :depth="0"
                 :max-depth="4"
                 :default-expanded="true"
-                :highlighted-comment-id="highlightedCommentId"
+                :highlighted-comment-id="highlightedCommentId ?? undefined"
                 @reply="setReplyTarget"
                 @delete="comment => $emit('delete-comment', { msg, comment })"
                 @react="$emit('react')"
@@ -105,6 +120,7 @@ function clearReply() {
             :msg="msg"
             :reply-target="replyTarget"
             @clear-reply="clearReply"
+            @update-comment-text="$emit('update-comment-text', { msg, value: $event })"
             @publish-comment="$emit('publish-comment', $event)"
         />
     </div>

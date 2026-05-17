@@ -35,7 +35,10 @@ export function useCommentActions({
             msg.likeCount = (msg.likeCount || 0) + 1
             ElMessage.success('产生共鸣 ✨ (获得 2 ⚡)')
             appStore.addEnergy(2)
-        } catch {}
+        } catch (error) {
+            console.warn('Failed to like message', error)
+            ElMessage.warning('点赞暂时失败，请稍后再试')
+        }
     }
 
     async function toggleComments(msg: FeedMessage) {
@@ -49,7 +52,10 @@ export function useCommentActions({
                 const res = await api.getComments(msg.id)
                 msg._comments = res.data || []
                 if (msg._comments.some(comment => comment.coFrequency)) msg.coFrequency = true
-            } catch {}
+            } catch (error) {
+                console.warn('Failed to load comments', error)
+                ElMessage.warning('评论暂时无法加载')
+            }
         } else {
             activity.setModule(activity.resolveModule())
         }
@@ -75,7 +81,9 @@ export function useCommentActions({
             activity.track(ACTIVITY_EVENTS.publishComment, ACTIVITY_MODULES.comments)
             ElMessage.success('评论已送达 ✨ (获得 5 ⚡)')
             appStore.addEnergy(5)
-        } catch {
+        } catch (error) {
+            console.warn('Failed to publish comment', error)
+            ElMessage.warning('评论发送失败，请稍后再试')
         } finally {
             msg._commenting = false
         }
@@ -91,7 +99,9 @@ export function useCommentActions({
             await api.deleteMessage(msg.id)
             ElMessage.success('已删除')
             fetchMessages()
-        } catch {}
+        } catch (error) {
+            void error
+        }
     }
 
     async function handleDeleteComment({
@@ -112,7 +122,9 @@ export function useCommentActions({
             const res = await api.getComments(msg.id)
             msg._comments = res.data || []
             msg.commentCount = Math.max(0, (msg.commentCount ?? 0) - 1)
-        } catch {}
+        } catch (error) {
+            void error
+        }
     }
 
     async function witnessMessage(msg: FeedMessage) {

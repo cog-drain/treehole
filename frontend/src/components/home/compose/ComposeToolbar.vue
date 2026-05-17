@@ -29,6 +29,7 @@
                     :is-mobile="composeState.isMobile"
                     @toggle-tone-panel="$emit('toggle-tone-panel', $event)"
                     @set-tone="$emit('set-tone', $event)"
+                    @set-tone-selector-ref="$emit('set-tone-selector-ref', $event)"
                 />
 
                 <button
@@ -100,7 +101,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Archive, ImagePlus, Loader2, Mic, Send } from 'lucide-vue-next'
 import ToneSelector from '@/components/home/compose/ToneSelector.vue'
 
@@ -115,6 +116,7 @@ defineEmits([
     'toggle-voice-panel',
     'toggle-tone-panel',
     'set-tone',
+    'set-tone-selector-ref',
     'toggle-confession',
     'open-offline-box',
     'publish-button-click'

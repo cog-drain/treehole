@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
 
 const props = defineProps({
@@ -7,7 +7,7 @@ const props = defineProps({
 })
 
 const _emit = defineEmits(['close', 'login', 'update:password'])
-const passwordInputRef = ref(null)
+const passwordInputRef = ref<HTMLInputElement | null>(null)
 
 watch(
     () => props.visible,
@@ -41,7 +41,7 @@ watch(
                         autofocus
                         class="w-full bg-transparent border-b border-white/10 py-6 text-4xl text-center font-light tracking-[0.4em] focus:outline-none focus:border-red-500/60 transition-all placeholder:text-white/5"
                         placeholder="••••"
-                        @input="$emit('update:password', $event.target.value)"
+                        @input="$emit('update:password', ($event.target as HTMLInputElement).value)"
                         @keyup.enter="$emit('login')"
                     />
                     <div

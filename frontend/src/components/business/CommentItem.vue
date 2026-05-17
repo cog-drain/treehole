@@ -35,7 +35,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import CommentActions from './comment/CommentActions.vue'
 import CommentBody from './comment/CommentBody.vue'

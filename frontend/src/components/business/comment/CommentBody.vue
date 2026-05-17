@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { Zap } from 'lucide-vue-next'
 import { generateDiceBearAvatar } from '@/utils/avatar'
 import { openExternalImage } from '@/utils/browser'

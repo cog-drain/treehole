@@ -42,7 +42,13 @@
         @unban="$emit('unban', $event)"
     />
 
-    <PasswordDialog v-model:visible="passwordModel" :form="adminState.pwdForm" @submit="$emit('change-password')" />
+    <PasswordDialog
+        v-model:visible="passwordModel"
+        :form="adminState.pwdForm"
+        @update:old-password="$emit('update:old-password', $event)"
+        @update:new-password="$emit('update:new-password', $event)"
+        @submit="$emit('change-password')"
+    />
 
     <OfflineQueueDialog
         v-model:visible="offlineDialogModel"
@@ -63,7 +69,8 @@ import BlacklistDialog from '@/components/home/admin/BlacklistDialog.vue'
 import IdentityVaultModal from '@/components/home/IdentityVaultModal.vue'
 import OfflineQueueDialog from '@/components/home/OfflineQueueDialog.vue'
 import PasswordDialog from '@/components/home/admin/PasswordDialog.vue'
-import type { BlacklistItem, Bottle, MessageDraft } from '@/types'
+import type { BlacklistItem, Bottle } from '@/types'
+import type { OfflineQueueItem } from '@/utils/offlineQueue'
 
 const DriftBottleDialog = defineAsyncComponent(() => import('@/components/business/DriftBottleDialog.vue'))
 
@@ -97,7 +104,7 @@ export interface AdminDialogState {
 export interface OfflineQueueDialogState {
     offlineDialogVisible: boolean
     isOnline: boolean
-    offlineList: MessageDraft[]
+    offlineList: OfflineQueueItem[]
     offlineQueueCount: number
 }
 
@@ -121,6 +128,8 @@ const emit = defineEmits([
     'reply-bottle',
     'return-bottle',
     'update:admin-password',
+    'update:old-password',
+    'update:new-password',
     'admin-login',
     'close-admin-login',
     'open-blacklist',

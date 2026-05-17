@@ -16,7 +16,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { generateDiceBearAvatar } from '@/utils/avatar'
 import { formatRelativeTime } from '@/utils/time'
 

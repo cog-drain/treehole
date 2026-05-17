@@ -43,13 +43,18 @@ export function useDriftBottle({ userStore, appStore, form }: UseDriftBottleOpti
             ElMessage.success('瓶子已随海浪飘向远方... (获得 5 ⚡)')
             appStore.addEnergy(5)
             bottleVisible.value = false
-        } catch {}
+        } catch (error) {
+            console.warn('Failed to throw bottle', error)
+            ElMessage.warning('瓶子暂时无法投递')
+        }
     }
 
     async function handlePickBottle() {
         bottleState.value = 'picking'
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500))
+            await new Promise(resolve => {
+                setTimeout(resolve, 1500)
+            })
             const res = await pickBottle()
             if (res.data) {
                 pickedBottle.value = res.data
@@ -58,7 +63,9 @@ export function useDriftBottle({ userStore, appStore, form }: UseDriftBottleOpti
                 ElMessage.info('海面上空荡荡的')
                 bottleState.value = 'init'
             }
-        } catch {
+        } catch (error) {
+            console.warn('Failed to pick bottle', error)
+            ElMessage.warning('暂时捞不到瓶子，请稍后再试')
             bottleState.value = 'init'
         }
     }
@@ -72,7 +79,10 @@ export function useDriftBottle({ userStore, appStore, form }: UseDriftBottleOpti
             ElMessage.success('你的回信已顺着海流出发 ✨ (获得 5 ⚡)')
             appStore.addEnergy(5)
             bottleVisible.value = false
-        } catch {}
+        } catch (error) {
+            console.warn('Failed to reply bottle', error)
+            ElMessage.warning('回信暂时无法送出')
+        }
     }
 
     async function handleReturnBottle() {
@@ -82,7 +92,10 @@ export function useDriftBottle({ userStore, appStore, form }: UseDriftBottleOpti
             await returnBottle(bottle.id)
             ElMessage.success('瓶子已重回大海的怀抱')
             bottleVisible.value = false
-        } catch {}
+        } catch (error) {
+            console.warn('Failed to return bottle', error)
+            ElMessage.warning('瓶子暂时无法归还')
+        }
     }
 
     return {

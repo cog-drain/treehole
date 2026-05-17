@@ -34,7 +34,7 @@ export interface WebSocketCallbacks {
 }
 
 const debugLog = (...args: unknown[]) => {
-    if (import.meta.env.DEV) console.debug(...args)
+    if (import.meta.env.DEV) console.warn(...args)
 }
 
 export function useWebSocket(callbacks: WebSocketCallbacks = {}) {

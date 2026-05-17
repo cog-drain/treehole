@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted, ref, watch, type Ref } from 'vue'
 import api from '@/api'
-import type { GraphData } from '@/types'
+import type { GraphData, GraphNode } from '@/types'
 import type { ForceGraphInstance, ForceGraph3DFactory } from '3d-force-graph'
 import type * as THREE from 'three'
 
@@ -12,23 +12,42 @@ interface MindGraphEmit {
     (event: 'node-click', nodeId: number | string): void
 }
 
-interface GraphNode {
-    id: number | string
-    label: string
-    mood?: string | null
-    author?: string | null
-    theme?: string | null
-    x?: number
-    y?: number
-    z?: number
-    [key: string]: unknown
-}
-
 const NODE_COLORS: Record<string, string> = {
     default: '#ffffff',
     dawn: '#38bdf8',
     sakura: '#fb7185',
     spring: '#34d399'
+}
+
+interface PositionedGraphNode extends GraphNode {
+    x?: number
+    y?: number
+    z?: number
+}
+
+export function getMindGraphNodeColor(theme?: string | null): string {
+    return NODE_COLORS[theme ?? ''] || '#3b82f6'
+}
+
+export function getMindGraphTooltipHtml(node: Pick<GraphNode, 'author' | 'label'>): string {
+    return `<div class="node-tooltip"><b>${node.author}</b><br/>${node.label}</div>`
+}
+
+export function getMindGraphCameraTarget(node: PositionedGraphNode, distance = 180) {
+    const nx = node.x ?? 0
+    const ny = node.y ?? 0
+    const nz = node.z ?? 0
+    const magnitude = Math.hypot(nx, ny, nz)
+    const distRatio = magnitude === 0 ? 1 : 1 + distance / magnitude
+
+    return { x: nx * distRatio, y: ny * distRatio, z: nz * distRatio }
+}
+
+export function shouldShowMindGraphLabels(
+    cameraPosition: { x: number; y: number; z: number },
+    showLinks: boolean
+): boolean {
+    return Math.hypot(cameraPosition.x, cameraPosition.y, cameraPosition.z) < 180 && showLinks
 }
 
 export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
@@ -70,11 +89,8 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
             .graphData(data)
             .backgroundColor('#161616')
             .showNavInfo(false)
-            .nodeColor((node: unknown) => getNodeColor((node as GraphNode).theme))
-            .nodeLabel((node: unknown) => {
-                const n = node as GraphNode
-                return `<div class="node-tooltip"><b>${n.author}</b><br/>${n.label}</div>`
-            })
+            .nodeColor((node: unknown) => getMindGraphNodeColor((node as GraphNode).theme))
+            .nodeLabel((node: unknown) => getMindGraphTooltipHtml(node as GraphNode))
             .nodeRelSize(5)
             .nodeOpacity(0.8)
             .nodeThreeObject(createNodeObject)
@@ -99,7 +115,7 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
         const sphere = new THREE.Mesh(
             new THREE.SphereGeometry(8),
             new THREE.MeshLambertMaterial({
-                color: getNodeColor(n.theme),
+                color: getMindGraphNodeColor(n.theme),
                 transparent: true,
                 opacity: 0.7
             })
@@ -131,13 +147,8 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
 
     function handleNodeClick(node: unknown): void {
         if (!graph) return
-        const n = node as GraphNode
-        const distance = 180
-        const nx = n.x ?? 0
-        const ny = n.y ?? 0
-        const nz = n.z ?? 0
-        const distRatio = 1 + distance / Math.hypot(nx, ny, nz)
-        graph.cameraPosition({ x: nx * distRatio, y: ny * distRatio, z: nz * distRatio }, node, 1500)
+        const n = node as PositionedGraphNode
+        graph.cameraPosition(getMindGraphCameraTarget(n), node, 1500)
         emit('node-click', n.id)
     }
 
@@ -156,8 +167,7 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
     function updateNodeLabels(): void {
         if (!graph) return
         const pos = graph.cameraPosition()
-        const distance = Math.hypot(pos.x, pos.y, pos.z)
-        const shouldShow = distance < 180 && showLinks.value
+        const shouldShow = shouldShowMindGraphLabels(pos, showLinks.value)
 
         graph.scene().traverse((obj: THREE.Object3D) => {
             if (obj.name === 'node-label') {
@@ -179,10 +189,6 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
             graph.linkOpacity(showLinks.value ? 0.2 : 0)
             updateNodeLabels()
         }
-    }
-
-    function getNodeColor(theme?: string | null): string {
-        return NODE_COLORS[theme ?? ''] || '#3b82f6'
     }
 
     onMounted(() => {

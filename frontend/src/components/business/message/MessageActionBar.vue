@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { Heart, MessageSquare, Smile } from 'lucide-vue-next'
 import { messageApi } from '@/api/modules/message'

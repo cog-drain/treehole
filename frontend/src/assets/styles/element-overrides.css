@@ -85,3 +85,39 @@
     padding: 2rem !important;
     color: var(--color-slate-200);
 }
+
+/* Drift bottle dialog — transparent dialog shell */
+body .el-overlay-dialog .el-dialog.drift-bottle-dialog {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Zen textarea — light minimal textarea for drift bottle compose views */
+.zen-textarea-light .el-textarea__inner {
+    background: transparent !important;
+    border: none !important;
+    padding: 1.5rem !important;
+    border-radius: 1.5rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+    color: #334155 !important;
+}
+
+/* Zen tooltip popper — dark glass tooltip for ZenStone */
+.el-popper.is-light.zen-tooltip-popper {
+    background: rgba(10, 15, 30, 0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 16px !important;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    padding: 0 !important;
+}
+
+.el-popper.is-light.zen-tooltip-popper .el-popper__arrow::before {
+    background: rgba(10, 15, 30, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}

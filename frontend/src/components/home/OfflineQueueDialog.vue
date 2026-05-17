@@ -1,13 +1,22 @@
-<script setup>
+<script setup lang="ts">
 import { Edit2, ShieldAlert, Trash2 } from 'lucide-vue-next'
 import { formatTime } from '@/utils/time'
+import type { OfflineQueueItem } from '@/utils/offlineQueue'
 
-defineProps({
-    visible: { type: Boolean, default: false },
-    isOnline: { type: Boolean, default: true },
-    offlineList: { type: Array, default: () => [] },
-    offlineQueueCount: { type: Number, default: 0 }
-})
+withDefaults(
+    defineProps<{
+        visible?: boolean
+        isOnline?: boolean
+        offlineList?: OfflineQueueItem[]
+        offlineQueueCount?: number
+    }>(),
+    {
+        visible: false,
+        isOnline: true,
+        offlineList: () => [],
+        offlineQueueCount: 0
+    }
+)
 
 defineEmits(['update:visible', 'sync', 'edit', 'remove'])
 </script>

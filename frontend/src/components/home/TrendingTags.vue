@@ -1,20 +1,19 @@
-<script setup>
+<script setup lang="ts">
 import { Bell, BellOff, Hash } from 'lucide-vue-next'
+import type { Id, TrendingTag } from '@/types'
 
-defineProps({
-    tags: {
-        type: Array,
-        default: () => []
-    },
-    activeTag: {
-        type: String,
-        default: ''
-    },
-    subscribedTagIds: {
-        type: Object,
-        default: () => new Set()
+withDefaults(
+    defineProps<{
+        tags?: TrendingTag[]
+        activeTag?: string | null
+        subscribedTagIds?: Set<Id | string>
+    }>(),
+    {
+        tags: () => [],
+        activeTag: '',
+        subscribedTagIds: () => new Set()
     }
-})
+)
 
 defineEmits(['tag-click', 'toggle-subscription'])
 </script>

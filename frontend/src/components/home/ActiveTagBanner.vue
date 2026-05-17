@@ -20,7 +20,7 @@
     </Transition>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Hash } from 'lucide-vue-next'
 
 defineProps({

@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const { message } = vi.hoisted(() => ({
     message: {
         success: vi.fn(),
-        info: vi.fn()
+        info: vi.fn(),
+        warning: vi.fn()
     }
 }))
 

@@ -62,14 +62,29 @@
     </Transition>
 </template>
 
-<script setup>
-defineProps({
-    visible: { type: Boolean, default: false },
-    sounds: { type: Array, default: () => [] },
-    currentSound: { type: Object, default: null },
-    volume: { type: Number, default: 50 },
-    isZenMode: { type: Boolean, default: false }
-})
+<script setup lang="ts">
+interface ZenSound {
+    id: string
+    icon: string
+    name: string
+}
+
+withDefaults(
+    defineProps<{
+        visible?: boolean
+        sounds?: ZenSound[]
+        currentSound?: ZenSound | null
+        volume?: number
+        isZenMode?: boolean
+    }>(),
+    {
+        visible: false,
+        sounds: () => [],
+        currentSound: null,
+        volume: 50,
+        isZenMode: false
+    }
+)
 
 defineEmits(['select-sound', 'update:volume', 'volume-input', 'return', 'minimize', 'stop'])
 </script>
