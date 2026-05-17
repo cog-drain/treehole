@@ -1,6 +1,16 @@
-import { watch } from 'vue'
+import { watch, type WatchStopHandle } from 'vue'
 
-const particleConfigs = {
+interface TsParticlesInstance {
+    load: (id: string, config: Record<string, unknown>) => void
+}
+
+declare global {
+    interface Window {
+        tsParticles?: TsParticlesInstance
+    }
+}
+
+const particleConfigs: Record<string, Record<string, unknown>> = {
     sakura: {
         particles: {
             number: { value: 15 },
@@ -41,15 +51,15 @@ const particleConfigs = {
     }
 }
 
-export function useParticleTheme(themeRef) {
-    function loadParticles(theme) {
+export function useParticleTheme(themeRef: () => string) {
+    function loadParticles(theme: string): void {
         if (!window.tsParticles) return
         window.tsParticles.load('tsparticles', particleConfigs[theme] || particleConfigs.aurora)
     }
 
-    const stopWatchingTheme = watch(themeRef, loadParticles)
+    const stopWatchingTheme: WatchStopHandle = watch(themeRef, loadParticles)
 
-    function startParticles(delay = 1000) {
+    function startParticles(delay = 1000): void {
         setTimeout(() => loadParticles(themeRef()), delay)
     }
 

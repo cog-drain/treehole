@@ -1,29 +1,33 @@
-/**
- * 禅定模式 Composable — 从 Home.vue 中提取的音频控制逻辑
- */
-import { onUnmounted, ref } from 'vue'
+import { onUnmounted, ref, type Ref } from 'vue'
+
+interface ZenSound {
+    id: string
+    name: string
+    icon: string
+    url: string
+}
 
 export function useZenMode() {
-    const isZenMode = ref(false)
-    const showZenMenu = ref(false)
-    const currentZenSound = ref(null)
-    const zenVolume = ref(80)
+    const isZenMode: Ref<boolean> = ref(false)
+    const showZenMenu: Ref<boolean> = ref(false)
+    const currentZenSound: Ref<ZenSound | null> = ref(null)
+    const zenVolume: Ref<number> = ref(80)
 
-    const zenSounds = [
+    const zenSounds: ZenSound[] = [
         { id: 'shiki', name: '四季之歌·悠然', icon: '🍃', url: '/audio/shiki_no_uta.mp3' },
         { id: 'angel', name: '堕天使·梦幻', icon: '🧚', url: '/audio/fallen_angel.mp3' },
         { id: 'zen', name: '禅定旋律', icon: '🧘', url: '/audio/zen.mp3' }
     ]
 
-    let zenAudio = new Audio()
+    let zenAudio: HTMLAudioElement = new Audio()
     zenAudio.loop = true
-    let fadeTimer = null
+    let fadeTimer: ReturnType<typeof setInterval> | null = null
 
-    function updateZenVolume() {
+    function updateZenVolume(): void {
         if (zenAudio) zenAudio.volume = zenVolume.value / 100
     }
 
-    function fadeAudio(targetVolume, duration = 1000) {
+    function fadeAudio(targetVolume: number, duration = 1000): Promise<void> {
         if (!zenAudio) return Promise.resolve()
         if (fadeTimer) clearInterval(fadeTimer)
         return new Promise(resolve => {
@@ -35,7 +39,7 @@ export function useZenMode() {
                 current++
                 zenAudio.volume = Math.max(0, Math.min(1, startVolume + stepValue * current))
                 if (current >= steps) {
-                    clearInterval(fadeTimer)
+                    clearInterval(fadeTimer!)
                     fadeTimer = null
                     if (targetVolume === 0) zenAudio.pause()
                     resolve()
@@ -53,35 +57,31 @@ export function useZenMode() {
         showZenMenu.value = false
     })
 
-    // 完全停止（视觉+听觉）
-    function stopZenMode() {
+    function stopZenMode(): void {
         isZenMode.value = false
         showZenMenu.value = false
         fadeAudio(0).then(() => (currentZenSound.value = null))
     }
 
-    // 仅退出视觉（保留听觉）
-    function minimizeZen() {
+    function minimizeZen(): void {
         isZenMode.value = false
         showZenMenu.value = false
     }
 
-    // 返回视觉（恢复石头界面）
-    function returnToZen() {
+    function returnToZen(): void {
         isZenMode.value = true
         showZenMenu.value = false
     }
 
-    function selectZenSound(sound) {
+    function selectZenSound(sound: ZenSound): void {
         if (currentZenSound.value?.id === sound.id) {
-            // 如果点击正在播放的音乐，视为“返回石头界面”或“重新打开全屏”
             isZenMode.value = true
             showZenMenu.value = false
             return
         }
 
         isZenMode.value = true
-        const performPlay = () => {
+        const performPlay = (): void => {
             currentZenSound.value = sound
             zenAudio.src = sound.url
             zenAudio.volume = 0

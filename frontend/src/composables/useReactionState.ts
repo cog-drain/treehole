@@ -1,24 +1,28 @@
-import { computed } from 'vue'
+import { computed, type ComputedRef } from 'vue'
 import { getString, remove, setString } from '@/utils/storage'
 
-export function useReactionState(keyFactory, getId, reactApi) {
-    const reactedKey = computed(() => keyFactory(getId()))
+export function useReactionState(
+    keyFactory: (id: string | number) => string,
+    getId: () => string | number,
+    reactApi?: (emoji: string) => Promise<unknown>
+) {
+    const reactedKey: ComputedRef<string> = computed(() => keyFactory(getId()))
 
-    function getReactedEmoji() {
+    function getReactedEmoji(): string {
         return getString(reactedKey.value, '')
     }
 
-    function hasReacted(emoji) {
+    function hasReacted(emoji: string): boolean {
         return getReactedEmoji() === emoji
     }
 
-    function setReactedEmoji(emoji) {
+    function setReactedEmoji(emoji: string): void {
         const currentEmoji = getReactedEmoji()
         if (currentEmoji === emoji) remove(reactedKey.value)
         else setString(reactedKey.value, emoji)
     }
 
-    async function toggleReaction(emoji) {
+    async function toggleReaction(emoji: string): Promise<void> {
         if (!reactApi) return
         try {
             await reactApi(emoji)

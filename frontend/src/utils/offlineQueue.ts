@@ -5,25 +5,34 @@ import { getJson, setJson } from '@/utils/storage'
 
 const QUEUE_KEY = STORAGE_KEYS.offlineMessages
 
-// 创建一个响应式的长度，供 UI 绑定
+interface OfflineMessagePayload {
+    content: string
+    authorAlias?: string
+    [key: string]: unknown
+}
+
+export interface OfflineQueueItem extends OfflineMessagePayload {
+    timestamp: number
+    id: string
+}
+
+interface OfflineSyncApi {
+    publishMessage(data: OfflineMessagePayload): Promise<unknown>
+}
+
 export const offlineQueueCount = shallowRef(0)
 
-/** 离线队列管理工具 */
 export const offlineQueue = {
-    /** 初始化计数器 */
-    init() {
+    init(): void {
         offlineQueueCount.value = this.get().length
     },
 
-    /** 获取队列 */
-    get() {
-        return getJson(QUEUE_KEY, [])
+    get(): OfflineQueueItem[] {
+        return getJson<OfflineQueueItem[]>(QUEUE_KEY, [])
     },
 
-    /** 存入队列 */
-    push(data) {
+    push(data: OfflineMessagePayload): void {
         const queue = this.get()
-        // 避免重复存入相同内容
         if (queue.some(item => item.content === data.content && item.authorAlias === data.authorAlias)) {
             return
         }
@@ -43,15 +52,13 @@ export const offlineQueue = {
         })
     },
 
-    /** 清空特定任务 */
-    remove(id) {
+    remove(id: string): void {
         const queue = this.get().filter(item => item.id !== id)
         setJson(QUEUE_KEY, queue)
         offlineQueueCount.value = queue.length
     },
 
-    /** 同步队列 */
-    async sync(api) {
+    async sync(api: OfflineSyncApi): Promise<void> {
         const queue = this.get()
         if (queue.length === 0) {
             offlineQueueCount.value = 0
@@ -66,19 +73,16 @@ export const offlineQueue = {
             type: 'info'
         })
 
-        const remaining = []
+        const remaining: OfflineQueueItem[] = []
         for (const item of queue) {
             try {
-                // 剥离前端生成的临时字符串 id 和时间戳
-                const { id, timestamp, ...payload } = item
+                const { id: _id, timestamp: _timestamp, ...payload } = item
 
-                // 增加一个 300ms 的微小延迟，防止网络刚恢复时的瞬时拥堵
                 await new Promise(resolve => setTimeout(resolve, 300))
 
                 await api.publishMessage(payload)
             } catch (err) {
                 console.error('Offline sync failed for item:', item, err)
-                // 如果还是失败（比如后端挂了而非网络问题），则保留在队列中
                 remaining.push(item)
             }
         }
@@ -92,7 +96,6 @@ export const offlineQueue = {
                 message: '所有离线留言已成功投入树洞！',
                 type: 'success'
             })
-            // 依赖 WebSocket 接收同步成功的新消息，无需刷新页面
         } else {
             ElNotification({
                 title: '同步部分失败',

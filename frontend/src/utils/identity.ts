@@ -1,14 +1,14 @@
 import { generateRandomAlias, getOrCreateAlias } from '@/utils/clientIdentity'
 
-export function generateRandomIdentity() {
+export function generateRandomIdentity(): string {
     return generateRandomAlias()
 }
 
-export function getOrGenerateIdentity() {
+export function getOrGenerateIdentity(): string {
     return getOrCreateAlias()
 }
 
-export function getAvatarColor(name) {
+export function getAvatarColor(name: string): string {
     let hash = 0
     for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash)

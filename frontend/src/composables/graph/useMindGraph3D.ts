@@ -1,25 +1,48 @@
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch, type Ref } from 'vue'
 import api from '@/api'
+import type { GraphData } from '@/types'
+import type { ForceGraphInstance, ForceGraph3DFactory } from '3d-force-graph'
+import type * as THREE from 'three'
 
-const NODE_COLORS = {
+interface MindGraphProps {
+    visible: boolean
+}
+
+interface MindGraphEmit {
+    (event: 'node-click', nodeId: number | string): void
+}
+
+interface GraphNode {
+    id: number | string
+    label: string
+    mood?: string | null
+    author?: string | null
+    theme?: string | null
+    x?: number
+    y?: number
+    z?: number
+    [key: string]: unknown
+}
+
+const NODE_COLORS: Record<string, string> = {
     default: '#ffffff',
     dawn: '#38bdf8',
     sakura: '#fb7185',
     spring: '#34d399'
 }
 
-export function useMindGraph3D(props, emit) {
-    const container = ref(null)
-    const graphElement = ref(null)
-    const loading = ref(true)
-    const showLinks = ref(true)
+export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
+    const container: Ref<HTMLElement | null> = ref(null)
+    const graphElement: Ref<HTMLElement | null> = ref(null)
+    const loading: Ref<boolean> = ref(true)
+    const showLinks: Ref<boolean> = ref(true)
 
-    let graph = null
-    let resizeObserver = null
-    let ForceGraph3D = null
-    let THREE = null
+    let graph: ForceGraphInstance | null = null
+    let resizeObserver: ResizeObserver | null = null
+    let ForceGraph3D: ForceGraph3DFactory | null = null
+    let THREE: typeof import('three') | null = null
 
-    async function init3DGraph() {
+    async function init3DGraph(): Promise<void> {
         loading.value = true
         try {
             const res = await api.getGraphData()
@@ -35,10 +58,13 @@ export function useMindGraph3D(props, emit) {
         }
     }
 
-    async function render3D(data) {
+    async function render3D(data: GraphData): Promise<void> {
         if (!graphElement.value) return
         if (!ForceGraph3D || !THREE) {
-            const [forceGraphModule, threeModule] = await Promise.all([import('3d-force-graph'), import('three')])
+            const [forceGraphModule, threeModule] = await Promise.all([
+                import('3d-force-graph'),
+                import('three')
+            ])
             ForceGraph3D = forceGraphModule.default
             THREE = threeModule
         }
@@ -47,8 +73,11 @@ export function useMindGraph3D(props, emit) {
             .graphData(data)
             .backgroundColor('#161616')
             .showNavInfo(false)
-            .nodeColor(node => getNodeColor(node.theme))
-            .nodeLabel(node => `<div class="node-tooltip"><b>${node.author}</b><br/>${node.label}</div>`)
+            .nodeColor((node: unknown) => getNodeColor((node as GraphNode).theme))
+            .nodeLabel((node: unknown) => {
+                const n = node as GraphNode
+                return `<div class="node-tooltip"><b>${n.author}</b><br/>${n.label}</div>`
+            })
             .nodeRelSize(5)
             .nodeOpacity(0.8)
             .nodeThreeObject(createNodeObject)
@@ -58,20 +87,22 @@ export function useMindGraph3D(props, emit) {
             .onNodeClick(handleNodeClick)
 
         if (graph.controls()) {
-            graph.controls().addEventListener('change', updateNodeLabels)
+            graph.controls()!.addEventListener('change', updateNodeLabels)
         }
 
         updateNodeLabels()
         bindResize()
     }
 
-    function createNodeObject(node) {
+    function createNodeObject(node: unknown): THREE.Group {
+        if (!THREE) throw new Error('THREE not loaded')
         const group = new THREE.Group()
+        const n = node as GraphNode
 
         const sphere = new THREE.Mesh(
             new THREE.SphereGeometry(8),
             new THREE.MeshLambertMaterial({
-                color: getNodeColor(node.theme),
+                color: getNodeColor(n.theme),
                 transparent: true,
                 opacity: 0.7
             })
@@ -79,8 +110,8 @@ export function useMindGraph3D(props, emit) {
         group.add(sphere)
 
         const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        const text = node.label.length > 50 ? `${node.label.substring(0, 50)}...` : node.label
+        const ctx = canvas.getContext('2d')!
+        const text = n.label.length > 50 ? `${n.label.substring(0, 50)}...` : n.label
 
         canvas.width = 800
         canvas.height = 80
@@ -101,14 +132,23 @@ export function useMindGraph3D(props, emit) {
         return group
     }
 
-    function handleNodeClick(node) {
+    function handleNodeClick(node: unknown): void {
+        if (!graph) return
+        const n = node as GraphNode
         const distance = 180
-        const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z)
-        graph.cameraPosition({ x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, node, 1500)
-        emit('node-click', node.id)
+        const nx = n.x ?? 0
+        const ny = n.y ?? 0
+        const nz = n.z ?? 0
+        const distRatio = 1 + distance / Math.hypot(nx, ny, nz)
+        graph.cameraPosition(
+            { x: nx * distRatio, y: ny * distRatio, z: nz * distRatio },
+            node,
+            1500
+        )
+        emit('node-click', n.id)
     }
 
-    function bindResize() {
+    function bindResize(): void {
         resizeObserver?.disconnect()
         resizeObserver = new ResizeObserver(() => {
             if (graph && container.value) {
@@ -117,28 +157,32 @@ export function useMindGraph3D(props, emit) {
                 graph.height(clientHeight)
             }
         })
-        resizeObserver.observe(container.value)
+        resizeObserver.observe(container.value!)
     }
 
-    function updateNodeLabels() {
+    function updateNodeLabels(): void {
         if (!graph) return
-        const { x, y, z } = graph.cameraPosition()
-        const distance = Math.hypot(x, y, z)
+        const pos = graph.cameraPosition()
+        const distance = Math.hypot(pos.x, pos.y, pos.z)
         const shouldShow = distance < 180 && showLinks.value
 
-        graph.scene().traverse(obj => {
+        graph.scene().traverse((obj: THREE.Object3D) => {
             if (obj.name === 'node-label') {
                 obj.visible = shouldShow
-                obj.material.opacity = shouldShow ? Math.min(obj.material.opacity + 0.15, 0.95) : 0
+                if (obj.material) {
+                    obj.material.opacity = shouldShow
+                        ? Math.min(obj.material.opacity + 0.15, 0.95)
+                        : 0
+                }
             }
         })
     }
 
-    function resetCamera() {
+    function resetCamera(): void {
         if (graph) graph.zoomToFit(1000)
     }
 
-    function toggleLinks() {
+    function toggleLinks(): void {
         showLinks.value = !showLinks.value
         if (graph) {
             graph.linkOpacity(showLinks.value ? 0.2 : 0)
@@ -146,8 +190,8 @@ export function useMindGraph3D(props, emit) {
         }
     }
 
-    function getNodeColor(theme) {
-        return NODE_COLORS[theme] || '#3b82f6'
+    function getNodeColor(theme?: string | null): string {
+        return NODE_COLORS[theme ?? ''] || '#3b82f6'
     }
 
     onMounted(() => {

@@ -1,35 +1,39 @@
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { backupIdentity, restoreIdentity } from '@/api'
+import api from '@/api'
 import { STORAGE_KEYS } from '@/constants/storageKeys'
 import { setJson } from '@/utils/storage'
 import { reloadPage } from '@/utils/browser'
 
 export function useIdentityVault() {
-    const showIdentityModal = ref(false)
-    const recoveryKey = ref('')
-    const inputKey = ref('')
+    const showIdentityModal: Ref<boolean> = ref(false)
+    const recoveryKey: Ref<string> = ref('')
+    const inputKey: Ref<string> = ref('')
 
-    async function handleBackup() {
+    async function handleBackup(): Promise<void> {
         try {
-            const res = await backupIdentity()
-            recoveryKey.value = res.data
+            const res = await api.backupIdentity()
+            recoveryKey.value = (res.data as Record<string, string>).recoveryKey ?? ''
             ElMessage.success('备份密钥已生成')
-        } catch {}
+        } catch {
+            /* user cancelled or network error */
+        }
     }
 
-    async function handleRestore() {
+    async function handleRestore(): Promise<void> {
         try {
-            const res = await restoreIdentity(inputKey.value)
+            const res = await api.restoreIdentity(inputKey.value)
             if (res.code === 0 || res.code === 200) {
                 setJson(STORAGE_KEYS.identity, { userId: res.data, createdAt: Date.now() })
                 ElMessage.success('身份还原成功，正在重载...')
                 reloadPage(1500)
             }
-        } catch {}
+        } catch {
+            /* user cancelled or network error */
+        }
     }
 
-    function copyKey() {
+    function copyKey(): void {
         const text = recoveryKey.value
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard
