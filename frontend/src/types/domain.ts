@@ -7,235 +7,235 @@ export type MessageType = 'normal' | 'confession'
 export type VoiceEffectKey = 'original' | 'robot' | 'deep' | 'ethereal'
 
 export type NotificationType =
-  | 'MESSAGE_COMMENTED'
-  | 'MESSAGE_LIKED'
-  | 'COMMENT_REPLIED'
-  | 'COMMENT_LIKED'
-  | 'CONFESSION_WITNESSED'
-  | 'TAG_NEW_MESSAGES'
+    | 'MESSAGE_COMMENTED'
+    | 'MESSAGE_LIKED'
+    | 'COMMENT_REPLIED'
+    | 'COMMENT_LIKED'
+    | 'CONFESSION_WITNESSED'
+    | 'TAG_NEW_MESSAGES'
 
 export type NotificationTargetType = 'MESSAGE' | 'COMMENT' | 'CONFESSION' | 'TAG'
 
 export interface TreeholeNotification {
-  id: number | string
-  type: NotificationType
-  targetType: NotificationTargetType
-  messageId?: number | string | null
-  commentId?: number | string | null
-  parentCommentId?: number | string | null
-  tagId?: number | string | null
-  tagName?: string | null
-  title: string
-  summary?: string | null
-  read: boolean
-  createTime?: string
+    id: number | string
+    type: NotificationType
+    targetType: NotificationTargetType
+    messageId?: number | string | null
+    commentId?: number | string | null
+    parentCommentId?: number | string | null
+    tagId?: number | string | null
+    tagName?: string | null
+    title: string
+    summary?: string | null
+    read: boolean
+    createTime?: string
 }
 
 export interface UserIdentity {
-  userId: string
-  createdAt: number
+    userId: string
+    createdAt: number
 }
 
 export interface Comment {
-  id: number | string
-  messageId?: number | string
-  parentId?: number | string | null
-  content: string
-  authorAlias?: string
-  userId?: string
-  isOwner?: boolean
-  createTime?: string
-  likeCount?: number
-  reactions?: string | Record<string, number>
-  children?: Comment[]
-  coFrequency?: boolean
+    id: number | string
+    messageId?: number | string
+    parentId?: number | string | null
+    content: string
+    authorAlias?: string
+    userId?: string
+    isOwner?: boolean
+    createTime?: string
+    likeCount?: number
+    reactions?: string | Record<string, number>
+    children?: Comment[]
+    coFrequency?: boolean
 }
 
 export interface Message {
-  id: number | string
-  content: string
-  userId?: string
-  authorAlias?: string
-  theme?: ThemeKey | string
-  mood?: ToneKey | string
-  type?: MessageType | string
-  imageUrl?: string
-  audioUrl?: string
-  likeCount?: number
-  commentCount?: number
-  reactions?: string | Record<string, number>
-  tags?: string[] | string
-  comments?: Comment[]
-  createTime?: string
-  expiresAt?: string | null
-  aiReply?: string
-  messageType?: MessageType | string
-  witnessCount?: number
-  witnessedByMe?: boolean
-  confessorReply?: string
-  likes?: number
-  isOwner?: boolean
-  isOptimistic?: boolean
-  coFrequency?: boolean
+    id: number | string
+    content: string
+    userId?: string
+    authorAlias?: string
+    theme?: ThemeKey | string
+    mood?: ToneKey | string
+    type?: MessageType | string
+    imageUrl?: string
+    audioUrl?: string
+    likeCount?: number
+    commentCount?: number
+    reactions?: string | Record<string, number>
+    tags?: string[] | string
+    comments?: Comment[]
+    createTime?: string
+    expiresAt?: string | null
+    aiReply?: string
+    messageType?: MessageType | string
+    witnessCount?: number
+    witnessedByMe?: boolean
+    confessorReply?: string
+    likes?: number
+    isOwner?: boolean
+    isOptimistic?: boolean
+    coFrequency?: boolean
 }
 
 export interface FeedMessage extends Message {
-  _showComments: boolean
-  _comments: Comment[]
-  _commentText: string
-  _commentImage: string | null
-  _replyToId: number | string | null
-  _commenting: boolean
-  _read: boolean
+    _showComments: boolean
+    _comments: Comment[]
+    _commentText: string
+    _commentImage: string | null
+    _replyToId: number | string | null
+    _commenting: boolean
+    _read: boolean
 }
 
 export interface MessageDraft {
-  content: string
-  authorAlias?: string
-  mood?: ToneKey | string
-  theme?: ThemeKey | string
-  imageUrl?: string
-  audioUrl?: string
-  messageType?: MessageType | string
-  [key: string]: unknown
+    content: string
+    authorAlias?: string
+    mood?: ToneKey | string
+    theme?: ThemeKey | string
+    imageUrl?: string
+    audioUrl?: string
+    messageType?: MessageType | string
+    [key: string]: unknown
 }
 
 export interface ComposeFormDraft {
-  authorAlias: string
-  content: string
-  mood: ToneKey | ''
-  theme: ThemeKey
-  [key: string]: unknown
+    authorAlias: string
+    content: string
+    mood: ToneKey | ''
+    theme: ThemeKey
+    [key: string]: unknown
 }
 
 export interface VoiceEffectOption {
-  id: VoiceEffectKey
-  name: string
-  icon: string
+    id: VoiceEffectKey
+    name: string
+    icon: string
 }
 
 export interface CommentDraft {
-  messageId: number | string
-  content: string
-  imageUrl?: string | null
-  parentId?: number | string | null
+    messageId: number | string
+    content: string
+    imageUrl?: string | null
+    parentId?: number | string | null
 }
 
 export interface Bottle {
-  id: number | string
-  content: string
-  authorAlias?: string
-  createTime?: string
-  replyContent?: string
-  replyAuthorAlias?: string
-  replyTime?: string
+    id: number | string
+    content: string
+    authorAlias?: string
+    createTime?: string
+    replyContent?: string
+    replyAuthorAlias?: string
+    replyTime?: string
 }
 
 export type DriftBottleState = 'init' | 'throwing' | 'picking' | 'picked' | 'reply' | 'my-bottles' | 'sent'
 
 export interface BottleDraft {
-  content: string
-  authorAlias?: string
-  theme?: ThemeKey | string
-  [key: string]: unknown
+    content: string
+    authorAlias?: string
+    theme?: ThemeKey | string
+    [key: string]: unknown
 }
 
 export interface GraphNode {
-  id: number | string
-  label: string
-  author?: string
-  theme?: ThemeKey | string
-  [key: string]: unknown
+    id: number | string
+    label: string
+    author?: string
+    theme?: ThemeKey | string
+    [key: string]: unknown
 }
 
 export interface GraphLink {
-  source: number | string
-  target: number | string
-  value?: number
-  [key: string]: unknown
+    source: number | string
+    target: number | string
+    value?: number
+    [key: string]: unknown
 }
 
 export interface GraphData {
-  nodes: GraphNode[]
-  links: GraphLink[]
+    nodes: GraphNode[]
+    links: GraphLink[]
 }
 
 export interface OnlineStats {
-  online: number
-  modules?: Record<string, number>
+    online: number
+    modules?: Record<string, number>
 }
 
 export type RealtimeEventType =
-  | 'NEW_MESSAGE'
-  | 'NEW_COMMENT'
-  | 'OBSERVER_MESSAGE'
-  | 'REACTION_UPDATE'
-  | 'COMMENT_REACTION_UPDATE'
-  | 'ONLINE_STATS_UPDATE'
-  | 'CONFESSOR_REPLY'
-  | 'CONFESSION_WITNESS_UPDATE'
-  | 'NOTIFICATION_CREATED'
+    | 'NEW_MESSAGE'
+    | 'NEW_COMMENT'
+    | 'OBSERVER_MESSAGE'
+    | 'REACTION_UPDATE'
+    | 'COMMENT_REACTION_UPDATE'
+    | 'ONLINE_STATS_UPDATE'
+    | 'CONFESSOR_REPLY'
+    | 'CONFESSION_WITNESS_UPDATE'
+    | 'NOTIFICATION_CREATED'
 
 export interface RealtimeEnvelope<T = unknown> {
-  type?: RealtimeEventType
-  msg?: string
-  data?: T
+    type?: RealtimeEventType
+    msg?: string
+    data?: T
 }
 
 export interface ReactionUpdatePayload {
-  messageId: number | string
-  commentId?: number | string
-  reactions: string | Record<string, number>
+    messageId: number | string
+    commentId?: number | string
+    reactions: string | Record<string, number>
 }
 
 export interface ConfessorReplyPayload {
-  messageId: number | string
-  reply: string
+    messageId: number | string
+    reply: string
 }
 
 export interface ConfessionWitnessPayload {
-  messageId: number | string
-  witnessCount: number
+    messageId: number | string
+    witnessCount: number
 }
 
 export interface ActivityStats {
-  [key: string]: unknown
+    [key: string]: unknown
 }
 
 export interface TrendingTag {
-  id?: number | string
-  tag?: string
-  name?: string
-  usageCount?: number
-  count?: number
-  [key: string]: unknown
+    id?: number | string
+    tag?: string
+    name?: string
+    usageCount?: number
+    count?: number
+    [key: string]: unknown
 }
 
 export interface TagSubscription {
-  id: number | string
-  tagId: number | string
-  tagName: string
-  usageCount?: number
-  createTime?: string
+    id: number | string
+    tagId: number | string
+    tagName: string
+    usageCount?: number
+    createTime?: string
 }
 
 export interface IdentityBackup {
-  recoveryKey?: string
-  [key: string]: unknown
+    recoveryKey?: string
+    [key: string]: unknown
 }
 
 export interface BlacklistItem {
-  ip: string
-  reason?: string
-  createTime?: string
-  [key: string]: unknown
+    ip: string
+    reason?: string
+    createTime?: string
+    [key: string]: unknown
 }
 
 export interface StoreItem {
-  id: string
-  name: string
-  description: string
-  cost: number
-  preview: string
-  toggleEvent: string
+    id: string
+    name: string
+    description: string
+    cost: number
+    preview: string
+    toggleEvent: string
 }

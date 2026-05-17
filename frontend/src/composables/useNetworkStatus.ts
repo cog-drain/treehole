@@ -4,33 +4,33 @@ import api from '@/api'
 import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
 
 export function useNetworkStatus() {
-  const isOnline = ref(navigator.onLine)
+    const isOnline = ref(navigator.onLine)
 
-  function handleOnline(): void {
-    isOnline.value = true
-    if (offlineQueueCount.value > 0) {
-      offlineQueue.sync(api)
+    function handleOnline(): void {
+        isOnline.value = true
+        if (offlineQueueCount.value > 0) {
+            offlineQueue.sync(api)
+        }
     }
-  }
 
-  function handleOffline(): void {
-    isOnline.value = false
-    ElMessage.warning('你已进入离线回声舱')
-  }
+    function handleOffline(): void {
+        isOnline.value = false
+        ElMessage.warning('你已进入离线回声舱')
+    }
 
-  function startNetworkListeners(): void {
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-  }
+    function startNetworkListeners(): void {
+        window.addEventListener('online', handleOnline)
+        window.addEventListener('offline', handleOffline)
+    }
 
-  function stopNetworkListeners(): void {
-    window.removeEventListener('online', handleOnline)
-    window.removeEventListener('offline', handleOffline)
-  }
+    function stopNetworkListeners(): void {
+        window.removeEventListener('online', handleOnline)
+        window.removeEventListener('offline', handleOffline)
+    }
 
-  return {
-    isOnline,
-    startNetworkListeners,
-    stopNetworkListeners
-  }
+    return {
+        isOnline,
+        startNetworkListeners,
+        stopNetworkListeners
+    }
 }

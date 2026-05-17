@@ -1,31 +1,31 @@
 export interface ApiResponse<T = unknown> {
-  code: number
-  msg?: string
-  data: T
+    code: number
+    msg?: string
+    data: T
 }
 
 export interface PageResult<T> {
-  records?: T[]
-  list?: T[]
-  total: number
-  current?: number
-  size?: number
+    records?: T[]
+    list?: T[]
+    total: number
+    current?: number
+    size?: number
 }
 
 export type Id = number | string
 
 export interface PageParams {
-  pageNum?: number
-  pageSize?: number
-  tag?: string
+    pageNum?: number
+    pageSize?: number
+    tag?: string
 }
 
 export interface NotificationPageParams {
-  pageNum?: number
-  pageSize?: number
-  unreadOnly?: boolean
+    pageNum?: number
+    pageSize?: number
+    unreadOnly?: boolean
 }
 
 export interface UnreadCountResponse {
-  unreadCount: number
+    unreadCount: number
 }

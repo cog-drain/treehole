@@ -1,81 +1,86 @@
 @theme {
-  --color-slate-950: #020617;
-  --color-slate-50: #f8fafc;
+    --color-slate-950: #020617;
+    --color-slate-50: #f8fafc;
 }
 
 :root {
-  color-scheme: light;
-  --color-bg: #e2e8f0;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-card-bg: rgba(255, 255, 255, 0.8);
-  --color-border: rgba(0, 0, 0, 0.05);
-  --glass-blur: 12px;
-  --cmt-accent: #3b82f6;
-  --cmt-hover-bg: rgba(0, 0, 0, 0.03);
-  --cmt-pill-bg: rgba(0, 0, 0, 0.03);
-  --cmt-pill-hover: rgba(0, 0, 0, 0.06);
-  --cmt-collapsed-line: #cbd5e1;
-  --thread-color-0: #3b82f6;
-  --thread-color-1: #8b5cf6;
-  --thread-color-2: #06b6d4;
-  --thread-color-3: #f59e0b;
-  --thread-color-4: #ef4444;
+    color-scheme: light;
+    --color-bg: #e2e8f0;
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-card-bg: rgba(255, 255, 255, 0.8);
+    --color-border: rgba(0, 0, 0, 0.05);
+    --glass-blur: 12px;
+    --cmt-accent: #3b82f6;
+    --cmt-hover-bg: rgba(0, 0, 0, 0.03);
+    --cmt-pill-bg: rgba(0, 0, 0, 0.03);
+    --cmt-pill-hover: rgba(0, 0, 0, 0.06);
+    --cmt-collapsed-line: #cbd5e1;
+    --thread-color-0: #3b82f6;
+    --thread-color-1: #8b5cf6;
+    --thread-color-2: #06b6d4;
+    --thread-color-3: #f59e0b;
+    --thread-color-4: #ef4444;
 }
 
 body {
-  background-color: var(--color-bg);
-  background-image:
-    linear-gradient(rgba(0, 0, 0, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.015) 1px, transparent 1px);
-  background-size: 40px 40px;
-  color: var(--color-text-primary);
-  @apply antialiased transition-colors duration-700;
-  margin: 0;
-  min-height: 100vh;
-  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-bg);
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    color: var(--color-text-primary);
+    @apply antialiased transition-colors duration-700;
+    margin: 0;
+    min-height: 100vh;
+    font-family:
+        'Outfit',
+        'Inter',
+        system-ui,
+        -apple-system,
+        sans-serif;
 }
 
 .text-slate-200,
 .text-slate-200\/90,
 .text-slate-300,
 .text-slate-300\/90 {
-  color: var(--color-text-primary) !important;
+    color: var(--color-text-primary) !important;
 }
 
 .text-slate-400 {
-  color: var(--color-text-secondary) !important;
+    color: var(--color-text-secondary) !important;
 }
 
 .text-slate-500,
 .text-slate-600 {
-  color: color-mix(in srgb, var(--color-text-secondary), transparent 20%) !important;
+    color: color-mix(in srgb, var(--color-text-secondary), transparent 20%) !important;
 }
 
 .bg-white\/5 {
-  background-color: color-mix(in srgb, var(--color-text-primary), transparent 95%) !important;
+    background-color: color-mix(in srgb, var(--color-text-primary), transparent 95%) !important;
 }
 
 .bg-white\/10 {
-  background-color: color-mix(in srgb, var(--color-text-primary), transparent 90%) !important;
+    background-color: color-mix(in srgb, var(--color-text-primary), transparent 90%) !important;
 }
 
 .bg-white\/20 {
-  background-color: color-mix(in srgb, var(--color-text-primary), transparent 80%) !important;
+    background-color: color-mix(in srgb, var(--color-text-primary), transparent 80%) !important;
 }
 
 .border-white\/5 {
-  border-color: color-mix(in srgb, var(--color-text-primary), transparent 95%) !important;
+    border-color: color-mix(in srgb, var(--color-text-primary), transparent 95%) !important;
 }
 
 .border-white\/10 {
-  border-color: var(--color-border) !important;
+    border-color: var(--color-border) !important;
 }
 
 .border-white\/20 {
-  border-color: color-mix(in srgb, var(--color-text-primary), transparent 80%) !important;
+    border-color: color-mix(in srgb, var(--color-text-primary), transparent 80%) !important;
 }
 
 .border-white {
-  border-color: var(--color-text-primary) !important;
+    border-color: var(--color-text-primary) !important;
 }
