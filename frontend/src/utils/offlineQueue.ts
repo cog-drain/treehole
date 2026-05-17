@@ -22,6 +22,8 @@ interface OfflineSyncApi {
 
 export const offlineQueueCount = shallowRef(0)
 
+let currentSync: Promise<void> | null = null
+
 export const offlineQueue = {
     init(): void {
         offlineQueueCount.value = this.get().length
@@ -58,52 +60,60 @@ export const offlineQueue = {
         offlineQueueCount.value = queue.length
     },
 
-    async sync(api: OfflineSyncApi): Promise<void> {
-        const queue = this.get()
-        if (queue.length === 0) {
-            offlineQueueCount.value = 0
-            return
-        }
+    sync(api: OfflineSyncApi): Promise<void> {
+        if (currentSync) return currentSync
 
-        offlineQueueCount.value = queue.length
+        currentSync = (async () => {
+            const queue = this.get()
+            if (queue.length === 0) {
+                offlineQueueCount.value = 0
+                return
+            }
 
-        ElNotification({
-            title: '同步中',
-            message: `检测到网络恢复，正在尝试同步 ${queue.length} 条离线留言...`,
-            type: 'info'
+            offlineQueueCount.value = queue.length
+
+            ElNotification({
+                title: '同步中',
+                message: `检测到网络恢复，正在尝试同步 ${queue.length} 条离线留言...`,
+                type: 'info'
+            })
+
+            const remaining: OfflineQueueItem[] = []
+            for (const item of queue) {
+                try {
+                    const { id: _id, timestamp: _timestamp, ...payload } = item
+
+                    await new Promise(resolve => {
+                        setTimeout(resolve, 300)
+                    })
+
+                    await api.publishMessage(payload)
+                } catch (err) {
+                    console.error('Offline sync failed for item:', item, err)
+                    remaining.push(item)
+                }
+            }
+
+            setJson(QUEUE_KEY, remaining)
+            offlineQueueCount.value = remaining.length
+
+            if (remaining.length === 0) {
+                ElNotification({
+                    title: '同步成功',
+                    message: '所有离线留言已成功投入树洞！',
+                    type: 'success'
+                })
+            } else {
+                ElNotification({
+                    title: '同步部分失败',
+                    message: '部分留言未能同步，请检查服务器状态。',
+                    type: 'error'
+                })
+            }
+        })().finally(() => {
+            currentSync = null
         })
 
-        const remaining: OfflineQueueItem[] = []
-        for (const item of queue) {
-            try {
-                const { id: _id, timestamp: _timestamp, ...payload } = item
-
-                await new Promise(resolve => {
-                    setTimeout(resolve, 300)
-                })
-
-                await api.publishMessage(payload)
-            } catch (err) {
-                console.error('Offline sync failed for item:', item, err)
-                remaining.push(item)
-            }
-        }
-
-        setJson(QUEUE_KEY, remaining)
-        offlineQueueCount.value = remaining.length
-
-        if (remaining.length === 0) {
-            ElNotification({
-                title: '同步成功',
-                message: '所有离线留言已成功投入树洞！',
-                type: 'success'
-            })
-        } else {
-            ElNotification({
-                title: '同步部分失败',
-                message: '部分留言未能同步，请检查服务器状态。',
-                type: 'error'
-            })
-        }
+        return currentSync
     }
 }

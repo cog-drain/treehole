@@ -119,4 +119,25 @@ describe('offline queue', () => {
         )
         expect(consoleError).toHaveBeenCalled()
     })
+
+    it('reuses an in-flight sync so the same queued message is not published twice', async () => {
+        vi.useFakeTimers()
+        localStorage.setItem(
+            'treehole_offline_messages',
+            JSON.stringify([{ id: 'local-only', timestamp: 123, content: 'queued message', authorAlias: 'anon' }])
+        )
+        const api = { publishMessage: vi.fn().mockResolvedValue({ id: 1 }) }
+
+        const firstSync = offlineQueue.sync(api)
+        const secondSync = offlineQueue.sync(api)
+
+        expect(secondSync).toBe(firstSync)
+
+        await vi.advanceTimersByTimeAsync(300)
+        await Promise.all([firstSync, secondSync])
+
+        expect(api.publishMessage).toHaveBeenCalledTimes(1)
+        expect(offlineQueue.get()).toEqual([])
+        expect(offlineQueueCount.value).toBe(0)
+    })
 })
