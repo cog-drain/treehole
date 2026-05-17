@@ -1,5 +1,14 @@
-.theme-default {
-    background-color: var(--color-bg) !important;
+.theme-default,
+.theme-starry,
+.theme-retro,
+.theme-autumn {
+    background:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.55), transparent 34%),
+        linear-gradient(135deg, #e2e8f0 0%, #dbe4ef 100%) !important;
+    border: 1px solid rgba(148, 163, 184, 0.42) !important;
+    box-shadow:
+        0 24px 56px -26px rgba(51, 65, 85, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
 }
 
 .theme-dawn {

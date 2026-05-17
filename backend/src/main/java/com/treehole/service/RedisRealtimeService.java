@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -113,22 +114,37 @@ public class RedisRealtimeService implements RealtimeService {
 
     @Override
     public List<Tag> mergeTagRank(List<Tag> dbTags, int limit) {
-        Set<String> rankedNames = redisTemplate.opsForZSet().reverseRange(TAG_RANK_KEY, 0, Math.max(0, limit - 1));
+        long resultLimit = limit <= 0 ? Long.MAX_VALUE : limit;
+        Set<String> rankedNames = redisTemplate.opsForZSet().reverseRange(TAG_RANK_KEY, 0, -1);
         if (rankedNames == null || rankedNames.isEmpty()) return dbTags;
 
         Map<String, Tag> byName = new HashMap<>();
         for (Tag tag : dbTags) byName.put(tag.getName(), tag);
 
-        return rankedNames.stream()
-                .map(name -> {
-                    Tag tag = byName.getOrDefault(name, new Tag());
+        if (limit > 0) {
+            for (String name : rankedNames) {
+                byName.computeIfAbsent(name, ignored -> {
+                    Tag tag = new Tag();
                     tag.setName(name);
-                    Double score = redisTemplate.opsForZSet().score(TAG_RANK_KEY, name);
-                    tag.setUsageCount(score == null ? 0 : score.intValue());
+                    tag.setUsageCount(redisTagScore(name));
                     return tag;
-                })
-                .limit(limit)
+                });
+            }
+        }
+
+        return byName.values().stream()
+                .sorted(Comparator
+                        .comparingInt((Tag tag) -> Math.max(tag.getUsageCount() == null ? 0 : tag.getUsageCount(), redisTagScore(tag.getName())))
+                        .reversed()
+                        .thenComparing(Tag::getCreateTime, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Tag::getId, Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(resultLimit)
                 .toList();
+    }
+
+    private int redisTagScore(String name) {
+        Double score = redisTemplate.opsForZSet().score(TAG_RANK_KEY, name);
+        return score == null ? 0 : score.intValue();
     }
 
     @Override

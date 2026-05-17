@@ -63,6 +63,7 @@
                 :total-pages="totalPages"
                 :highlighted-message-id="highlightedMessageId"
                 :highlighted-comment-id="highlightedCommentId"
+                :is-quiet-feed-switching="isQuietFeedSwitching"
                 @like="likeMessage"
                 @toggle-comments="toggleComments"
                 @delete="deleteMessage"
@@ -403,6 +404,7 @@ const {
     totalPages,
     trendingTags,
     activeTag,
+    isQuietFeedSwitching,
     publishing,
     subscribedTagIds,
     onlineCount,

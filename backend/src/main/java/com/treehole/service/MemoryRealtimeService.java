@@ -11,12 +11,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,11 +44,15 @@ public class MemoryRealtimeService implements RealtimeService {
     public boolean tryAcquireRateLimit(String key, Duration ttl) {
         long now = Instant.now().toEpochMilli();
         long expiresAt = now + ttl.toMillis();
-        Long existing = rateLimitExpires.compute(key, (ignored, current) -> {
-            if (current == null || current <= now) return expiresAt;
+        AtomicBoolean acquired = new AtomicBoolean(false);
+        rateLimitExpires.compute(key, (ignored, current) -> {
+            if (current == null || current <= now) {
+                acquired.set(true);
+                return expiresAt;
+            }
             return current;
         });
-        return existing != null && existing == expiresAt;
+        return acquired.get();
     }
 
     @Override
@@ -120,21 +126,33 @@ public class MemoryRealtimeService implements RealtimeService {
     @Override
     public List<Tag> mergeTagRank(List<Tag> dbTags, int limit) {
         if (tagRanks.isEmpty()) return dbTags;
+        long resultLimit = limit <= 0 ? Long.MAX_VALUE : limit;
 
         Map<String, Tag> byName = new HashMap<>();
         for (Tag tag : dbTags) byName.put(tag.getName(), tag);
-
-        return tagRanks.entrySet().stream()
-                .filter(entry -> entry.getValue() > 0)
-                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
-                .limit(limit)
-                .map(entry -> {
-                    Tag tag = byName.getOrDefault(entry.getKey(), new Tag());
-                    tag.setName(entry.getKey());
-                    tag.setUsageCount(entry.getValue().intValue());
+        if (limit > 0) {
+            for (String name : tagRanks.keySet()) {
+                byName.computeIfAbsent(name, ignored -> {
+                    Tag tag = new Tag();
+                    tag.setName(name);
+                    tag.setUsageCount(memoryTagScore(name));
                     return tag;
-                })
+                });
+            }
+        }
+
+        return byName.values().stream()
+                .sorted(Comparator
+                        .comparingInt((Tag tag) -> Math.max(tag.getUsageCount() == null ? 0 : tag.getUsageCount(), memoryTagScore(tag.getName())))
+                        .reversed()
+                        .thenComparing(Tag::getCreateTime, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(Tag::getId, Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(resultLimit)
                 .toList();
+    }
+
+    private int memoryTagScore(String name) {
+        return tagRanks.getOrDefault(name, 0.0).intValue();
     }
 
     @Override

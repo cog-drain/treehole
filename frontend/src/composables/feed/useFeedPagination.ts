@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
 import { messageApi } from '@/api/modules/message'
 import { statsApi } from '@/api/modules/stats'
@@ -25,6 +25,7 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
     const tagSubscriptions = ref<TagSubscription[]>([])
     const subscribedTagIds = computed(() => new Set(tagSubscriptions.value.map(item => String(item.tagId))))
     const activeTag = ref('')
+    const isQuietFeedSwitching = ref(false)
     const onlineCount = ref(0)
     const onlineModules = ref<Record<string, number>>({})
 
@@ -93,10 +94,22 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
         return target
     }
 
+    async function runQuietFeedSwitch(updateFeedState: () => void) {
+        isQuietFeedSwitching.value = true
+        try {
+            updateFeedState()
+            await fetchMessages()
+            await nextTick()
+        } finally {
+            isQuietFeedSwitching.value = false
+        }
+    }
+
     function handleTagClick(tag: string) {
-        activeTag.value = tag
-        pageNum.value = 1
-        fetchMessages()
+        void runQuietFeedSwitch(() => {
+            activeTag.value = tag
+            pageNum.value = 1
+        })
     }
 
     async function toggleTagSubscription(tag: TrendingTag) {
@@ -119,14 +132,16 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
     }
 
     function clearTagFilter() {
-        activeTag.value = ''
-        pageNum.value = 1
-        fetchMessages()
+        void runQuietFeedSwitch(() => {
+            activeTag.value = ''
+            pageNum.value = 1
+        })
     }
 
     function handlePageChange(page: number) {
-        pageNum.value = page
-        fetchMessages()
+        void runQuietFeedSwitch(() => {
+            pageNum.value = page
+        })
         scrollToTop()
     }
 
@@ -140,6 +155,7 @@ export function useFeedPagination({ readIds }: UseFeedPaginationOptions) {
         tagSubscriptions,
         subscribedTagIds,
         activeTag,
+        isQuietFeedSwitching,
         onlineCount,
         onlineModules,
         fetchTrending,

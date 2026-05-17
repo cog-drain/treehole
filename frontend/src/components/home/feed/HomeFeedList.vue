@@ -1,31 +1,36 @@
 <template>
     <div v-if="viewMode === 'list'" class="space-y-8 sm:space-y-10">
         <div v-if="total > 0" class="space-y-8 sm:space-y-10">
-            <TransitionGroup name="msg-list">
-                <MessageCard
-                    v-for="(msg, index) in messages"
-                    :key="msg.id"
-                    :msg="msg"
-                    :liked="likedIds.has(msg.id)"
-                    :highlighted-message-id="highlightedMessageId"
-                    :highlighted-comment-id="highlightedCommentId"
-                    :class="['theme-' + (msg.theme || 'default'), 'animate__animated animate__fadeInUp']"
-                    :style="{ animationDelay: index * 100 + 'ms' }"
-                    :is-admin="isAdmin"
-                    @like="$emit('like', $event)"
-                    @toggle-comments="$emit('toggle-comments', $event)"
-                    @delete="$emit('delete', $event)"
-                    @delete-comment="$emit('delete-comment', $event)"
-                    @publish-comment="$emit('publish-comment', $event)"
-                    @set-reply-target="$emit('set-reply-target', $event)"
-                    @clear-reply="$emit('clear-reply', $event)"
-                    @update-comment-text="$emit('update-comment-text', $event)"
-                    @react="$emit('react')"
-                    @witness="$emit('witness')"
-                    @tag-click="$emit('tag-click', $event)"
-                    @admin-ban="$emit('admin-ban', $event)"
-                />
-            </TransitionGroup>
+            <div class="space-y-8 sm:space-y-10">
+                <TransitionGroup name="msg-list" :css="!isQuietFeedSwitching">
+                    <MessageCard
+                        v-for="(msg, index) in messages"
+                        :key="msg.id"
+                        :msg="msg"
+                        :liked="likedIds.has(msg.id)"
+                        :highlighted-message-id="highlightedMessageId"
+                        :highlighted-comment-id="highlightedCommentId"
+                        :class="[
+                            'theme-' + (msg.theme || 'default'),
+                            !isQuietFeedSwitching ? 'animate__animated animate__fadeInUp' : ''
+                        ]"
+                        :style="!isQuietFeedSwitching ? { animationDelay: index * 100 + 'ms' } : undefined"
+                        :is-admin="isAdmin"
+                        @like="$emit('like', $event)"
+                        @toggle-comments="$emit('toggle-comments', $event)"
+                        @delete="$emit('delete', $event)"
+                        @delete-comment="$emit('delete-comment', $event)"
+                        @publish-comment="$emit('publish-comment', $event)"
+                        @set-reply-target="$emit('set-reply-target', $event)"
+                        @clear-reply="$emit('clear-reply', $event)"
+                        @update-comment-text="$emit('update-comment-text', $event)"
+                        @react="$emit('react')"
+                        @witness="$emit('witness')"
+                        @tag-click="$emit('tag-click', $event)"
+                        @admin-ban="$emit('admin-ban', $event)"
+                    />
+                </TransitionGroup>
+            </div>
 
             <div class="flex justify-center pt-10 pb-28 sm:pt-14 sm:pb-32">
                 <nav
@@ -92,6 +97,7 @@ withDefaults(
         totalPages?: number
         highlightedMessageId?: Id | null
         highlightedCommentId?: Id | null
+        isQuietFeedSwitching?: boolean
     }>(),
     {
         messages: () => [],
@@ -100,7 +106,8 @@ withDefaults(
         total: 0,
         totalPages: 1,
         highlightedMessageId: null,
-        highlightedCommentId: null
+        highlightedCommentId: null,
+        isQuietFeedSwitching: false
     }
 )
 

@@ -105,7 +105,9 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
         LambdaQueryWrapper<Tag> wrapper = new LambdaQueryWrapper<>();
         wrapper.gt(Tag::getUsageCount, 0); // 只查使用次数 > 0 的
         wrapper.orderByDesc(Tag::getUsageCount);
-        wrapper.last("LIMIT " + limit);
+        if (limit > 0) {
+            wrapper.last("LIMIT " + limit);
+        }
         return realtimeService.mergeTagRank(this.list(wrapper), limit);
     }
 }

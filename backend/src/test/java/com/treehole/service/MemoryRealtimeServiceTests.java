@@ -64,4 +64,21 @@ class MemoryRealtimeServiceTests {
         assertEquals("fresh", ranked.get(0).getName());
         assertEquals(3, ranked.get(0).getUsageCount());
     }
+
+    @Test
+    void tagRankShouldReturnAllDatabaseTagsWhenLimitIsZero() {
+        Tag low = new Tag();
+        low.setName("low");
+        low.setUsageCount(1);
+        Tag high = new Tag();
+        high.setName("high");
+        high.setUsageCount(2);
+        service.incrementTagRank("fresh", 5);
+
+        List<Tag> ranked = service.mergeTagRank(List.of(low, high), 0);
+
+        assertEquals(2, ranked.size());
+        assertEquals("high", ranked.get(0).getName());
+        assertEquals("low", ranked.get(1).getName());
+    }
 }

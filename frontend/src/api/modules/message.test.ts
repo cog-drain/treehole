@@ -60,6 +60,11 @@ describe('message api', () => {
             url: '/tags/trending',
             config: { params: { limit: 5 } }
         })
+        expect(messageApi.getTrendingTags(0)).toMatchObject({
+            method: 'get',
+            url: '/tags/trending',
+            config: { params: { limit: 0 } }
+        })
     })
 
     it('publishes messages through the request client when online', async () => {
