@@ -1,0 +1,91 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "backend: compile",
+            "type": "shell",
+            "command": "mvn",
+            "args": [
+                "-f",
+                "${workspaceFolder}/backend/pom.xml",
+                "compile"
+            ],
+            "group": "build",
+            "problemMatcher": "$javac"
+        },
+        {
+            "label": "backend: test",
+            "type": "shell",
+            "command": "mvn",
+            "args": [
+                "-f",
+                "${workspaceFolder}/backend/pom.xml",
+                "test"
+            ],
+            "group": "test",
+            "problemMatcher": "$javac"
+        },
+        {
+            "label": "frontend: install",
+            "type": "shell",
+            "command": "pnpm",
+            "args": [
+                "install"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "frontend: dev",
+            "type": "shell",
+            "command": "pnpm",
+            "args": [
+                "dev"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "vite",
+                "pattern": {
+                    "regexp": "^(.*)$",
+                    "message": 1
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": "Local:"
+                }
+            }
+        },
+        {
+            "label": "frontend: test",
+            "type": "shell",
+            "command": "pnpm",
+            "args": [
+                "test"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "frontend: type-check",
+            "type": "shell",
+            "command": "pnpm",
+            "args": [
+                "type-check"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "group": "test",
+            "problemMatcher": []
+        }
+    ]
+}

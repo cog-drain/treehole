@@ -9,6 +9,8 @@ import com.treehole.mapper.CommentMapper;
 import com.treehole.service.CacheInvalidationService;
 import com.treehole.service.CommentService;
 import com.treehole.service.MessageService;
+import com.treehole.service.NotificationService;
+import com.treehole.service.RealtimeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import com.treehole.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,15 +38,16 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     private MessageService messageService;
     private final CacheInvalidationService cacheInvalidationService;
+    private final RealtimeService realtimeService;
+    private final NotificationService notificationService;
     
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
-
-    public CommentServiceImpl(CacheInvalidationService cacheInvalidationService) {
+    public CommentServiceImpl(CacheInvalidationService cacheInvalidationService, RealtimeService realtimeService, NotificationService notificationService) {
         this.cacheInvalidationService = cacheInvalidationService;
+        this.realtimeService = realtimeService;
+        this.notificationService = notificationService;
     }
 
     @Autowired
@@ -66,18 +70,24 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             throw new BusinessException(ErrorCode.PARAM_ERROR, "昵称太长啦 (最多20字)");
         }
 
+        Message targetMessage = messageService.getById(comment.getMessageId());
+        if (targetMessage == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "留言不存在");
+        }
+        if ("confession".equals(targetMessage.getMessageType())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "告解只能被见证，不能被评论");
+        }
+
         // 评论频率限流：同一用户 5 秒内只能发一条
         String rateKey = "treehole:rate:cmt:id:" + userId;
-        Boolean isAllowed = stringRedisTemplate.opsForValue().setIfAbsent(rateKey, "1", java.time.Duration.ofSeconds(5));
-        if (Boolean.FALSE.equals(isAllowed)) {
+        if (!realtimeService.tryAcquireRateLimit(rateKey, Duration.ofSeconds(5))) {
             throw new BusinessException(ErrorCode.FREQ_LIMIT, "评论太频繁啦，请休息片刻 (5秒冷却)");
         }
 
         // IP 双重限流：同一 IP 5 秒内只能发一条 (防刷)
         if (comment.getIpAddress() != null && !comment.getIpAddress().isBlank()) {
             String ipRateKey = "treehole:rate:cmt:ip:" + comment.getIpAddress();
-            Boolean ipAllowed = stringRedisTemplate.opsForValue().setIfAbsent(ipRateKey, "1", java.time.Duration.ofSeconds(5));
-            if (Boolean.FALSE.equals(ipAllowed)) {
+            if (!realtimeService.tryAcquireRateLimit(ipRateKey, Duration.ofSeconds(5))) {
                 throw new BusinessException(ErrorCode.FREQ_LIMIT, "该 IP 评论太频繁，请稍后再试");
             }
         }
@@ -89,7 +99,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         messageService.update().setSql("comment_count = comment_count + 1")
                 .eq("id", comment.getMessageId()).update();
+        realtimeService.incrementMessageRank(comment.getMessageId(), 3);
         cacheInvalidationService.evictCommentAndMessageListCaches();
+
+        createCommentNotifications(targetMessage, comment, userId);
 
         // 核心：广播新评论
         try {
@@ -107,6 +120,24 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         result.put("comment", comment);
         result.put("userId", userId);
         return result;
+    }
+
+    private void createCommentNotifications(Message targetMessage, Comment comment, String actorId) {
+        if (comment.getParentId() == null) {
+            notificationService.createForMessageCommented(targetMessage, comment, actorId);
+            return;
+        }
+
+        Comment parentComment = this.getById(comment.getParentId());
+        if (parentComment == null) {
+            notificationService.createForMessageCommented(targetMessage, comment, actorId);
+            return;
+        }
+
+        notificationService.createForCommentReplied(targetMessage, parentComment, comment, actorId);
+        if (!Objects.equals(parentComment.getUserId(), targetMessage.getUserId())) {
+            notificationService.createForMessageCommented(targetMessage, comment, actorId);
+        }
     }
 
     @Override
@@ -177,6 +208,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         this.removeById(id);
         messageService.update().setSql("comment_count = CASE WHEN comment_count > 0 THEN comment_count - 1 ELSE 0 END")
                 .eq("id", comment.getMessageId()).update();
+        realtimeService.incrementMessageRank(comment.getMessageId(), -3);
         cacheInvalidationService.evictCommentAndMessageListCaches();
     }
 
@@ -190,42 +222,17 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         Comment comment = this.getById(id);
         if (comment == null) return;
 
-        Map<String, Integer> reactionMap = new HashMap<>();
-        try {
-            if (comment.getReactions() != null && !comment.getReactions().isBlank()) {
-                reactionMap = objectMapper.readValue(comment.getReactions(), 
-                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Integer>>() {});
-            }
-        } catch (Exception e) {
-            log.error("Parse comment reactions error: {}", e.getMessage());
-        }
-
-        String redisKey = "treehole:react:cmt:" + id;
-
         synchronized (("cmt_react_" + id).intern()) {
-            Object oldEmojiObj = stringRedisTemplate.opsForHash().get(redisKey, userId);
-            String oldEmoji = oldEmojiObj != null ? oldEmojiObj.toString() : null;
-
-            if (oldEmoji != null) {
-                reactionMap.put(oldEmoji, Math.max(0, reactionMap.getOrDefault(oldEmoji, 0) - 1));
-                if (reactionMap.get(oldEmoji) == 0) reactionMap.remove(oldEmoji);
-            }
-
-            if (emoji.equals(oldEmoji)) {
-                // withdraw
-                stringRedisTemplate.opsForHash().delete(redisKey, userId);
-            } else {
-                // add or change
-                reactionMap.put(emoji, reactionMap.getOrDefault(emoji, 0) + 1);
-                stringRedisTemplate.opsForHash().put(redisKey, userId, emoji);
-            }
-
             try {
-                String json = objectMapper.writeValueAsString(reactionMap);
+                Map<String, Integer> reactionMap = realtimeService.updateReaction("cmt", id, userId, emoji, comment.getReactions());
+                String json = realtimeService.toReactionJson(reactionMap);
                 this.update(new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Comment>()
                     .eq(Comment::getId, id)
                     .set(Comment::getReactions, json));
+                realtimeService.incrementMessageRank(comment.getMessageId(), 1);
                 cacheInvalidationService.evictCommentCaches();
+                Message message = messageService.getById(comment.getMessageId());
+                notificationService.createForCommentLiked(message, comment, userId);
                 
                 // WebSocket 广播评论表情更新
                 Map<String, Object> broadcastData = new HashMap<>();

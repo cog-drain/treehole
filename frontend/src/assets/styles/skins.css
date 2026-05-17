@@ -1,0 +1,120 @@
+.theme-default {
+    background-color: var(--color-bg) !important;
+}
+
+.theme-dawn {
+    background: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%) !important;
+    border: 1px solid rgba(125, 211, 252, 0.4) !important;
+    box-shadow: 0 20px 40px -10px rgba(125, 211, 252, 0.3) !important;
+}
+
+.theme-dawn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 20% 30%, rgba(125, 211, 252, 0.4) 0%, transparent 40%);
+    filter: blur(40px);
+    animation: dawn-glow 10s ease-in-out infinite alternate;
+}
+
+@keyframes dawn-glow {
+    from {
+        transform: translate(-10%, -10%);
+    }
+    to {
+        transform: translate(10%, 10%);
+    }
+}
+
+.theme-dawn .text-slate-200,
+.theme-dawn .text-slate-200\/90 {
+    color: #0369a1 !important;
+    font-weight: 500;
+}
+
+.theme-dawn .text-slate-400,
+.theme-dawn .text-slate-500 {
+    color: #0ea5e9 !important;
+}
+
+.theme-sakura {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%) !important;
+    border: 1px solid rgba(253, 164, 175, 0.4) !important;
+    box-shadow: 0 20px 40px -10px rgba(253, 164, 175, 0.2) !important;
+}
+
+.theme-sakura::after {
+    content: '🌸';
+    position: absolute;
+    font-size: 10px;
+    top: -20px;
+    animation: sakura-fall 8s linear infinite;
+    opacity: 0.2;
+    pointer-events: none;
+    text-shadow:
+        20px 100px rgba(253, 164, 175, 0.4),
+        80px 200px rgba(253, 164, 175, 0.2),
+        -50px 300px rgba(253, 164, 175, 0.3);
+}
+
+@keyframes sakura-fall {
+    from {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.4;
+    }
+    90% {
+        opacity: 0.4;
+    }
+    to {
+        transform: translateY(600px) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.theme-sakura .text-slate-200,
+.theme-sakura .text-slate-200\/90 {
+    color: #be123c !important;
+}
+
+.theme-sakura .text-slate-400 {
+    color: #fb7185 !important;
+}
+
+.theme-spring {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%) !important;
+    border: 1px solid rgba(110, 231, 183, 0.3) !important;
+    box-shadow: 0 20px 40px -10px rgba(110, 231, 183, 0.2) !important;
+}
+
+.theme-spring::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-radial-gradient(circle at 50% 50%, rgba(110, 231, 183, 0.05) 0%, transparent 10%);
+    animation: spring-ripple 15s linear infinite;
+}
+
+@keyframes spring-ripple {
+    from {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+    to {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+.theme-spring .text-slate-200,
+.theme-spring .text-slate-200\/90 {
+    color: #065f46 !important;
+}
+
+.theme-spring .text-slate-400 {
+    color: #10b981 !important;
+}

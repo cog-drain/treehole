@@ -48,6 +48,9 @@ CREATE TABLE `message` (
     `image_url` VARCHAR(500),
     `audio_url` VARCHAR(500),
     `theme` VARCHAR(50) DEFAULT 'default',
+    `message_type` VARCHAR(20) DEFAULT 'normal',
+    `camo_effect` TINYINT(1) DEFAULT 0,
+    `expires_at` DATETIME DEFAULT NULL,
     `likes` INT DEFAULT 0,
     `comment_count` INT DEFAULT 0,
     `ip_address` VARCHAR(50),
@@ -55,7 +58,8 @@ CREATE TABLE `message` (
     `is_deleted` TINYINT DEFAULT 0,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_user` (`user_id`),
-    INDEX `idx_create_time` (`create_time`)
+    INDEX `idx_create_time` (`create_time`),
+    INDEX `idx_message_type_expires` (`message_type`, `expires_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 5. 评论表
@@ -96,7 +100,57 @@ CREATE TABLE `message_tag` (
     PRIMARY KEY (`message_id`, `tag_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- 7. 漂流瓶表 (补全)
+-- 7. 告解见证表
+DROP TABLE IF EXISTS `confession_witness`;
+
+CREATE TABLE `confession_witness` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `message_id` BIGINT NOT NULL,
+    `user_id` VARCHAR(36) NOT NULL,
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_confession_witness_user` (`message_id`, `user_id`),
+    INDEX `idx_confession_witness_message` (`message_id`),
+    INDEX `idx_confession_witness_user` (`user_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 8. 站内通知表
+DROP TABLE IF EXISTS `notification`;
+
+CREATE TABLE `notification` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `recipient_id` VARCHAR(36) NOT NULL,
+    `actor_id` VARCHAR(36) DEFAULT NULL,
+    `type` VARCHAR(40) NOT NULL,
+    `target_type` VARCHAR(30) NOT NULL,
+    `message_id` BIGINT DEFAULT NULL,
+    `comment_id` BIGINT DEFAULT NULL,
+    `parent_comment_id` BIGINT DEFAULT NULL,
+    `tag_id` BIGINT DEFAULT NULL,
+    `tag_name` VARCHAR(50) DEFAULT NULL,
+    `title` VARCHAR(80) NOT NULL,
+    `summary` VARCHAR(200) DEFAULT NULL,
+    `is_read` TINYINT DEFAULT 0,
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_notification_recipient_read_time` (`recipient_id`, `is_read`, `create_time`),
+    INDEX `idx_notification_recipient_time` (`recipient_id`, `create_time`),
+    INDEX `idx_notification_message` (`message_id`),
+    INDEX `idx_notification_comment` (`comment_id`),
+    INDEX `idx_notification_tag_window` (`recipient_id`, `type`, `tag_id`, `create_time`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 9. 标签订阅表
+DROP TABLE IF EXISTS `tag_subscription`;
+
+CREATE TABLE `tag_subscription` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` VARCHAR(36) NOT NULL,
+    `tag_id` BIGINT NOT NULL,
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_tag_subscription_user_tag` (`user_id`, `tag_id`),
+    INDEX `idx_tag_subscription_tag` (`tag_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 10. 漂流瓶表 (补全)
 DROP TABLE IF EXISTS `drift_bottle`;
 
 CREATE TABLE `drift_bottle` (

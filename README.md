@@ -2,48 +2,56 @@
 
 [中文](README.md) | [English](README.en.md)
 
-一个沉浸式的匿名表达与互动平台。在这里，你的秘密很安全。项目包含丰富的社交互动机制、实时双向通信以及基于 AI 的内容整理能力。
+Treehole 是一个全栈匿名表达与互动应用。它包含 Vue 3 前端、Spring Boot 后端、MySQL/MariaDB 数据库、Redis 实时状态与缓存，以及 WebSocket 实时推送。
 
-## ✨ 核心功能 (Core Features)
+## 功能概览
 
-- **🌳 匿名树洞 & 楼中楼**：极简的发布体验，支持图片、语音留言，以及多层级回复。
-- **🎨 语气模式 (Tone Modes)**：打破单调的文字，支持「悄悄话、大声说、梦话、电波、诗意」5 种特殊渲染效果，情绪传达更生动。
-- **🌊 赛博漂流瓶**：扔出你的心事，或者捞起陌生人的瞬间。
-- **🤖 AI 智能标签**：基于大语言模型的语义分析，自动提取留言标签并归类，支持热门共鸣墙。
-- **🛡️ 身份与安全机制**：
-  - **身份备份与恢复**：通过唯一恢复密钥，在不同设备间无缝同步云端身份与记录。
-  - **防御性频控策略**：基于 Redis 的 `ID + IP` 双重高并发限流（发帖 10 秒冷却，评论 5 秒冷却），彻底杜绝脚本换号刷屏。
-  - **内容硬拦截**：严格的留言（1000字）与评论（500字）长度拦截，防止恶意长文本耗尽服务器内存及 AI 计费 Token。
-- **⚡ 实时回响**：基于 WebSocket 的全双工通信，点赞、评论、新留言实时推送到客户端。
-- **🧘 边缘体验增强**：断网离线暂存箱（网络恢复后自动重发）、专注禅定模式（白噪音+沉浸式阅读）。
+- 匿名留言、图片/语音留言、楼中楼评论。
+- 告解帖：24 小时后过期，使用见证机制替代普通评论，并支持 AI 回应。
+- 漂流瓶：投递、捞取、回复陌生人的片段。
+- 语气模式：悄悄话、大声说、梦话、电波、诗意等展示效果。
+- AI 标签：发布后自动提取主题标签，用于热门话题和订阅通知。
+- 实时互动：WebSocket 推送新留言、新评论、通知、在线人数和活动状态。
+- Redis 能力：缓存、发帖/评论限流、在线用户 ZSet、热度排行、漂流瓶候选池、表情回响统计。
+- 离线体验：前端可暂存断网留言，网络恢复后重试。
 
-## 📂 项目结构
+## 技术栈
 
-- `backend/`: Spring Boot 3 + MyBatis-Plus + WebSocket + Redis
-- `frontend/`: Vue 3 + Vite + Pinia + Tailwind CSS
-- `database/`: 数据库初始化与测试数据脚本
-- `storage/`: 运行时上传与日志目录
-- `compose.yml`: Docker 一键编排（db/backend/frontend/redis）
+- Backend: Java 17, Spring Boot 3, MyBatis-Plus, Spring Data Redis, WebSocket
+- Frontend: Vue 3, Vite 8, Pinia, Element Plus, Tailwind CSS 4, TypeScript, Vitest, vue-tsc
+- Data: MySQL 8+/MariaDB 11, Redis 7
+- Deployment: Docker Compose, Windows native artifact, Windows demo artifact
 
-## 🛠 技术栈
+## 项目结构
 
-- **Backend**: Java 17, Spring Boot 3, MyBatis-Plus, Spring Data Redis
-- **Frontend**: Vue 3, Vite, Element Plus, Tailwind CSS, Pinia, Lucide Icons
-- **Database & Cache**: MariaDB 11, Redis 7
-- **Realtime**: WebSocket
+```text
+.
+  backend/                 Spring Boot 后端
+  frontend/                Vue 3 + Vite 前端
+  database/                初始化、测试数据和增量迁移 SQL
+  deploy/windows/          Windows Nginx 与部署说明
+  scripts/windows/         Windows 启动脚本
+  storage/                 本地上传和日志目录，运行时生成
+  compose.yml              Docker Compose 一键编排
+```
 
-## 快速启动（Docker，推荐）
+## 环境变量
 
-### 1. 准备 `.env`
+先复制模板：
 
-在项目根目录创建 `.env`（可参考 `.env.example`）：
+```bash
+cp .env.example .env
+```
+
+最少需要填写：
 
 ```env
-DB_ROOT_PASSWORD=your_root_password
-DB_USER=student
-DB_USER_PASSWORD=your_password
+DB_ROOT_PASSWORD=change-me-root-password
+DB_USER=treehole_user
+DB_USER_PASSWORD=change-me-user-password
 DB_NAME=treehole
-AI_API_KEY=your_api_key
+
+AI_API_KEY=your_ai_key
 
 FRONTEND_PORT=443
 BACKEND_PORT=24191
@@ -51,19 +59,31 @@ DB_PORT=3306
 REDIS_PORT=6379
 ```
 
-### 2. 启动服务
+本地非 Docker 后端还可以按需补充：
+
+```env
+DB_HOST=127.0.0.1
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=
+UPLOAD_PATH=../storage/uploads/
+LOG_PATH=../storage/logs/
+```
+
+不要提交真实 `.env`、数据库密码、API Key、证书或私钥。
+
+## 方式一：Docker Compose 启动
+
+这是最完整的本地/服务器启动方式，会同时启动数据库、Redis、后端和前端 Nginx。
+
+### 1. 启动
 
 ```bash
 docker compose up -d --build
 ```
 
-### 3. 访问地址
+第一次启动时，`database/01_init.sql` 会自动初始化数据库。这个脚本是全量初始化脚本，会创建完整表结构。
 
-- 前端（HTTPS）：`https://your-domain-or-ip:${FRONTEND_PORT}`
-- 前端（HTTP，自动跳转）：`http://your-domain-or-ip/`
-- 后端：`http://your-server-ip:${BACKEND_PORT}`
-
-### 4. 查看状态与日志
+### 2. 查看状态
 
 ```bash
 docker compose ps
@@ -72,43 +92,131 @@ docker compose logs -f db
 docker compose logs -f redis
 ```
 
-### 5. 缓存演示验证
+正常状态：
 
-启动后可用下面这组命令快速演示 Redis 缓存已生效：
+- `db` 健康检查通过。
+- `backend` 能连接 `db:3306` 和 `redis:6379`。
+- `frontend` 的 `/api`、`/uploads`、`/ws` 能代理到后端。
+
+### 3. 访问
+
+- 前端 HTTP：`http://localhost`
+- 前端 HTTPS：`https://localhost:${FRONTEND_PORT}`
+- 后端 API：`http://localhost:${BACKEND_PORT}`
+
+如果部署在服务器上，将 `localhost` 换成服务器 IP 或域名，并确认防火墙/安全组开放对应端口。
+
+### 4. 常用 Docker 命令
 
 ```bash
-# 先访问一次热门标签、留言列表或图谱接口，触发缓存写入
-curl -k https://127.0.0.1/api/tags/trending?limit=5
-curl -k 'https://127.0.0.1/api/messages?pageNum=1&pageSize=5'
-curl -k https://127.0.0.1/api/graph/data
+# 停止
+docker compose down
 
-# 查看 Redis 中的缓存键
+# 重建后端
+docker compose up -d --build backend
+
+# 重建前端
+docker compose up -d --build frontend
+
+# 查看 Redis 缓存键
 docker compose exec redis redis-cli KEYS 'treehole::*'
-
-# 查看缓存剩余 TTL（示例）
-docker compose exec redis redis-cli TTL 'treehole::graphData::latest'
 ```
 
-## 测试数据导入
+## 方式二：本地开发启动
 
-`database/02_test_data.sql` 可重复导入（`INSERT IGNORE`），并会在末尾刷新 `message.comment_count`。
+本地开发通常只启动 MySQL/Redis 基础设施，后端和前端分别由 IDE 或命令行运行。这样调试更快，也不会每次都重建容器。
 
-在项目根目录执行：
+### 1. 准备 MySQL 和 Redis
+
+你可以使用本机安装的 MySQL/Redis，也可以只用 Docker 启动基础设施。
+
+使用仓库 Compose 的数据库和 Redis：
 
 ```bash
-# 使用 .env 中业务账号导入（推荐）
-docker compose exec -T db sh -lc 'MYSQL_PWD="$DB_USER_PASSWORD" mariadb -u"$DB_USER" "$DB_NAME"' < database/02_test_data.sql
+docker compose up -d db redis
 ```
 
-如需使用 root 账号导入：
+或者使用你自己的 MySQL/Redis，只要 `.env` 中这些值能连通即可：
+
+```env
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=treehole
+DB_USER=treehole_user
+DB_USER_PASSWORD=your_password
+
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_PASSWORD=
+```
+
+### 2. 初始化或迁移数据库
+
+命令行中的 `mysql` 不会自动读取 `.env`。如果你想直接复用 `.env` 里的变量，先导出它们：
 
 ```bash
-docker compose exec -T db sh -lc 'MYSQL_PWD="$DB_ROOT_PASSWORD" mariadb -uroot "$DB_NAME"' < database/02_test_data.sql
+set -a
+. ./.env
+set +a
 ```
 
-## 本地开发
+全新数据库执行：
 
-### 前端
+```bash
+mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_USER_PASSWORD" "$DB_NAME" < database/01_init.sql
+```
+
+已有旧库不要直接执行 `01_init.sql`，它会重建表。旧库升级先执行增量迁移：
+
+```bash
+mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_USER_PASSWORD" "$DB_NAME" < database/03_add_camo_effect.sql
+```
+
+如果旧库缺少告解亭相关字段和表，需要补充：
+
+```sql
+ALTER TABLE `message`
+  ADD COLUMN `message_type` VARCHAR(20) DEFAULT 'normal' AFTER `theme`,
+  ADD COLUMN `expires_at` DATETIME DEFAULT NULL AFTER `message_type`,
+  ADD INDEX `idx_message_type_expires` (`message_type`, `expires_at`);
+
+CREATE TABLE IF NOT EXISTS `confession_witness` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `message_id` BIGINT NOT NULL,
+  `user_id` VARCHAR(36) NOT NULL,
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uk_confession_witness_user` (`message_id`, `user_id`),
+  INDEX `idx_confession_witness_message` (`message_id`),
+  INDEX `idx_confession_witness_user` (`user_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+```
+
+可选导入演示数据：
+
+```bash
+mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_USER_PASSWORD" "$DB_NAME" < database/02_test_data.sql
+```
+
+### 3. 命令行启动后端
+
+```bash
+cd backend
+set -a
+. ../.env
+set +a
+mvn spring-boot:run
+```
+
+默认使用 `dev` profile。Spring Boot 不会自动读取根目录 `.env`，所以上面的 `set -a; . ../.env; set +a` 用来把 `.env` 注入当前 shell。也可以用 IDE 的环境变量配置或系统环境变量达到同样效果。
+
+后端检查：
+
+```bash
+curl 'http://127.0.0.1:24191/api/messages?pageNum=1&pageSize=10'
+curl 'http://127.0.0.1:24191/api/tags/trending?limit=12'
+```
+
+### 4. 命令行启动前端
 
 ```bash
 cd frontend
@@ -116,107 +224,216 @@ pnpm install
 pnpm dev
 ```
 
-- 默认本地端口：`5173`
-- 本地 `pnpm dev` 走 Vite 开发服务器，不走 Nginx
+访问：
 
-### 后端
-
-```bash
-cd backend
-mvn spring-boot:run
+```text
+http://localhost:5173
 ```
 
-或运行测试：
+Vite 开发服务器会将 `/api`、`/uploads`、`/ws` 代理到 `BACKEND_PORT`，默认 `24191`。本地开发不需要 Nginx。
+
+## VS Code 开发
+
+仓库提交了 `.vscode/launch.json` 和 `.vscode/tasks.json` 作为团队模板。
+
+推荐插件：
+
+- Extension Pack for Java
+- Vue - Official
+- ESLint
+- Prettier
+
+步骤：
+
+1. 打开仓库根目录。
+2. 准备 `.env`，并确认 MySQL/Redis 已启动。
+3. 如有旧库，先执行必要 SQL 迁移。
+4. 在 `Run and Debug` 中选择 `Run Spring Boot Backend` 启动后端。
+5. 在 `Terminal -> Run Task...` 中执行 `frontend: install`，再执行 `frontend: dev`。
+6. 访问 `http://localhost:5173`。
+
+可用配置：
+
+- `Run Spring Boot Backend`：普通本地后端，读取根目录 `.env`，使用默认 `dev` profile。
+- `Run Spring Boot Backend (demo profile)`：demo profile，不连接 Redis；用于 Windows demo 包或只想用 MySQL 演示的场景。使用前先运行 `pnpm build`。
+- `Run Full Local Stack`：先启动前端 dev task，再启动后端。
+- `backend: test`、`frontend: test`、`frontend: type-check`：常用检查任务。
+
+## IntelliJ IDEA 开发
+
+1. 用 IDEA 打开仓库根目录，或导入 `backend/pom.xml`。
+2. Project SDK 选择 JDK 17。
+3. 在 Maven 面板刷新依赖。
+4. 新建 Spring Boot Run Configuration：
+   - Main class: `com.treehole.TreeholeApplication`
+   - Working directory: `<repo>/backend`
+   - Environment variables: 填入 `.env` 中的 `DB_*`、`REDIS_*`、`BACKEND_PORT`、`AI_API_KEY`
+   - Active profiles: 默认留空即可使用 `dev`；演示模式填 `demo`
+5. 后端启动后，在 IDEA Terminal 中运行：
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+IDEA 默认不会自动读取根目录 `.env`。如果没有使用 dotenv 插件，建议在 Run Configuration 里显式填写环境变量。
+
+## Windows 部署包
+
+GitHub Actions 会生成两个 Windows artifact。
+
+### 完整 Windows 包
+
+`treehole-windows-${sha}.zip` 适合 Windows 原生完整部署，目标机器需要：
+
+- JDK 17
+- MySQL 8+ 或 MariaDB
+- Redis-compatible 服务，例如 Memurai
+- Windows Nginx
+
+包内包含：
+
+- 后端 jar
+- 前端 `dist`
+- `.env.windows.example`
+- Windows Nginx 配置
+- PowerShell 启动脚本
+- 数据库 SQL
+- `README-windows-artifact.md`
+
+默认运行目录：
+
+```text
+C:\treehole
+```
+
+### Windows demo 包
+
+`treehole-windows-demo-${sha}.zip` 适合演示机器只有 JDK 17 + MySQL 的情况。
+
+- 不需要 Docker
+- 不需要 Redis
+- 不需要 Nginx
+- 不需要 Node.js
+
+demo profile 使用内存替代 Redis 实时状态，重启后会丢失在线人数、限流、漂流瓶候选池、活动排行等运行时状态。它适合演示，不适合生产。
+
+默认运行目录：
+
+```text
+C:\treehole-demo
+```
+
+详细步骤见包内 `README-windows-demo.md`。
+
+## GitHub Actions
+
+当前 workflow：
+
+- `.github/workflows/ci.yml`：基础 CI，构建后端和前端。
+- `.github/workflows/package-windows.yml`：生成 Windows 完整包和 Windows demo 包。
+
+手动打包：
+
+1. 打开 GitHub 仓库的 `Actions`。
+2. 选择 `Treehole Windows Package`。
+3. 点击 `Run workflow`。
+4. 在 workflow run 的 artifacts 中下载 zip。
+
+## 测试与质量检查
+
+前端：
+
+```bash
+cd frontend
+pnpm lint
+pnpm format:check
+pnpm type-check
+pnpm test
+pnpm build
+```
+
+后端：
 
 ```bash
 cd backend
 mvn test
+mvn package -DskipTests
 ```
 
-## 配置说明
-
-### 关于 `FRONTEND_PORT`
-
-- `FRONTEND_PORT` 控制的是 **Docker 中 frontend 容器对宿主机暴露的 HTTPS 端口**（`compose.yml` 的 443 映射）。
-- 容器内 Nginx 固定监听 `80` 和 `443`：`80` 提供 HTTP，`443` 提供 HTTPS。
-- 本地前端开发（`pnpm dev`）默认还是 5173，和 `FRONTEND_PORT` 无关。
-
-### 关于 HTTPS 证书
-
-- 前端容器会从 `storage/certs/origin.crt` 与 `storage/certs/origin.key` 读取源站证书。
-- 若你使用 Cloudflare，推荐直接在面板生成 **Cloudflare Origin Certificate** 并保存到上述两个路径。
-- 若只是临时联通测试，也可以先放置自签名证书，并将 Cloudflare `SSL/TLS` 模式设为 `Full`。
-
-### 关于 `application-prod.yaml`
-
-- 生产配置文件在 `backend/src/main/resources/application-prod.yaml`。
-- 如果该文件被 `.gitignore` 忽略，团队协作时建议改为提交模板文件，再通过环境变量注入敏感配置。
-
-## 常见问题排查
-
-### 1) 数据库连接失败：`Access denied for user ... to database ...`
-
-优先检查三项是否一致：
-
-- `.env` 的 `DB_USER` / `DB_USER_PASSWORD` / `DB_NAME`
-- `compose.yml` 中 db 服务环境变量
-- backend 实际运行环境变量（可 `docker compose exec backend env | grep DB_`）
-
-如果数据库是旧卷初始化的，改了账号或库名后需要重建 db 卷：
+提交前至少建议执行：
 
 ```bash
-docker compose down
-docker volume ls | grep treehole
-# 确认后删除对应 volume，再重新 up -d --build
+cd backend && mvn test
+cd ../frontend && pnpm test && pnpm type-check && pnpm build
 ```
 
-### 2) 后端日志报权限错误：`/app/logs/spring.log (Permission denied)`
+## 常见问题
+
+### 前端提示“树洞服务器开小差了”
+
+这是后端返回了业务响应 `code=500`。优先看后端控制台日志，常见原因：
+
+- 数据库表结构不是最新，缺少 `camo_effect`、`message_type`、`expires_at`、`reactions` 等字段。
+- `.env` 指向了错误数据库。
+- Redis 连接失败或密码不匹配。
+
+先检查：
 
 ```bash
-cd /path/to/treehole
-mkdir -p storage/logs storage/uploads
-
-docker exec treehole-backend sh -lc 'id appuser'
-# 例如返回 uid=1000 gid=1000
-
-sudo chown -R 1000:1000 storage/logs storage/uploads
-sudo chmod -R u+rwX,g+rwX storage/logs storage/uploads
-
-docker compose restart backend
+curl 'http://127.0.0.1:24191/api/messages?pageNum=1&pageSize=10'
 ```
 
-### 3) 为什么有时需要 `:5173`，有时不需要？
-
-- 若服务映射到 5173，访问 `http://ip:5173`
-- 若映射到 443，访问 `https://域名/` 或 `https://ip:443`
-
-以 `docker compose ps` 里 frontend 的 `PORTS` 为准。
-
-## 其他命令
+如果日志出现 `Unknown column 'camo_effect'`，执行：
 
 ```bash
-# 停止服务
-docker compose down
-
-# 仅重建后端
-docker compose up -d --build backend
-
-# 启动缓存演示所需服务
-docker compose up -d --build redis backend frontend
-
-# 仅重启前端
-docker compose restart frontend
+mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_USER_PASSWORD" "$DB_NAME" < database/03_add_camo_effect.sql
 ```
 
-## 最小生产发布清单
+### 数据库连接失败
 
-上线前至少确认以下 5 项：
+确认 `.env` 与实际数据库一致：
 
-- `.env` 已使用真实强密码与真实 `AI_API_KEY`，且未提交到仓库。
-- `FRONTEND_PORT` / `BACKEND_PORT` 与防火墙、安全组放行规则一致。
-- `docker compose ps` 显示 `db` 为 `healthy`，`backend`/`frontend` 为 `Up`。
-- 已执行一次关键链路自测：打开首页、发留言、发评论、调用一个后端 API。
-- `storage/logs` 与 `storage/uploads` 权限正确，`docker compose logs -f backend` 无持续报错。
+```env
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=treehole
+DB_USER=treehole_user
+DB_USER_PASSWORD=your_password
+```
+
+Docker Compose 内部后端连接的是 `db:3306`；本地命令行后端通常连接 `127.0.0.1:3306`。
+
+### Redis 连接失败或实时统计为空
+
+确认 Redis 正在运行，并且 `.env` 中端口和密码正确。Docker Compose 内部后端连接 `redis:6379`；本地命令行后端通常连接 `127.0.0.1:6379`。
+
+### 前端代理或 WebSocket 无响应
+
+- 确认后端运行在 `BACKEND_PORT`。
+- 确认前端由 `pnpm dev` 启动在 `5173`。
+- 浏览器控制台如果 WebSocket 失败，检查 `/ws/treehole/{userId}` 是否被代理到后端。
+
+### 上传或日志目录权限错误
+
+创建运行时目录：
+
+```bash
+mkdir -p storage/uploads storage/logs
+```
+
+Docker 部署时如果后端日志提示权限错误，检查挂载目录 owner 与容器用户是否匹配。
+
+## 生产发布检查
+
+- `.env` 使用真实强密码和真实 `AI_API_KEY`，且未提交到仓库。
+- 数据库已初始化或迁移到最新结构。
+- Redis 可连接。
+- `storage/uploads` 和 `storage/logs` 可写。
+- 前端可访问，`/api`、`/uploads`、`/ws` 能正确到达后端。
+- 已验证首页加载、发布留言、评论、上传文件、WebSocket 实时更新。
+- 防火墙或安全组已开放必要端口。
 
 ## License
 

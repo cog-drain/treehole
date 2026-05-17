@@ -57,6 +57,16 @@ public class MessageController {
         return Result.success(messageService.listByPage(pageNum, pageSize, finalUserId));
     }
 
+    @Operation(summary = "获取单条留言", description = "用于通知定位与详情加载")
+    @GetMapping("/{id}")
+    public Result<Message> getById(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String finalUserId = extractUserId(userId, authorization);
+        return Result.success(messageService.getVisibleById(id, finalUserId));
+    }
+
     @Operation(summary = "删除留言", description = "仅留言持有者或管理员可删除")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id,
@@ -69,8 +79,11 @@ public class MessageController {
 
     @Operation(summary = "留言点赞")
     @PutMapping("/{id}/like")
-    public Result<Void> like(@PathVariable Long id) {
-        messageService.like(id);
+    public Result<Void> like(@PathVariable Long id,
+                             @RequestHeader(value = "X-User-Id", required = false) String userId,
+                             @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String finalUserId = extractUserId(userId, authorization);
+        messageService.like(id, finalUserId);
         return Result.success();
     }
 
@@ -82,6 +95,15 @@ public class MessageController {
         String finalUserId = extractUserId(userId, authorization);
         messageService.react(id, emoji, finalUserId);
         return Result.success();
+    }
+
+    @Operation(summary = "见证告解", description = "为告解帖点燃一支蜡烛，每个身份只能见证一次")
+    @PostMapping("/{id}/witness")
+    public Result<Map<String, Object>> witness(@PathVariable Long id,
+                                               @RequestHeader(value = "X-User-Id", required = false) String userId,
+                                               @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String finalUserId = extractUserId(userId, authorization);
+        return Result.success(messageService.witness(id, finalUserId));
     }
 
 

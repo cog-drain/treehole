@@ -1,0 +1,67 @@
+@utility glass-card {
+    background-color: var(--color-card-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(200%);
+    border: 1px solid var(--color-border);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.02),
+        0 20px 40px -10px rgba(0, 0, 0, 0.05),
+        inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    @apply rounded-[2.5rem] p-6 sm:p-8 md:p-10;
+}
+
+@utility glass-effect {
+    background-color: var(--color-card-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--color-border);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+    transform: translateY(-4px);
+    background-color: color-mix(in srgb, var(--color-card-bg), transparent 10%);
+    border-color: color-mix(in srgb, var(--color-border), white 20%);
+    box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.2);
+}
+
+.resonance-glow {
+    box-shadow:
+        0 0 40px rgba(139, 92, 246, 0.15),
+        inset 0 0 20px rgba(139, 92, 246, 0.05) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    transform: scale(1.01);
+}
+
+.theme-dot-default {
+    background-color: #94a3b8;
+}
+
+.theme-dot-dawn {
+    background-color: #7dd3fc;
+}
+
+.theme-dot-sakura {
+    background-color: #fda4af;
+}
+
+.theme-dot-spring {
+    background-color: #6ee7b7;
+}
+
+.theme-dot-active {
+    box-shadow: 0 0 15px rgba(15, 23, 42, 0.4);
+}
+
+.light-mode .owner-indicator-line {
+    height: 3px !important;
+    opacity: 0.8 !important;
+}
+
+.confession-compose {
+    border-color: rgba(201, 149, 42, 0.45) !important;
+    box-shadow:
+        0 26px 60px -24px rgba(201, 149, 42, 0.45),
+        inset 0 1px 0 rgba(255, 238, 178, 0.55) !important;
+}

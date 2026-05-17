@@ -7,6 +7,7 @@ An immersive, anonymous expression and interaction platform. Here, your secrets 
 ## ✨ Core Features
 
 - **🌳 Anonymous Treehole & Threads**: A minimalist publishing experience supporting images, voice messages, and multi-level replies.
+- **🕯️ Cyber Confessional**: Temporary confession posts expire after 24 hours, disable normal comments, use a dedicated candle-witness interaction, and receive an unconditional AI confessor response.
 - **🎨 Tone Modes**: Breaking the monotony of plain text with 5 special rendering effects ("Whisper", "Shout", "Dream", "Glitch", "Poetic") to convey emotions vividly.
 - **🌊 Cyber Drift Bottle**: Toss your thoughts into the sea or fish for a stranger's fleeting moment.
 - **🤖 AI Smart Tags**: Automated tag extraction and categorization based on LLM semantic analysis, powering the trending resonance wall.
@@ -14,6 +15,7 @@ An immersive, anonymous expression and interaction platform. Here, your secrets 
   - **Identity Backup & Restore**: Seamlessly sync your cloud identity and records across devices using a unique recovery key.
   - **Rate Limiting & Anti-Spam**: High-concurrency rate limiting backed by Redis (10s cooldown for posts, 5s for comments) to maintain a healthy community environment.
 - **⚡ Real-time Echo**: Full-duplex communication via WebSocket pushing likes, comments, and new messages to the client instantly.
+- **📡 Redis Realtime State**: Redis powers hot-path caches, online-user ZSets, ranking signals, the drift bottle pool, reaction counts, and confession witness counts, while WebSocket pushes live online and interaction updates.
 - **🧘 Edge Experience Enhancements**: Offline draft box (auto-resend upon network recovery) and a focused Zen Mode (white noise + immersive reading).
 
 ## 📂 Project Structure
@@ -103,6 +105,27 @@ If you prefer importing with root:
 
 ```bash
 docker compose exec -T db sh -lc 'MYSQL_PWD="$DB_ROOT_PASSWORD" mariadb -uroot "$DB_NAME"' < database/02_test_data.sql
+```
+
+## Existing Database Upgrade
+
+If you already have an old database volume, editing `database/01_init.sql` will not alter existing tables. Run this SQL before using the Cyber Confessional feature:
+
+```sql
+ALTER TABLE `message`
+  ADD COLUMN `message_type` VARCHAR(20) DEFAULT 'normal' AFTER `theme`,
+  ADD COLUMN `expires_at` DATETIME DEFAULT NULL AFTER `message_type`,
+  ADD INDEX `idx_message_type_expires` (`message_type`, `expires_at`);
+
+CREATE TABLE IF NOT EXISTS `confession_witness` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `message_id` BIGINT NOT NULL,
+  `user_id` VARCHAR(36) NOT NULL,
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uk_confession_witness_user` (`message_id`, `user_id`),
+  INDEX `idx_confession_witness_message` (`message_id`),
+  INDEX `idx_confession_witness_user` (`user_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 ```
 
 ## Local Development

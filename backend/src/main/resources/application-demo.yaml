@@ -1,0 +1,20 @@
+spring:
+  config:
+    activate:
+      on-profile: demo
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  cache:
+    type: simple
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:treehole}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Tokyo&allowPublicKeyRetrieval=true
+    username: ${DB_USER:treehole_user}
+    password: ${DB_USER_PASSWORD:treehole_pass}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  web:
+    resources:
+      static-locations:
+        - file:${FRONTEND_PATH:C:/treehole-demo/frontend}/
+        - classpath:/static/

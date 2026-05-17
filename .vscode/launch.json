@@ -1,0 +1,40 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run Spring Boot Backend",
+            "request": "launch",
+            "mainClass": "com.treehole.TreeholeApplication",
+            "projectName": "treehole-backend",
+            "cwd": "${workspaceFolder}/backend",
+            "envFile": "${workspaceFolder}/.env",
+            "preLaunchTask": "backend: compile",
+            "shortenCommandLine": "auto"
+        },
+        {
+            "type": "java",
+            "name": "Run Spring Boot Backend (demo profile)",
+            "request": "launch",
+            "mainClass": "com.treehole.TreeholeApplication",
+            "projectName": "treehole-backend",
+            "cwd": "${workspaceFolder}/backend",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "SPRING_PROFILES_ACTIVE": "demo",
+                "FRONTEND_PATH": "${workspaceFolder}/frontend/dist"
+            },
+            "preLaunchTask": "backend: compile",
+            "shortenCommandLine": "auto"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Run Full Local Stack",
+            "configurations": [
+                "Run Spring Boot Backend"
+            ],
+            "preLaunchTask": "frontend: dev"
+        }
+    ]
+}

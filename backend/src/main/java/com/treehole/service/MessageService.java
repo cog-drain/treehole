@@ -32,9 +32,14 @@ public interface MessageService extends IService<Message> {
     IPage<Message> listByTag(String tagName, int pageNum, int pageSize, String viewerToken);
 
     /**
+     * 查询单条当前可见留言，用于通知定位。
+     */
+    Message getVisibleById(Long id, String viewerToken);
+
+    /**
      * 给留言点赞（likes + 1）
      */
-    void like(Long id);
+    void like(Long id, String userId);
 
     /**
      * 删除留言，同时级联删除该留言下所有评论
@@ -57,4 +62,14 @@ public interface MessageService extends IService<Message> {
      * @param userId 用户身份标识
      */
     void react(Long id, String emoji, String userId);
+
+    /**
+     * 见证一条告解帖。
+     */
+    Map<String, Object> witness(Long id, String userId);
+
+    /**
+     * 清理已过期告解帖。
+     */
+    int cleanupExpiredConfessions();
 }

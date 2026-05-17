@@ -11,6 +11,8 @@ backend/target/
 .env
 .env.*
 !.env.example
+!.env.windows.example
+!.env.demo.windows.example
 
 # Maven 封装器
 backend/.mvn/
@@ -29,6 +31,7 @@ frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
+frontend/*.tsbuildinfo
 
 # 前端日志
 frontend/npm-debug.log*
@@ -53,7 +56,10 @@ database/patch.sql
 # ==========================================
 .idea/
 *.iml
-.vscode/
+.vscode/*
+!.vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
 .settings/
 .project
 .classpath

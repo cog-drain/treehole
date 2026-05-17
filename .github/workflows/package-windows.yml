@@ -1,0 +1,170 @@
+name: Treehole Windows Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  package-windows:
+    name: Build Windows deployment artifact
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: treehole
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+
+      - name: Initialize database schema
+        run: docker exec -i "${{ job.services.mysql.id }}" mysql -uroot -proot treehole < database/01_init.sql
+
+      - name: Test backend
+        working-directory: backend
+        env:
+          SPRING_PROFILES_ACTIVE: prod
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: treehole
+          DB_USER: root
+          DB_USER_PASSWORD: root
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+        run: mvn -B test
+
+      - name: Package backend jar
+        working-directory: backend
+        run: mvn -B package -DskipTests
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Test frontend
+        working-directory: frontend
+        run: pnpm test
+
+      - name: Type-check frontend
+        working-directory: frontend
+        run: pnpm type-check
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm build
+
+      - name: Assemble Windows package
+        run: |
+          set -euo pipefail
+
+          package_dir="treehole-windows"
+          demo_package_dir="treehole-windows-demo"
+          rm -rf "$package_dir"
+          rm -rf "$demo_package_dir"
+
+          mkdir -p \
+            "$package_dir/backend" \
+            "$package_dir/frontend" \
+            "$package_dir/deploy" \
+            "$package_dir/scripts" \
+            "$package_dir/database"
+
+          mkdir -p \
+            "$demo_package_dir/backend" \
+            "$demo_package_dir/frontend" \
+            "$demo_package_dir/scripts" \
+            "$demo_package_dir/database"
+
+          cp backend/target/treehole-backend-*.jar "$package_dir/backend/treehole-backend.jar"
+          cp -R frontend/dist/. "$package_dir/frontend/"
+          cp deploy/windows/nginx-treehole.conf "$package_dir/deploy/nginx-treehole.conf"
+          cp scripts/windows/start-backend.ps1 "$package_dir/scripts/start-backend.ps1"
+          cp .env.windows.example "$package_dir/.env.windows.example"
+          cp deploy/windows/README-windows-artifact.md "$package_dir/README-windows-artifact.md"
+          cp database/*.sql "$package_dir/database/"
+
+          cp backend/target/treehole-backend-*.jar "$demo_package_dir/backend/treehole-backend.jar"
+          cp -R frontend/dist/. "$demo_package_dir/frontend/"
+          cp scripts/windows/start-demo.ps1 "$demo_package_dir/scripts/start-demo.ps1"
+          cp .env.demo.windows.example "$demo_package_dir/.env.demo.windows.example"
+          cp deploy/windows/README-windows-demo.md "$demo_package_dir/README-windows-demo.md"
+          cp database/*.sql "$demo_package_dir/database/"
+
+      - name: Validate package contents
+        run: |
+          set -euo pipefail
+
+          test -f treehole-windows/backend/treehole-backend.jar
+          test -f treehole-windows/frontend/index.html
+          test -f treehole-windows/deploy/nginx-treehole.conf
+          test -f treehole-windows/scripts/start-backend.ps1
+          test -f treehole-windows/.env.windows.example
+          test -f treehole-windows/README-windows-artifact.md
+          test -f treehole-windows/database/01_init.sql
+          test -f treehole-windows/database/02_test_data.sql
+          test -f treehole-windows/database/03_add_camo_effect.sql
+
+          test -f treehole-windows-demo/backend/treehole-backend.jar
+          test -f treehole-windows-demo/frontend/index.html
+          test -f treehole-windows-demo/scripts/start-demo.ps1
+          test -f treehole-windows-demo/.env.demo.windows.example
+          test -f treehole-windows-demo/README-windows-demo.md
+          test -f treehole-windows-demo/database/01_init.sql
+          test -f treehole-windows-demo/database/02_test_data.sql
+          test -f treehole-windows-demo/database/03_add_camo_effect.sql
+
+      - name: Create zip
+        run: |
+          zip -r "treehole-windows-${{ github.sha }}.zip" treehole-windows
+          zip -r "treehole-windows-demo-${{ github.sha }}.zip" treehole-windows-demo
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: treehole-windows-${{ github.sha }}
+          path: treehole-windows-${{ github.sha }}.zip
+          if-no-files-found: error
+
+      - name: Upload Windows demo artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: treehole-windows-demo-${{ github.sha }}
+          path: treehole-windows-demo-${{ github.sha }}.zip
+          if-no-files-found: error
