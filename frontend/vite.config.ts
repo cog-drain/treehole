@@ -41,6 +41,18 @@ export default defineConfig(({ mode }) => {
             // 3d-force-graph ships as a large lazy graph engine bundle; keep the limit
             // just above the measured async graph chunk while vendor chunks remain split.
             chunkSizeWarningLimit: 1500,
+            modulePreload: {
+                resolveDependencies(_filename, deps) {
+                    return deps.filter(
+                        dep =>
+                            !dep.includes('MindGraph') &&
+                            !dep.includes('graph-engine') &&
+                            !dep.includes('graph-render') &&
+                            !dep.includes('graph-layout') &&
+                            !dep.includes('three-vendor')
+                    )
+                }
+            },
             rolldownOptions: {
                 output: {
                     codeSplitting: true,
