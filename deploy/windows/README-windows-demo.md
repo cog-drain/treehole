@@ -18,7 +18,6 @@ treehole-windows-demo/
   database/
     01_init.sql
     02_test_data.sql
-    03_add_camo_effect.sql
   .env.demo.windows.example
   README-windows-demo.md
 ```
@@ -38,6 +37,7 @@ C:\treehole-demo\
     start-demo.ps1
   database\
     01_init.sql
+    02_test_data.sql
   storage\
     uploads\
     logs\

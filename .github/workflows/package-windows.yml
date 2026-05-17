@@ -137,7 +137,6 @@ jobs:
           test -f treehole-windows/README-windows-artifact.md
           test -f treehole-windows/database/01_init.sql
           test -f treehole-windows/database/02_test_data.sql
-          test -f treehole-windows/database/03_add_camo_effect.sql
 
           test -f treehole-windows-demo/backend/treehole-backend.jar
           test -f treehole-windows-demo/frontend/index.html
@@ -146,7 +145,6 @@ jobs:
           test -f treehole-windows-demo/README-windows-demo.md
           test -f treehole-windows-demo/database/01_init.sql
           test -f treehole-windows-demo/database/02_test_data.sql
-          test -f treehole-windows-demo/database/03_add_camo_effect.sql
 
       - name: Create zip
         run: |

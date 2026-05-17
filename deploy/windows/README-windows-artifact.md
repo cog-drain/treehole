@@ -18,7 +18,6 @@ treehole-windows/
   database/
     01_init.sql
     02_test_data.sql
-    03_add_camo_effect.sql
   .env.windows.example
   README-windows-artifact.md
 ```
@@ -49,6 +48,7 @@ C:\treehole\
     start-backend.ps1
   database\
     01_init.sql
+    02_test_data.sql
   storage\
     uploads\
     logs\
@@ -82,12 +82,6 @@ Create the database and application user in MySQL or MariaDB first, then initial
 
 ```powershell
 mysql -u treehole_user -p treehole < C:\treehole\database\01_init.sql
-```
-
-For an existing database that predates camo effect support, run the migration:
-
-```powershell
-mysql -u treehole_user -p treehole < C:\treehole\database\03_add_camo_effect.sql
 ```
 
 Optional demo data:
