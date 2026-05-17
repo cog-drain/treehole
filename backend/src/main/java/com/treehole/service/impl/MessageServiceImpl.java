@@ -125,6 +125,9 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         if (message.getCommentCount() == null) {
             message.setCommentCount(0);
         }
+        if (message.getCamoEffect() == null) {
+            message.setCamoEffect(false);
+        }
 
         this.save(message);
         if (!confession) {

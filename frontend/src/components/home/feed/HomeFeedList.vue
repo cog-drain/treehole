@@ -12,7 +12,6 @@
                     :class="['theme-' + (msg.theme || 'default'), 'animate__animated animate__fadeInUp']"
                     :style="{ animationDelay: index * 100 + 'ms' }"
                     :is-admin="isAdmin"
-                    :camo-enabled="camoEnabled"
                     @like="$emit('like', $event)"
                     @toggle-comments="$emit('toggle-comments', $event)"
                     @delete="$emit('delete', $event)"
@@ -88,7 +87,6 @@ withDefaults(
         messages?: FeedMessage[]
         likedIds: Set<Id>
         isAdmin?: boolean
-        camoEnabled?: boolean
         pageNum?: number
         total?: number
         totalPages?: number
@@ -98,7 +96,6 @@ withDefaults(
     {
         messages: () => [],
         isAdmin: false,
-        camoEnabled: false,
         pageNum: 1,
         total: 0,
         totalPages: 1,

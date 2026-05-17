@@ -33,4 +33,10 @@ describe('createFeedMessageState', () => {
         expect(normalized.isOwner).toBe(true)
         expect(normalized.isOptimistic).toBe(true)
     })
+
+    it('normalizes camo skin state per message', () => {
+        const normalized = createFeedMessageState({ id: 5, content: 'ghost', camoEffect: true })
+
+        expect(normalized.camoEffect).toBe(true)
+    })
 })

@@ -37,7 +37,7 @@ function createOptions(overrides: Record<string, unknown> = {}) {
             maskedAudioBlob: ref<Blob | null>(null),
             clearImage: vi.fn(),
             clearAudio: vi.fn(),
-            appStore: { addEnergy: vi.fn() },
+            appStore: { addEnergy: vi.fn(), ownedItems: [], camoEnabled: false },
             emit: vi.fn(),
             messages,
             pageNum: ref(1),
@@ -83,22 +83,60 @@ describe('useMessagePublishing', () => {
 
             await promise
 
-            expect(messageApi.publishMessage).toHaveBeenCalled()
+            expect(messageApi.publishMessage).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    camoEffect: false
+                })
+            )
             expect(messages.value.length).toBeGreaterThan(0)
             expect(messages.value.at(0)?.isOptimistic).toBeUndefined()
             expect(publishing.value).toBe(false)
         })
 
+        it('snapshots enabled camo skin onto the published message', async () => {
+            vi.mocked(messageApi.publishMessage).mockResolvedValue({
+                code: 200,
+                data: { message: { id: 100, content: 'ghost', camoEffect: true } }
+            })
+            const { options } = createOptions({
+                form: { content: 'ghost', authorAlias: 'anon', mood: '', theme: 'default' },
+                appStore: {
+                    addEnergy: vi.fn(),
+                    ownedItems: ['camo_effect'],
+                    camoEnabled: true
+                }
+            })
+
+            const { publishMessage } = useMessagePublishing(options)
+
+            await publishMessage()
+
+            expect(messageApi.publishMessage).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    camoEffect: true
+                })
+            )
+        })
+
         it('falls back to offline queue when offline', async () => {
             const { options } = createOptions({
                 form: { content: 'offline msg', authorAlias: 'anon', mood: '', theme: 'default' },
-                isOnline: ref(false)
+                isOnline: ref(false),
+                appStore: {
+                    addEnergy: vi.fn(),
+                    ownedItems: ['camo_effect'],
+                    camoEnabled: true
+                }
             })
             const { publishMessage } = useMessagePublishing(options)
 
             await publishMessage()
 
-            expect(offlineQueue.push).toHaveBeenCalled()
+            expect(offlineQueue.push).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    camoEffect: true
+                })
+            )
             expect(options.clearImage).toHaveBeenCalled()
             expect(options.clearAudio).toHaveBeenCalled()
         })

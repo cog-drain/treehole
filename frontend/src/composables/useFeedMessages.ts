@@ -15,7 +15,7 @@ interface UseFeedMessagesOptions {
     maskedAudioBlob: { value: Blob | null }
     clearImage: () => void
     clearAudio: () => void
-    appStore: { addEnergy: (amount: number) => void }
+    appStore: { addEnergy: (amount: number) => void; ownedItems?: string[]; camoEnabled?: boolean }
     emit: (event: 'publish-success', payload: FeedMessage | Record<string, unknown>) => void
     isAdmin: { value: boolean }
     activity: {

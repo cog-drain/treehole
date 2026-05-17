@@ -132,7 +132,8 @@ export function normalizeMessage(message: Partial<ServerMessage> | null | undefi
         witnessedByMe: Boolean(message?.witnessedByMe),
         confessorReply: message?.confessorReply ?? null,
         isOwner: Boolean(message?.isOwner),
-        coFrequency: Boolean(message?.coFrequency)
+        coFrequency: Boolean(message?.coFrequency),
+        camoEffect: Boolean(message?.camoEffect)
     }
 }
 

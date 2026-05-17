@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Ban, Trash2, Zap } from 'lucide-vue-next'
+import { Ban, Trash2 } from 'lucide-vue-next'
 import { formatTime } from '@/utils/time'
 import type { FeedMessage } from '@/types'
 
@@ -27,13 +27,6 @@ function generateDiceBearAvatar(seed) {
                     class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 p-1 transition-transform group-hover/avatar:scale-105 duration-500"
                     alt="avatar"
                 />
-                <div
-                    v-if="isResonant"
-                    class="absolute -bottom-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-500 z-10 bg-gradient-to-tr from-purple-600 to-amber-400 border-amber-200/50 text-white shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse"
-                    title="与您深度同频的灵魂"
-                >
-                    <Zap :size="12" fill="currentColor" />
-                </div>
             </div>
 
             <div class="flex flex-col min-w-0">

@@ -58,7 +58,6 @@
                 :messages="messages"
                 :liked-ids="likedIds"
                 :is-admin="isAdmin"
-                :camo-enabled="appStore.camoEnabled"
                 :page-num="pageNum"
                 :total="total"
                 :total-pages="totalPages"

@@ -18,6 +18,7 @@ export function createFeedMessageState(message: Message, options: FeedMessageSta
         _replyToId: null,
         _commenting: false,
         _read: Boolean(options.readIds?.has(message.id)),
-        coFrequency: Boolean((message.commentCount || 0) > 5 || message.coFrequency)
+        coFrequency: Boolean((message.commentCount || 0) > 5 || message.coFrequency),
+        camoEffect: Boolean(message.camoEffect)
     }
 }

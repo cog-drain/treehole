@@ -52,6 +52,9 @@ public class Message {
     /** 留言类型：normal / confession */
     private String messageType;
 
+    /** 发布时是否启用光学迷彩 */
+    private Boolean camoEffect;
+
     /** 告解帖过期时间 */
     private LocalDateTime expiresAt;
 

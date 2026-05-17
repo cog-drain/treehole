@@ -79,6 +79,7 @@ export interface ServerMessage {
     confessorReply?: string | null
     isOwner?: boolean | null
     coFrequency?: boolean | null
+    camoEffect?: boolean | null
 }
 
 export interface Message extends Omit<
@@ -93,6 +94,7 @@ export interface Message extends Omit<
     witnessedByMe?: boolean
     isOwner?: boolean
     coFrequency?: boolean
+    camoEffect?: boolean
     /** Runtime-only compatibility; new feed state belongs on FeedMessage. */
     isOptimistic?: boolean
 }
@@ -117,6 +119,7 @@ export interface MessageDraft {
     imageUrl?: string
     audioUrl?: string
     messageType?: MessageType | string
+    camoEffect?: boolean
     [key: string]: unknown
 }
 

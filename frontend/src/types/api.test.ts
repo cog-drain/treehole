@@ -73,6 +73,7 @@ describe('api type utilities', () => {
             likes: null,
             commentCount: undefined,
             messageType: null,
+            camoEffect: true,
             reactions: '{"ok":1}',
             comments: [
                 {
@@ -89,6 +90,7 @@ describe('api type utilities', () => {
         expect(message.id).toBe(1)
         expect(message.likeCount).toBe(0)
         expect(message.messageType).toBe('normal')
+        expect(message.camoEffect).toBe(true)
         expect(message.reactions).toEqual({ ok: 1 })
         expect(message.comments?.[0]).toMatchObject({
             id: 'c1',

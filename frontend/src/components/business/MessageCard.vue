@@ -13,14 +13,12 @@ const props = withDefaults(
         msg: FeedMessage
         liked?: boolean
         isAdmin?: boolean
-        camoEnabled?: boolean
         highlightedMessageId?: Id | null
         highlightedCommentId?: Id | null
     }>(),
     {
         liked: false,
         isAdmin: false,
-        camoEnabled: false,
         highlightedMessageId: null,
         highlightedCommentId: null
     }
@@ -63,7 +61,7 @@ const isNotificationHighlighted = computed(() => String(props.highlightedMessage
             isConfession ? 'confession-card' : '',
             isNotificationHighlighted ? 'notification-highlight' : '',
             isResonant ? 'shadow-[0_0_50px_rgba(139,92,246,0.2)] border-purple-500/30 scale-[1.01]' : '',
-            msg.isOwner && camoEnabled ? 'camo-effect' : ''
+            msg.isOwner && msg.camoEffect ? 'camo-effect' : ''
         ]"
     >
         <div

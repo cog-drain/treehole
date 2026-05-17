@@ -49,6 +49,7 @@ CREATE TABLE `message` (
     `audio_url` VARCHAR(500),
     `theme` VARCHAR(50) DEFAULT 'default',
     `message_type` VARCHAR(20) DEFAULT 'normal',
+    `camo_effect` TINYINT(1) DEFAULT 0,
     `expires_at` DATETIME DEFAULT NULL,
     `likes` INT DEFAULT 0,
     `comment_count` INT DEFAULT 0,

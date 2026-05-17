@@ -32,7 +32,7 @@ export function useMessagePublishing({
     maskedAudioBlob: { value: Blob | null }
     clearImage: () => void
     clearAudio: () => void
-    appStore: { addEnergy: (amount: number) => void }
+    appStore: { addEnergy: (amount: number) => void; ownedItems?: string[]; camoEnabled?: boolean }
     emit: (event: 'publish-success', payload: FeedMessage | Record<string, unknown>) => void
     messages: { value: FeedMessage[] }
     pageNum: { value: number }
@@ -43,8 +43,16 @@ export function useMessagePublishing({
 }) {
     const publishing = ref(false)
 
+    function isCamoActiveForPublish(): boolean {
+        return Boolean(appStore.camoEnabled && appStore.ownedItems?.includes('camo_effect'))
+    }
+
     function saveToOfflineQueue() {
-        offlineQueue.push({ ...form, messageType: isConfessionMode.value ? 'confession' : 'normal' })
+        offlineQueue.push({
+            ...form,
+            messageType: isConfessionMode.value ? 'confession' : 'normal',
+            camoEffect: isCamoActiveForPublish()
+        })
         form.content = ''
         clearImage()
         clearAudio()
@@ -63,6 +71,7 @@ export function useMessagePublishing({
         const localMood = form.mood
         const localTheme = form.theme
         const localMessageType = isConfessionMode.value ? 'confession' : 'normal'
+        const localCamoEffect = isCamoActiveForPublish()
         const optimisticMessage = createFeedMessageState({
             id: Date.now(),
             content: String(localContent || ''),
@@ -70,6 +79,7 @@ export function useMessagePublishing({
             mood: localMood,
             theme: localTheme,
             messageType: localMessageType,
+            camoEffect: localCamoEffect,
             expiresAt: localMessageType === 'confession' ? new Date(Date.now() + 86400000).toISOString() : null,
             witnessCount: 0,
             witnessedByMe: false,
@@ -101,7 +111,13 @@ export function useMessagePublishing({
             optimisticMessage.imageUrl = imageUrl
             optimisticMessage.audioUrl = audioUrl
 
-            const res = await messageApi.publishMessage({ ...form, imageUrl, audioUrl, messageType: localMessageType })
+            const res = await messageApi.publishMessage({
+                ...form,
+                imageUrl,
+                audioUrl,
+                messageType: localMessageType,
+                camoEffect: localCamoEffect
+            })
             if (res && res.code === 202) return
 
             const serverMessage = res?.data?.message as Message | undefined
