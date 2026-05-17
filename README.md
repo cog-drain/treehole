@@ -321,30 +321,54 @@ CREATE TABLE IF NOT EXISTS `confession_witness` (
 
 ## 本地开发
 
-本地推荐启动顺序：
+本地开发可以用命令行、VS Code 或 IntelliJ IDEA。三种方式都依赖同一套前置条件：
 
 ```bash
-cd /home/ember/infra
-docker compose up -d
+# 1. 准备环境变量
+cp .env.example .env
+# 按本地 MySQL/Redis 配置填写 DB_*、REDIS_*、BACKEND_PORT、AI_API_KEY
 
-cd /home/ember/test/micro/domTree/backend
-mvn spring-boot:run
+# 2. 启动本地 MySQL（如果使用 /home/ember/infra/mysql）
+docker compose -f /home/ember/infra/mysql/compose.yaml up -d
+docker ps --format '{{.Names}} {{.Ports}}' | grep mysql-global
 
-cd /home/ember/test/micro/domTree/frontend
-pnpm install
-pnpm dev
+# Redis 也需要运行；如果使用已有全局 Redis，确认容器存在
+docker ps --format '{{.Names}} {{.Ports}}' | grep redis-global
+
+# 3. 初始化或迁移数据库
+set -a
+. ./.env
+set +a
+docker exec -i mysql-global mysql -u"$DB_USER" -p"$DB_USER_PASSWORD" "$DB_NAME" < database/03_add_camo_effect.sql
 ```
 
-### 前端
+如果是全新数据库，可以先创建库和账号，再执行 `database/01_init.sql`。不要把真实 `.env` 提交到仓库。
+
+### 命令行启动
 
 ```bash
+# 终端 1：启动后端，默认读取根目录 .env
+cd backend
+mvn spring-boot:run
+```
+
+```bash
+# 终端 2：启动前端开发服务器
 cd frontend
 pnpm install
 pnpm dev
 ```
 
 - 默认本地端口：`5173`
-- 本地 `pnpm dev` 走 Vite 开发服务器，不走 Nginx
+- 后端默认端口：`.env` 中的 `BACKEND_PORT`，通常是 `24191`
+- 本地 `pnpm dev` 走 Vite 开发服务器，不走 Nginx；`frontend/vite.config.ts` 会把 `/api`、`/uploads`、`/ws` 代理到后端端口。
+
+后端接口快速检查：
+
+```bash
+curl 'http://127.0.0.1:24191/api/messages?pageNum=1&pageSize=10'
+curl 'http://127.0.0.1:24191/api/tags/trending?limit=12'
+```
 
 常用质量检查：
 
@@ -356,6 +380,58 @@ pnpm build
 pnpm type-check
 pnpm test
 ```
+
+后端测试：
+
+```bash
+cd backend
+mvn test
+```
+
+### VS Code 启动
+
+仓库提交了 `.vscode/launch.json` 和 `.vscode/tasks.json` 作为团队模板。推荐安装：
+
+- Extension Pack for Java
+- Vue - Official
+- ESLint
+- Prettier
+
+使用步骤：
+
+1. 打开仓库根目录 `/home/ember/test/micro/domTree`。
+2. 确认根目录 `.env` 已填写本地 `DB_*`、`REDIS_*`、`BACKEND_PORT`。
+3. 确认 MySQL/Redis 已启动，并已执行必要数据库迁移。
+4. 在 VS Code `Run and Debug` 中选择 `Run Spring Boot Backend` 启动后端。
+5. 在 `Terminal -> Run Task...` 中执行 `frontend: install`，再执行 `frontend: dev`。
+6. 浏览器访问 `http://localhost:5173`。
+
+可用模板：
+
+- `Run Spring Boot Backend`：普通本地后端，读取根目录 `.env`，默认 `dev` profile。
+- `Run Spring Boot Backend (demo profile)`：demo profile 后端，使用 `FRONTEND_PATH=${workspaceFolder}/frontend/dist`；使用前先运行 `pnpm build`。
+- `Run Full Local Stack`：启动前端 dev task 后再启动普通后端。
+- `backend: test`、`frontend: test`、`frontend: type-check`：常用检查任务。
+
+### IntelliJ IDEA 启动
+
+1. 用 IDEA 打开仓库根目录，或直接导入 `backend/pom.xml` 作为 Maven 项目。
+2. Project SDK 选择 JDK 17。
+3. 在 Maven 面板刷新 `backend` 依赖。
+4. 新建 Spring Boot Run Configuration：
+   - Main class: `com.treehole.TreeholeApplication`
+   - Working directory: `$PROJECT_DIR$/backend`
+   - Environment variables: 从根目录 `.env` 复制需要的 `DB_*`、`REDIS_*`、`BACKEND_PORT`、`AI_API_KEY`
+   - Active profiles: 默认可留空，应用会使用 `dev`；如需演示版可填 `demo`
+5. 启动后端后，在 IDEA Terminal 中启动前端：
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+IDEA 不会自动读取根目录 `.env`，除非安装并配置 dotenv 类插件；最稳妥的方式是在 Run Configuration 里显式填环境变量。
 
 ## 前端工程结构
 

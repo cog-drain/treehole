@@ -56,7 +56,10 @@ database/patch.sql
 # ==========================================
 .idea/
 *.iml
-.vscode/
+.vscode/*
+!.vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
 .settings/
 .project
 .classpath
