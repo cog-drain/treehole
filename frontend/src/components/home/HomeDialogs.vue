@@ -55,7 +55,7 @@
     />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
 import AdminDock from '@/components/home/admin/AdminDock.vue'
 import AdminLoginModal from '@/components/home/admin/AdminLoginModal.vue'
@@ -63,15 +63,50 @@ import BlacklistDialog from '@/components/home/admin/BlacklistDialog.vue'
 import IdentityVaultModal from '@/components/home/IdentityVaultModal.vue'
 import OfflineQueueDialog from '@/components/home/OfflineQueueDialog.vue'
 import PasswordDialog from '@/components/home/admin/PasswordDialog.vue'
+import type { BlacklistItem, Bottle, MessageDraft } from '@/types'
 
 const DriftBottleDialog = defineAsyncComponent(() => import('@/components/business/DriftBottleDialog.vue'))
 
-const props = defineProps({
-    identityState: { type: Object, required: true },
-    bottleState: { type: Object, required: true },
-    adminState: { type: Object, required: true },
-    offlineState: { type: Object, required: true }
-})
+export interface IdentityVaultDialogState {
+    showIdentityModal: boolean
+    recoveryKey: string
+    inputKey: string
+}
+
+export interface DriftBottleDialogState {
+    bottleVisible: boolean
+    pickedBottle: Bottle | null
+    userId: string
+}
+
+export interface PasswordFormState {
+    oldPassword: string
+    newPassword: string
+}
+
+export interface AdminDialogState {
+    adminLoginVisible: boolean
+    adminPassword: string
+    isAdmin: boolean
+    showBlacklistModal: boolean
+    showPasswordModal: boolean
+    blacklist: BlacklistItem[]
+    pwdForm: PasswordFormState
+}
+
+export interface OfflineQueueDialogState {
+    offlineDialogVisible: boolean
+    isOnline: boolean
+    offlineList: MessageDraft[]
+    offlineQueueCount: number
+}
+
+const props = defineProps<{
+    identityState: IdentityVaultDialogState
+    bottleState: DriftBottleDialogState
+    adminState: AdminDialogState
+    offlineState: OfflineQueueDialogState
+}>()
 
 const emit = defineEmits([
     'close-identity',

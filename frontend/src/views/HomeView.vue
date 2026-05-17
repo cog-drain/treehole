@@ -159,6 +159,7 @@ import TrendingTags from '@/components/home/TrendingTags.vue'
 import CyberWatermark from '@/components/common/CyberWatermark.vue'
 import { commentApi } from '@/api/modules/comment'
 import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
+import { useActivityTracking } from '@/composables/useActivityTracking'
 import { useNotificationTargetNavigator } from '@/composables/useNotificationTarget'
 import { useNotifications } from '@/composables/useNotifications'
 
@@ -282,6 +283,7 @@ let connectWS = () => {}
 let disconnectWS = () => {}
 let setActivityModule = () => {}
 let trackActivity = () => {}
+let resolveActivityModule = () => ACTIVITY_MODULES.feed
 
 const { isOnline, startNetworkListeners, stopNetworkListeners } = networkStatus
 
@@ -325,59 +327,6 @@ const zenState = computed(() => ({
     zenVolume: zenVolume.value,
     zenSounds
 }))
-
-const feed = useFeedMessages({
-    form,
-    imageFile,
-    isConfessionMode,
-    isOnline,
-    recordedBlob,
-    maskedAudioBlob,
-    clearImage,
-    clearAudio,
-    appStore,
-    emit,
-    isAdmin,
-    activity: {
-        setModule: (...args) => setActivityModule(...args),
-        track: (...args) => trackActivity(...args),
-        resolveModule: () => resolveActivityModule()
-    }
-})
-
-const {
-    messages,
-    pageNum,
-    pageSize,
-    total,
-    totalPages,
-    trendingTags,
-    activeTag,
-    publishing,
-    subscribedTagIds,
-    onlineCount,
-    onlineModules,
-    likedIds,
-    fetchTrending,
-    fetchTagSubscriptions,
-    fetchOnlineStats,
-    fetchMessages,
-    publishMessage,
-    handlePublishButtonClick: handleFeedPublishButtonClick,
-    likeMessage,
-    toggleComments,
-    publishComment,
-    deleteMessage,
-    handleDeleteComment,
-    handleTagClick,
-    toggleTagSubscription,
-    clearTagFilter,
-    handlePageChange,
-    locateMessageById
-} = feed
-
-const notificationUnreadCount = computed(() => notifications.unreadCount.value)
-const notificationBadge = computed(() => notifications.unreadBadge.value)
 
 const driftBottle = useDriftBottle({ userStore, appStore, form })
 const {
@@ -527,6 +476,59 @@ watch(
 
 const { startParticles, stopWatchingTheme } = useParticleTheme(() => form.theme)
 
+const feed = useFeedMessages({
+    form,
+    imageFile,
+    isConfessionMode,
+    isOnline,
+    recordedBlob,
+    maskedAudioBlob,
+    clearImage,
+    clearAudio,
+    appStore,
+    emit,
+    isAdmin,
+    activity: {
+        setModule: (...args) => setActivityModule(...args),
+        track: (...args) => trackActivity(...args),
+        resolveModule: () => resolveActivityModule()
+    }
+})
+
+const {
+    messages,
+    pageNum,
+    pageSize,
+    total,
+    totalPages,
+    trendingTags,
+    activeTag,
+    publishing,
+    subscribedTagIds,
+    onlineCount,
+    onlineModules,
+    likedIds,
+    fetchTrending,
+    fetchTagSubscriptions,
+    fetchOnlineStats,
+    fetchMessages,
+    publishMessage,
+    handlePublishButtonClick: handleFeedPublishButtonClick,
+    likeMessage,
+    toggleComments,
+    publishComment,
+    deleteMessage,
+    handleDeleteComment,
+    handleTagClick,
+    toggleTagSubscription,
+    clearTagFilter,
+    handlePageChange,
+    locateMessageById
+} = feed
+
+const notificationUnreadCount = computed(() => notifications.unreadCount.value)
+const notificationBadge = computed(() => notifications.unreadBadge.value)
+
 // ── WebSocket (委托给 composable) ──
 const realtime = useHomeRealtime({
     messages,
@@ -543,29 +545,29 @@ connectWS = realtime.connect
 disconnectWS = realtime.disconnect
 setActivityModule = realtime.setModule
 trackActivity = realtime.trackAction
-
-function resolveActivityModule() {
+resolveActivityModule = () => {
     if (props.storeVisible) return ACTIVITY_MODULES.shop
     return viewMode.value === 'graph' ? ACTIVITY_MODULES.graph : ACTIVITY_MODULES.feed
 }
 
-function setViewMode(mode) {
-    if (viewMode.value === mode) return
-    viewMode.value = mode
-    const module = mode === 'graph' ? ACTIVITY_MODULES.graph : ACTIVITY_MODULES.feed
-    setActivityModule(module)
-    trackActivity(mode === 'graph' ? ACTIVITY_EVENTS.viewGraph : ACTIVITY_EVENTS.viewFeed, module)
-}
+const {
+    setViewMode,
+    openStore: _openStore,
+    openNotificationCenter
+} = useActivityTracking({
+    viewMode,
+    storeVisible: () => props.storeVisible,
+    resolveActivityModule: () => resolveActivityModule(),
+    setActivityModule,
+    trackActivity,
+    openNotificationCenter: async () => {
+        await notifications.openCenter()
+    }
+})
 
 function openStore() {
-    setActivityModule(ACTIVITY_MODULES.shop)
-    trackActivity(ACTIVITY_EVENTS.openShop, ACTIVITY_MODULES.shop)
+    _openStore()
     emit('open-store')
-}
-
-async function openNotificationCenter() {
-    trackActivity('open_notifications', ACTIVITY_MODULES.feed)
-    await notifications.openCenter()
 }
 
 const { highlightedMessageId, highlightedCommentId, clearHighlight, handleNotificationClick } =
@@ -582,15 +584,6 @@ const { highlightedMessageId, highlightedCommentId, clearHighlight, handleNotifi
         notifyInfo: ElMessage.info,
         notifyWarning: ElMessage.warning
     })
-
-watch(
-    () => props.storeVisible,
-    visible => {
-        const module = visible ? ACTIVITY_MODULES.shop : resolveActivityModule()
-        setActivityModule(module)
-        if (visible) trackActivity(ACTIVITY_EVENTS.openShop, ACTIVITY_MODULES.shop)
-    }
-)
 
 const { startHomeRuntime, stopHomeRuntime: stopRuntime } = useHomeRuntime({
     addDocumentClickListener: () => window.addEventListener('click', handleClickOutside),
