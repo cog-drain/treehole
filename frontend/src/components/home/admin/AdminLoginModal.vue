@@ -6,7 +6,7 @@ const props = defineProps({
     password: { type: String, default: '' }
 })
 
-const emit = defineEmits(['close', 'login', 'update:password'])
+const _emit = defineEmits(['close', 'login', 'update:password'])
 const passwordInputRef = ref(null)
 
 watch(
@@ -37,11 +37,11 @@ watch(
                     <input
                         ref="passwordInputRef"
                         :value="password"
-                        @input="$emit('update:password', $event.target.value)"
                         type="password"
                         autofocus
                         class="w-full bg-transparent border-b border-white/10 py-6 text-4xl text-center font-light tracking-[0.4em] focus:outline-none focus:border-red-500/60 transition-all placeholder:text-white/5"
                         placeholder="••••"
+                        @input="$emit('update:password', $event.target.value)"
                         @keyup.enter="$emit('login')"
                     />
                     <div
@@ -51,8 +51,8 @@ watch(
 
                 <div class="flex flex-col gap-4 pt-8">
                     <button
-                        @click="$emit('login')"
                         class="group relative py-4 px-8 overflow-hidden rounded-full border border-white/10 hover:border-red-500/40 transition-all duration-500"
+                        @click="$emit('login')"
                     >
                         <span
                             class="relative z-10 text-[10px] uppercase tracking-[0.4em] text-white/60 group-hover:text-white"
@@ -63,8 +63,8 @@ watch(
                         ></div>
                     </button>
                     <button
-                        @click="$emit('close')"
                         class="text-[9px] uppercase tracking-[0.2em] text-white/20 hover:text-white/60 transition-colors"
+                        @click="$emit('close')"
                     >
                         Abort Connection
                     </button>

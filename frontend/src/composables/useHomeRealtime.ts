@@ -6,7 +6,6 @@ import type {
     ConfessionWitnessPayload,
     ConfessorReplyPayload,
     FeedMessage,
-    Id,
     Message,
     OnlineStats,
     ReactionUpdatePayload,

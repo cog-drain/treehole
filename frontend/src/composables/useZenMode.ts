@@ -19,7 +19,7 @@ export function useZenMode() {
         { id: 'zen', name: '禅定旋律', icon: '🧘', url: '/audio/zen.mp3' }
     ]
 
-    let zenAudio: HTMLAudioElement = new Audio()
+    const zenAudio: HTMLAudioElement = new Audio()
     zenAudio.loop = true
     let fadeTimer: ReturnType<typeof setInterval> | null = null
 

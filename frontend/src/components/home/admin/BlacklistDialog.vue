@@ -10,10 +10,10 @@ defineEmits(['update:visible', 'unban'])
 <template>
     <el-dialog
         :model-value="visible"
-        @update:model-value="$emit('update:visible', $event)"
         width="min(95vw, 600px)"
         :show-header="false"
         custom-class="glass-dialog"
+        @update:model-value="$emit('update:visible', $event)"
     >
         <div class="py-6 space-y-8">
             <div class="space-y-1">
@@ -39,8 +39,8 @@ defineEmits(['update:visible', 'unban'])
                         </div>
                     </div>
                     <button
-                        @click="$emit('unban', item.ip)"
                         class="px-4 py-2 rounded-full bg-blue-500/10 text-blue-400 text-[9px] font-bold uppercase tracking-widest hover:bg-blue-500/20 transition-all opacity-0 group-hover:opacity-100"
+                        @click="$emit('unban', item.ip)"
                     >
                         Release
                     </button>
@@ -54,8 +54,8 @@ defineEmits(['update:visible', 'unban'])
             </div>
 
             <button
-                @click="$emit('update:visible', false)"
                 class="w-full py-4 rounded-xl text-[10px] font-bold text-slate-500 hover:text-white transition-colors uppercase tracking-widest"
+                @click="$emit('update:visible', false)"
             >
                 Close Registry
             </button>

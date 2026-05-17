@@ -16,7 +16,7 @@ const props = defineProps({
     highlightedCommentId: { type: [String, Number], default: null }
 })
 
-const emit = defineEmits([
+const _emit = defineEmits([
     'like',
     'toggle-comments',
     'delete',

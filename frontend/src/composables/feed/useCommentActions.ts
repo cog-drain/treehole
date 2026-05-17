@@ -111,7 +111,7 @@ export function useCommentActions({
             ElMessage.success('评论已删除')
             const res = await api.getComments(msg.id)
             msg._comments = res.data || []
-            msg.commentCount = Math.max(0, msg.commentCount - 1)
+            msg.commentCount = Math.max(0, (msg.commentCount ?? 0) - 1)
         } catch {}
     }
 

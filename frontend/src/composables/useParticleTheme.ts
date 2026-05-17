@@ -54,7 +54,7 @@ const particleConfigs: Record<string, Record<string, unknown>> = {
 export function useParticleTheme(themeRef: () => string) {
     function loadParticles(theme: string): void {
         if (!window.tsParticles) return
-        window.tsParticles.load('tsparticles', particleConfigs[theme] || particleConfigs.aurora)
+        window.tsParticles.load('tsparticles', (particleConfigs[theme] || particleConfigs.aurora)!)
     }
 
     const stopWatchingTheme: WatchStopHandle = watch(themeRef, loadParticles)

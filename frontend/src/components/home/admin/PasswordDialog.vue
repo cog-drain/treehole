@@ -10,10 +10,10 @@ defineEmits(['update:visible', 'submit'])
 <template>
     <el-dialog
         :model-value="visible"
-        @update:model-value="$emit('update:visible', $event)"
         width="min(95vw, 400px)"
         :show-header="false"
         custom-class="glass-dialog"
+        @update:model-value="$emit('update:visible', $event)"
     >
         <div class="py-6 space-y-8 text-center">
             <div class="space-y-1">
@@ -38,14 +38,14 @@ defineEmits(['update:visible', 'submit'])
 
             <div class="flex gap-4">
                 <button
-                    @click="$emit('update:visible', false)"
                     class="flex-1 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-white"
+                    @click="$emit('update:visible', false)"
                 >
                     Cancel
                 </button>
                 <button
-                    @click="$emit('submit')"
                     class="flex-[2] py-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+                    @click="$emit('submit')"
                 >
                     Update Key
                 </button>

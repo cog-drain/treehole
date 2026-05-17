@@ -1,5 +1,5 @@
 <template>
-    <div class="alter-ego-container" v-if="visible" :style="{ left: position.x + 'px', top: position.y + 'px' }">
+    <div v-if="visible" class="alter-ego-container" :style="{ left: position.x + 'px', top: position.y + 'px' }">
         <div class="ae-window glass-card">
             <div class="ae-header" @mousedown="startDrag">
                 <div class="ae-dots"><span></span><span></span><span></span></div>
@@ -40,7 +40,7 @@ const props = defineProps({
     generateQuote: { type: Function, default: null }
 })
 
-const emit = defineEmits(['close'])
+const _emit = defineEmits(['close'])
 
 const hopeScore = ref(75)
 const currentMessage = ref('Neural Link Established. System Normal. [Click for AI Analysis]')
@@ -107,7 +107,7 @@ const generateQuote = async () => {
     try {
         const data = await props.generateQuote(props.lastMessage?.content || '告诉我关于希望的事情')
         currentMessage.value = data
-    } catch (e) {
+    } catch (_e) {
         currentMessage.value = '[SYSTEM NOTICE] AI node timeout. Hope remains within you, regardless.'
     } finally {
         isAnalysing.value = false

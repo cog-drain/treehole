@@ -87,14 +87,14 @@ const openImage = openExternalImage
             <audio
                 ref="audioRef"
                 :src="safeAudioUrl"
+                class="hidden"
                 @timeupdate="onTimeUpdate"
                 @ended="onEnded"
-                class="hidden"
             ></audio>
 
             <button
-                @click.stop="togglePlayback"
                 class="w-10 h-10 rounded-full bg-blue-500/80 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 active:scale-90 transition-all hover:bg-blue-500"
+                @click.stop="togglePlayback"
             >
                 <Play v-if="!isPlaying" :size="16" fill="currentColor" />
                 <Pause v-else :size="16" fill="currentColor" />
@@ -124,10 +124,10 @@ const openImage = openExternalImage
                     v-model="currentTime"
                     :max="duration || 1"
                     :show-tooltip="false"
-                    @input="seek"
-                    @click.stop
                     size="small"
                     class="cyber-slider-mini"
+                    @input="seek"
+                    @click.stop
                 />
             </div>
         </div>

@@ -65,8 +65,8 @@ describe('home realtime helpers', () => {
 
         expect(appended).toBe(true)
         expect(duplicate).toBe(false)
-        expect(messages[0].commentCount).toBe(1)
-        expect(messages[0]._comments[0].isOwner).toBe(true)
+        expect(messages[0]!.commentCount).toBe(1)
+        expect(messages[0]!._comments[0]!.isOwner).toBe(true)
     })
 
     it('applies message and comment reaction updates', () => {
@@ -80,7 +80,7 @@ describe('home realtime helpers', () => {
             reactions: { smile: 1 }
         })
 
-        expect(messages[0].reactions).toEqual({ like: 2 })
-        expect(messages[0]._comments[0].reactions).toEqual({ smile: 1 })
+        expect(messages[0]!.reactions).toEqual({ like: 2 })
+        expect(messages[0]!._comments[0]!.reactions).toEqual({ smile: 1 })
     })
 })

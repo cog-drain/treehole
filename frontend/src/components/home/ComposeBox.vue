@@ -3,7 +3,7 @@ import { Dices } from 'lucide-vue-next'
 import ComposeToolbar from '@/components/home/compose/ComposeToolbar.vue'
 import VoicePanel from '@/components/home/compose/VoicePanel.vue'
 
-const props = defineProps({
+defineProps({
     composeState: { type: Object, required: true },
     voiceState: { type: Object, required: true },
     themesList: { type: Array, default: () => [] },

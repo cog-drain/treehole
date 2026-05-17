@@ -25,22 +25,22 @@ defineEmits(['open-blacklist', 'open-password', 'exit'])
 
                 <div class="flex items-center gap-1 sm:gap-2">
                     <button
-                        @click="$emit('open-blacklist')"
                         class="p-2 sm:px-4 sm:py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-blue-400 transition-all flex items-center gap-2"
+                        @click="$emit('open-blacklist')"
                     >
                         <Users :size="16" />
                         <span class="text-[10px] font-bold tracking-widest uppercase hidden sm:inline">Blacklist</span>
                     </button>
                     <button
-                        @click="$emit('open-password')"
                         class="p-2 sm:px-4 sm:py-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-blue-400 transition-all flex items-center gap-2"
+                        @click="$emit('open-password')"
                     >
                         <Lock :size="16" />
                         <span class="text-[10px] font-bold tracking-widest uppercase hidden sm:inline">Security</span>
                     </button>
                     <button
-                        @click="$emit('exit')"
                         class="p-2 sm:px-4 sm:py-2 rounded-xl bg-red-500/5 text-red-500/60 hover:bg-red-500/10 hover:text-red-400 transition-all flex items-center gap-2 border border-red-500/10"
+                        @click="$emit('exit')"
                     >
                         <LogOut :size="16" />
                         <span class="text-[10px] font-bold tracking-widest uppercase hidden sm:inline">Exit</span>

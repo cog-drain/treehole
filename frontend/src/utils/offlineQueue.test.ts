@@ -31,7 +31,7 @@ describe('offline queue', () => {
         offlineQueue.push({ content: 'first', authorAlias: 'anon' })
         const [item] = offlineQueue.get()
 
-        offlineQueue.remove(item.id)
+        offlineQueue.remove(item!.id)
 
         expect(offlineQueue.get()).toHaveLength(0)
         expect(offlineQueueCount.value).toBe(0)

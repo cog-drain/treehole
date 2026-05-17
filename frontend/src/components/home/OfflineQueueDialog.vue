@@ -15,10 +15,10 @@ defineEmits(['update:visible', 'sync', 'edit', 'remove'])
 <template>
     <el-dialog
         :model-value="visible"
-        @update:model-value="$emit('update:visible', $event)"
         width="min(95vw, 500px)"
         :show-header="false"
         custom-class="glass-dialog"
+        @update:model-value="$emit('update:visible', $event)"
     >
         <div class="py-6 space-y-6">
             <div class="flex items-center justify-between">
@@ -30,8 +30,8 @@ defineEmits(['update:visible', 'sync', 'edit', 'remove'])
                 </div>
                 <button
                     v-if="isOnline"
-                    @click="$emit('sync')"
                     class="px-4 py-2 rounded-xl bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-widest hover:bg-blue-500/20 transition-all"
+                    @click="$emit('sync')"
                 >
                     立即同步
                 </button>
@@ -49,16 +49,16 @@ defineEmits(['update:visible', 'sync', 'edit', 'remove'])
                         }}</span>
                         <div class="flex gap-3">
                             <button
-                                @click="$emit('edit', item)"
                                 class="text-slate-500 hover:text-blue-400 transition-colors"
                                 title="载入并编辑"
+                                @click="$emit('edit', item)"
                             >
                                 <Edit2 :size="14" />
                             </button>
                             <button
-                                @click="$emit('remove', item.id)"
                                 class="text-slate-500 hover:text-red-400 transition-colors"
                                 title="删除"
+                                @click="$emit('remove', item.id)"
                             >
                                 <Trash2 :size="14" />
                             </button>

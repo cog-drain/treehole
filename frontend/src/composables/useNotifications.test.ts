@@ -86,7 +86,7 @@ describe('useNotifications', () => {
 
         await expect(state.markRead(1)).rejects.toThrow('mark notification read failed')
 
-        expect(state.notifications.value[0].read).toBe(false)
+        expect(state.notifications.value[0]!.read).toBe(false)
         expect(state.unreadCount.value).toBe(1)
     })
 

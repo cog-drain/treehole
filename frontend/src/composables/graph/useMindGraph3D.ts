@@ -163,7 +163,7 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
             if (obj.name === 'node-label') {
                 obj.visible = shouldShow
                 if (obj.material) {
-                    obj.material.opacity = shouldShow ? Math.min(obj.material.opacity + 0.15, 0.95) : 0
+                    obj.material.opacity = shouldShow ? Math.min((obj.material.opacity ?? 1) + 0.15, 0.95) : 0
                 }
             }
         })

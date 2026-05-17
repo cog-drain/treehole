@@ -36,9 +36,9 @@ defineEmits(['close', 'open-store', 'backup', 'restore', 'copy-key', 'update:inp
                     </div>
                     <div class="flex items-center gap-2">
                         <button
-                            @click="$emit('open-store')"
                             class="p-2 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition-all flex items-center gap-2 group/energy"
                             title="能量中心"
+                            @click="$emit('open-store')"
                         >
                             <Zap :size="16" class="fill-current" />
                             <span class="text-[10px] font-bold tracking-widest hidden group-hover/energy:inline"
@@ -46,8 +46,8 @@ defineEmits(['close', 'open-store', 'backup', 'restore', 'copy-key', 'update:inp
                             >
                         </button>
                         <button
-                            @click="$emit('close')"
                             class="p-2 rounded-full hover:bg-black/5 transition-colors opacity-40 hover:opacity-100"
+                            @click="$emit('close')"
                         >
                             <X :size="18" />
                         </button>
@@ -65,16 +65,16 @@ defineEmits(['close', 'open-store', 'backup', 'restore', 'copy-key', 'update:inp
                         >
                             <span class="truncate flex-1 min-w-0 select-all">{{ recoveryKey }}</span>
                             <button
-                                @click="$emit('copy-key')"
                                 class="p-2 hover:bg-blue-500/20 rounded-xl transition-all active:scale-90 text-blue-500 relative z-10 cursor-pointer flex-shrink-0"
+                                @click="$emit('copy-key')"
                             >
                                 <Copy :size="16" />
                             </button>
                         </div>
                         <button
                             v-else
-                            @click="$emit('backup')"
                             class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-lg hover:shadow-blue-600/20 text-white font-bold text-xs tracking-widest uppercase transition-all active:scale-95"
+                            @click="$emit('backup')"
                         >
                             生成备份密钥
                         </button>
@@ -94,15 +94,15 @@ defineEmits(['close', 'open-store', 'backup', 'restore', 'copy-key', 'update:inp
                         <div class="flex gap-2">
                             <input
                                 :value="inputKey"
-                                @input="$emit('update:input-key', $event.target.value)"
                                 type="text"
                                 class="flex-1 bg-black/5 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-400"
                                 placeholder="treehole-xxx"
+                                @input="$emit('update:input-key', $event.target.value)"
                             />
                             <button
-                                @click="$emit('restore')"
                                 :disabled="!inputKey"
                                 class="px-6 rounded-2xl bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all disabled:opacity-30"
+                                @click="$emit('restore')"
                             >
                                 还原
                             </button>

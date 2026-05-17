@@ -153,7 +153,7 @@ describe('useCommentActions', () => {
         })
 
         it('publishes comment and refreshes list', async () => {
-            vi.mocked(api.publishComment).mockResolvedValue({ code: 200, data: null })
+            vi.mocked(api.publishComment).mockResolvedValue({ code: 200, data: null as any })
             vi.mocked(api.getComments).mockResolvedValue({ code: 200, data: [{ id: 20, content: 'new' }] })
             const { options, energyLog } = createOptions()
             const { publishComment } = useCommentActions(options)

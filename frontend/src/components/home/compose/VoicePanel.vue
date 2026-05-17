@@ -63,21 +63,21 @@ function setVoiceEffect(effectId) {
                         <button
                             v-for="eff in voiceEffects"
                             :key="eff.id"
-                            @click="setVoiceEffect(eff.id)"
                             class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all"
                             :class="
                                 voiceEffect === eff.id
                                     ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
                                     : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'
                             "
+                            @click="setVoiceEffect(eff.id)"
                         >
                             <span class="text-lg">{{ eff.icon }}</span>
                             <span class="text-[9px] font-bold uppercase tracking-tighter">{{ eff.name }}</span>
                         </button>
                     </div>
                     <button
-                        @click="$emit('clear-audio')"
                         class="p-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
+                        @click="$emit('clear-audio')"
                     >
                         <Trash2 :size="18" />
                     </button>
@@ -89,14 +89,14 @@ function setVoiceEffect(effectId) {
                     <audio
                         :ref="bindAudioPreview"
                         :src="maskedAudioUrl || rawAudioUrl"
+                        class="hidden"
                         @timeupdate="$emit('preview-time-update')"
                         @ended="$emit('preview-ended')"
-                        class="hidden"
                     ></audio>
 
                     <button
-                        @click="$emit('toggle-preview-playback')"
                         class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 active:scale-90 transition-all"
+                        @click="$emit('toggle-preview-playback')"
                     >
                         <Play v-if="!isPlayingPreview" :size="18" fill="currentColor" />
                         <Pause v-else :size="18" fill="currentColor" />
@@ -126,9 +126,9 @@ function setVoiceEffect(effectId) {
                             :model-value="previewCurrentTime"
                             :max="previewDuration || 1"
                             :show-tooltip="false"
-                            @update:model-value="$emit('seek-preview', $event)"
                             size="small"
                             class="cyber-slider"
+                            @update:model-value="$emit('seek-preview', $event)"
                         />
                     </div>
                 </div>

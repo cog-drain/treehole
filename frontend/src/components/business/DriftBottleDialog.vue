@@ -48,8 +48,8 @@
 
             <DriftPickedView
                 v-if="(state === 'picked' || state === 'reply') && pickedData"
-                :picked-data="pickedData"
                 v-model:reply-content="replyContent"
+                :picked-data="pickedData"
                 :is-replying="state === 'reply'"
                 @pick="handlePick"
                 @return="handleReturn"
@@ -77,7 +77,7 @@ import type { Bottle, DriftBottleState } from '@/types'
 
 const props = withDefaults(
     defineProps<{
-        modelValue: boolean
+        modelValue?: boolean
         initialState?: DriftBottleState
         pickedData?: Bottle | null
         userId?: string

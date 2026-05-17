@@ -27,8 +27,8 @@ defineEmits(['buy', 'toggle'])
             <button
                 v-if="!owned"
                 class="buy-btn"
-                @click="$emit('buy', { id: item.id, cost: item.cost })"
                 :disabled="energy < item.cost"
+                @click="$emit('buy', { id: item.id, cost: item.cost })"
             >
                 {{ item.cost }} ⚡ 购买
             </button>

@@ -21,9 +21,9 @@ defineEmits(['set-view-mode'])
             <button
                 v-for="mode in ['list', 'graph']"
                 :key="mode"
-                @click="$emit('set-view-mode', mode)"
                 class="text-xs font-bold tracking-widest transition-all relative py-2"
                 :class="viewMode === mode ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'"
+                @click="$emit('set-view-mode', mode)"
             >
                 {{ mode === 'list' ? 'FEED' : 'CONSCIOUSNESS' }}
                 <span

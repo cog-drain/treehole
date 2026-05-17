@@ -17,8 +17,8 @@
             <defs>
                 <radialGradient
                     v-for="stone in stones"
-                    :key="'grad-' + stone.id"
                     :id="'grad-' + stone.id"
+                    :key="'grad-' + stone.id"
                     cx="35%"
                     cy="35%"
                 >

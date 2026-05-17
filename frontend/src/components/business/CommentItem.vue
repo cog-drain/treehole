@@ -52,7 +52,7 @@ const props = defineProps({
     highlightedCommentId: { type: [String, Number], default: null }
 })
 
-const emit = defineEmits(['reply', 'delete', 'react'])
+const _emit = defineEmits(['reply', 'delete', 'react'])
 
 const isCollapsed = ref(!props.defaultExpanded)
 const isHighlighted = computed(() => String(props.highlightedCommentId || '') === String(props.comment.id))

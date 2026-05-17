@@ -16,7 +16,7 @@ const emit = defineEmits(['toggle-comments', 'react', 'like'])
 const parsedReactions = computed(() => parseReactionMap(props.msg.reactions))
 const likeCount = computed(() => Number(props.msg.likeCount ?? props.msg.likes ?? 0))
 
-const { getReactedEmoji, hasReacted, toggleReaction } = useReactionState(
+const { hasReacted, toggleReaction } = useReactionState(
     messageReactionKey,
     () => props.msg.id,
     emoji => messageApi.reactToMessage(props.msg.id, emoji)

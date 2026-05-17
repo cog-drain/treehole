@@ -13,7 +13,7 @@ export default tseslint.config(
     ...vue.configs['flat/recommended'],
     prettier,
     {
-        files: ['src/**/*.{js,ts,vue}', 'vite.config.js'],
+        files: ['src/**/*.{js,ts,vue}', 'vite.config.ts'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',
@@ -69,7 +69,7 @@ export default tseslint.config(
         }
     },
     {
-        files: ['src/**/*.js', 'vite.config.js'],
+        files: ['src/**/*.js'],
         rules: {
             '@typescript-eslint/no-require-imports': 'off',
             '@typescript-eslint/no-var-requires': 'off',

@@ -19,8 +19,6 @@ vi.mock('@/utils/offlineQueue', () => ({
 
 import api from '@/api'
 import { offlineQueue } from '@/utils/offlineQueue'
-import { createFeedMessageState } from './feedMessageState'
-
 function createOptions(overrides: Record<string, unknown> = {}) {
     const messages = ref<any[]>([])
     return {

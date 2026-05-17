@@ -9,7 +9,7 @@ const props = defineProps({
     highlightedCommentId: { type: [String, Number], default: null }
 })
 
-const emit = defineEmits(['delete-comment', 'publish-comment', 'react'])
+const _emit = defineEmits(['delete-comment', 'publish-comment', 'react'])
 
 const commentTree = computed(() => {
     const list = props.msg._comments || []
@@ -90,10 +90,10 @@ function clearReply() {
                 v-for="comment in sortedCommentTree"
                 :key="comment.id"
                 :comment="comment"
-                :isAdmin="isAdmin"
+                :is-admin="isAdmin"
                 :depth="0"
-                :maxDepth="4"
-                :defaultExpanded="true"
+                :max-depth="4"
+                :default-expanded="true"
                 :highlighted-comment-id="highlightedCommentId"
                 @reply="setReplyTarget"
                 @delete="comment => $emit('delete-comment', { msg, comment })"

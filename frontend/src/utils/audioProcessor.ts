@@ -16,7 +16,7 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
     for (let channel = 0; channel < numChannels; channel++) {
         const channelData = buffer.getChannelData(channel)
         for (let i = 0; i < buffer.length; i++) {
-            result[i * numChannels + channel] = channelData[i]
+            result[i * numChannels + channel] = channelData[i]!
         }
     }
 
@@ -46,7 +46,7 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
 
     let offset = 44
     for (let i = 0; i < result.length; i++, offset += 2) {
-        let s = Math.max(-1, Math.min(1, result[i]))
+        const s = Math.max(-1, Math.min(1, result[i]!))
         view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true)
     }
 
@@ -105,11 +105,11 @@ export async function applyVoiceMask(originalBlob: Blob, effectType?: string): P
 
         const distortion = offlineCtx.createWaveShaper()
         function makeDistortionCurve(amount: number) {
-            let k = typeof amount === 'number' ? amount : 150,
-                n_samples = 44100,
-                curve = new Float32Array(n_samples),
-                i = 0,
-                x = 0
+            const k = typeof amount === 'number' ? amount : 150
+            const n_samples = 44100
+            const curve = new Float32Array(n_samples)
+            let i = 0
+            let x = 0
             for (; i < n_samples; ++i) {
                 x = (i * 2) / n_samples - 1
                 curve[i] = ((3 + k) * x * 20 * (Math.PI / 180)) / (Math.PI + k * Math.abs(x))

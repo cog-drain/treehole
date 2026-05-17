@@ -24,7 +24,7 @@ export function useMobileEdgeSwipe({ isMobile, getMode, setMode }: UseMobileEdge
 
     function handleEdgeSwipeStart(event: TouchEvent): void {
         if (!isMobile.value || getMode() !== 'graph' || event.touches.length !== 1) return
-        const touch = event.touches[0]
+        const touch = event.touches[0]!
         if (touch.clientX > EDGE_SWIPE_ZONE) return
         edgeSwipe.active = true
         edgeSwipe.startX = touch.clientX
@@ -35,7 +35,7 @@ export function useMobileEdgeSwipe({ isMobile, getMode, setMode }: UseMobileEdge
 
     function handleEdgeSwipeMove(event: TouchEvent): void {
         if (!edgeSwipe.active || event.touches.length !== 1) return
-        const touch = event.touches[0]
+        const touch = event.touches[0]!
         edgeSwipe.currentX = touch.clientX
         edgeSwipe.currentY = touch.clientY
     }

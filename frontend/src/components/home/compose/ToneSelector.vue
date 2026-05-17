@@ -17,16 +17,16 @@ function bindToneSelector(el) {
 </script>
 
 <template>
-    <div class="relative flex items-center" :ref="bindToneSelector">
+    <div :ref="bindToneSelector" class="relative flex items-center">
         <button
             v-if="!showTonePanel"
-            @click.stop="$emit('toggle-tone-panel', true)"
             class="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-full border text-[11px] transition-all active:scale-95"
             :class="
                 form.mood
                     ? 'bg-blue-500/10 border-blue-500/25 text-blue-500 hover:bg-blue-500/15'
                     : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200'
             "
+            @click.stop="$emit('toggle-tone-panel', true)"
         >
             <Sparkles :size="14" />
             <span class="whitespace-nowrap">{{
@@ -56,8 +56,8 @@ function bindToneSelector(el) {
                 <span class="text-sm">{{ tone.emoji }}</span>
             </button>
             <button
-                @click="$emit('toggle-tone-panel', false)"
                 class="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all ml-0.5"
+                @click="$emit('toggle-tone-panel', false)"
             >
                 <X :size="12" />
             </button>

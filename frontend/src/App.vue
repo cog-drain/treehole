@@ -35,12 +35,12 @@
         <EnergyStore
             :visible="showStore"
             :energy="appStore.energy"
-            :ownedItems="appStore.ownedItems"
-            :lainEnabled="appStore.lainEnabled"
-            :p5Enabled="appStore.p5EffectEnabled"
-            :p5AoaEnabled="appStore.p5AoaEnabled"
-            :alterEgoEnabled="appStore.alterEgoEnabled"
-            :camoEnabled="appStore.camoEnabled"
+            :owned-items="appStore.ownedItems"
+            :lain-enabled="appStore.lainEnabled"
+            :p5-enabled="appStore.p5EffectEnabled"
+            :p5-aoa-enabled="appStore.p5AoaEnabled"
+            :alter-ego-enabled="appStore.alterEgoEnabled"
+            :camo-enabled="appStore.camoEnabled"
             @close="showStore = false"
             @buy="handleBuy"
             @earn-energy="handleEarnEnergy"
@@ -53,8 +53,8 @@
 
         <AlterEgo
             :visible="appStore.alterEgoEnabled && appStore.ownedItems.includes('alter_ego')"
-            :lastMessage="latestMessage"
-            :generateQuote="handleGenerateQuote"
+            :last-message="latestMessage"
+            :generate-quote="handleGenerateQuote"
             @close="handleToggleAlterEgo"
         />
     </div>
