@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Heart, MessageSquare, Smile } from 'lucide-vue-next'
-import api from '@/api'
+import { messageApi } from '@/api/modules/message'
 import { parseReactionMap, REACTION_EMOJIS } from '@/constants/reactions'
 import { messageReactionKey } from '@/constants/storageKeys'
 import { useReactionState } from '@/composables/useReactionState'
@@ -16,16 +16,15 @@ const emit = defineEmits(['toggle-comments', 'react', 'like'])
 const parsedReactions = computed(() => parseReactionMap(props.msg.reactions))
 const likeCount = computed(() => Number(props.msg.likeCount ?? props.msg.likes ?? 0))
 
-const { getReactedEmoji, hasReacted, setReactedEmoji } = useReactionState(messageReactionKey, () => props.msg.id)
+const { getReactedEmoji, hasReacted, toggleReaction } = useReactionState(
+    messageReactionKey,
+    () => props.msg.id,
+    emoji => messageApi.reactToMessage(props.msg.id, emoji)
+)
 
-async function toggleReaction(emoji) {
-    try {
-        await api.reactToMessage(props.msg.id, emoji)
-        setReactedEmoji(emoji)
-        emit('react')
-    } catch (e) {
-        console.error('Reaction error:', e)
-    }
+async function handleReaction(emoji) {
+    await toggleReaction(emoji)
+    emit('react')
 }
 </script>
 
@@ -37,7 +36,7 @@ async function toggleReaction(emoji) {
                 :key="emoji"
                 class="reaction-pill"
                 :class="{ 'is-own': hasReacted(emoji) }"
-                @click.stop="toggleReaction(emoji)"
+                @click.stop="handleReaction(emoji)"
             >
                 <span class="reaction-emoji">{{ emoji }}</span>
                 <span class="reaction-count">{{ count }}</span>
@@ -55,7 +54,7 @@ async function toggleReaction(emoji) {
                         :key="emoji"
                         class="reaction-picker-cell"
                         :class="{ 'is-selected': hasReacted(emoji) }"
-                        @click="toggleReaction(emoji)"
+                        @click="handleReaction(emoji)"
                     >
                         {{ emoji }}
                     </button>

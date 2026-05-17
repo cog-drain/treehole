@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import api from '@/api'
 
 const props = defineProps({
     msg: {
@@ -31,16 +30,9 @@ const candleBurnPercent = computed(() => {
     return Math.min(100, Math.max(0, ((now.value - created) / total) * 100))
 })
 
-async function witnessConfession() {
+function witnessConfession() {
     if (props.msg.witnessedByMe) return
-    try {
-        const res = await api.witnessMessage(props.msg.id)
-        props.msg.witnessCount = res.data?.witnessCount ?? witnessCount.value + 1
-        props.msg.witnessedByMe = true
-        emit('witness')
-    } catch (e) {
-        console.error('Witness error:', e)
-    }
+    emit('witness', props.msg.id)
 }
 
 onMounted(() => {

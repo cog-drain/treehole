@@ -12,6 +12,7 @@
                     :class="['theme-' + (msg.theme || 'default'), 'animate__animated animate__fadeInUp']"
                     :style="{ animationDelay: index * 100 + 'ms' }"
                     :is-admin="isAdmin"
+                    :camo-enabled="camoEnabled"
                     @like="$emit('like', $event)"
                     @toggle-comments="$emit('toggle-comments', $event)"
                     @delete="$emit('delete', $event)"
@@ -82,6 +83,7 @@ defineProps({
     messages: { type: Array, default: () => [] },
     likedIds: { type: Object, required: true },
     isAdmin: { type: Boolean, default: false },
+    camoEnabled: { type: Boolean, default: false },
     pageNum: { type: Number, default: 1 },
     total: { type: Number, default: 0 },
     totalPages: { type: Number, default: 1 },

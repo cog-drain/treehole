@@ -54,6 +54,7 @@
                 :messages="messages"
                 :liked-ids="likedIds"
                 :is-admin="isAdmin"
+                :camo-enabled="appStore.camoEnabled"
                 :page-num="pageNum"
                 :total="total"
                 :total-pages="totalPages"
@@ -65,7 +66,7 @@
                 @delete-comment="handleDeleteComment"
                 @publish-comment="publishComment"
                 @react="trackActivity(ACTIVITY_EVENTS.react)"
-                @witness="trackActivity(ACTIVITY_EVENTS.witnessConfession, ACTIVITY_MODULES.comments)"
+                @witness="handleWitness"
                 @tag-click="handleTagClick"
                 @admin-ban="handleBanIP"
                 @page-change="handlePageChange"
@@ -382,6 +383,12 @@ const notificationState = computed(() => ({
     error: notifications.error.value
 }))
 
+function handleWitness(msgId) {
+    const msg = messages.value.find(m => m.id === msgId)
+    if (msg) witnessMessage(msg)
+    trackActivity(ACTIVITY_EVENTS.witnessConfession, ACTIVITY_MODULES.comments)
+}
+
 function handlePublishButtonClick() {
     handleFeedPublishButtonClick(isMidnight.value)
 }
@@ -523,7 +530,8 @@ const {
     toggleTagSubscription,
     clearTagFilter,
     handlePageChange,
-    locateMessageById
+    locateMessageById,
+    witnessMessage
 } = feed
 
 const notificationUnreadCount = computed(() => notifications.unreadCount.value)

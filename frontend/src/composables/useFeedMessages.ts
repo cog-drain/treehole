@@ -129,6 +129,7 @@ export function useFeedMessages({
         handleTagClick,
         toggleTagSubscription: pagination.toggleTagSubscription,
         clearTagFilter,
-        handlePageChange
+        handlePageChange,
+        witnessMessage: commentActions.witnessMessage
     }
 }

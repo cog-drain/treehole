@@ -33,11 +33,11 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
-import api from '@/api'
 
 const props = defineProps({
     visible: Boolean,
-    lastMessage: Object
+    lastMessage: Object,
+    generateQuote: { type: Function, default: null }
 })
 
 const emit = defineEmits(['close'])
@@ -100,12 +100,13 @@ watch(
 
 const generateQuote = async () => {
     if (isAnalysing.value) return
+    if (!props.generateQuote) return
     isAnalysing.value = true
     currentMessage.value = 'Scanning neural frequencies... Syncing with DeepSeek node...'
 
     try {
-        const res = await api.chatWithAI(props.lastMessage?.content || '告诉我关于希望的事情')
-        currentMessage.value = res.data
+        const data = await props.generateQuote(props.lastMessage?.content || '告诉我关于希望的事情')
+        currentMessage.value = data
     } catch (e) {
         currentMessage.value = '[SYSTEM NOTICE] AI node timeout. Hope remains within you, regardless.'
     } finally {

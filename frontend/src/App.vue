@@ -54,6 +54,7 @@
         <AlterEgo
             :visible="appStore.alterEgoEnabled && appStore.ownedItems.includes('alter_ego')"
             :lastMessage="latestMessage"
+            :generateQuote="handleGenerateQuote"
             @close="handleToggleAlterEgo"
         />
     </div>
@@ -64,6 +65,7 @@ import { defineAsyncComponent, ref, onMounted, onUnmounted } from 'vue'
 import HomeView from './views/HomeView.vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage } from 'element-plus'
+import { aiApi } from '@/api/modules/ai'
 import { earnCooldownKey } from '@/constants/storageKeys'
 import { getString, setString } from '@/utils/storage'
 import { useOfflineSyncOnOnline } from '@/composables/useOfflineSyncOnOnline'
@@ -144,6 +146,15 @@ const handlePublishSuccess = msg => {
         setTimeout(() => {
             showP5Animation.value = false
         }, 2500)
+    }
+}
+
+async function handleGenerateQuote(content) {
+    try {
+        const res = await aiApi.chat(content)
+        return res.data
+    } catch {
+        throw new Error('AI node timeout')
     }
 }
 

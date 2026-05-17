@@ -5,15 +5,13 @@ import MessageActionBar from './message/MessageActionBar.vue'
 import MessageBody from './message/MessageBody.vue'
 import MessageComments from './message/MessageComments.vue'
 import MessageHeader from './message/MessageHeader.vue'
-import { useAppStore } from '@/stores/app'
 import { TONE_MODES } from '@/constants/toneModes'
-
-const appStore = useAppStore()
 
 const props = defineProps({
     msg: Object,
     liked: Boolean,
     isAdmin: Boolean,
+    camoEnabled: { type: Boolean, default: false },
     highlightedMessageId: { type: [String, Number], default: null },
     highlightedCommentId: { type: [String, Number], default: null }
 })
@@ -49,7 +47,7 @@ const isNotificationHighlighted = computed(() => String(props.highlightedMessage
             isConfession ? 'confession-card' : '',
             isNotificationHighlighted ? 'notification-highlight' : '',
             isResonant ? 'shadow-[0_0_50px_rgba(139,92,246,0.2)] border-purple-500/30 scale-[1.01]' : '',
-            msg.isOwner && appStore.camoEnabled ? 'camo-effect' : ''
+            msg.isOwner && camoEnabled ? 'camo-effect' : ''
         ]"
     >
         <div

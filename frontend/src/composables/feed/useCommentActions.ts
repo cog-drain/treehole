@@ -115,11 +115,24 @@ export function useCommentActions({
         } catch {}
     }
 
+    async function witnessMessage(msg: FeedMessage) {
+        if (msg.witnessedByMe) return
+        try {
+            const res = await api.witnessMessage(msg.id)
+            const data = res.data as { witnessCount?: number } | undefined
+            msg.witnessCount = data?.witnessCount ?? (msg.witnessCount || 0) + 1
+            msg.witnessedByMe = true
+        } catch (e) {
+            console.error('Witness error:', e)
+        }
+    }
+
     return {
         likeMessage,
         toggleComments,
         publishComment,
         deleteMessage,
-        handleDeleteComment
+        handleDeleteComment,
+        witnessMessage
     }
 }

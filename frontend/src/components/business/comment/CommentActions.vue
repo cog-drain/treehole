@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { MessageSquare, Smile, Trash2 } from 'lucide-vue-next'
-import api from '@/api'
+import { commentApi } from '@/api/modules/comment'
 import { parseReactionMap, REACTION_EMOJIS } from '@/constants/reactions'
 import { commentReactionKey } from '@/constants/storageKeys'
 import { useReactionState } from '@/composables/useReactionState'
@@ -15,16 +15,15 @@ const emit = defineEmits(['reply', 'delete', 'react'])
 
 const parsedReactions = computed(() => parseReactionMap(props.comment.reactions))
 
-const { hasReacted, setReactedEmoji } = useReactionState(commentReactionKey, () => props.comment.id)
+const { hasReacted, toggleReaction } = useReactionState(
+    commentReactionKey,
+    () => props.comment.id,
+    emoji => commentApi.reactToComment(props.comment.id, emoji)
+)
 
-async function toggleReaction(emoji) {
-    try {
-        await api.reactToComment(props.comment.id, emoji)
-        setReactedEmoji(emoji)
-        emit('react')
-    } catch (e) {
-        console.error('Comment reaction error:', e)
-    }
+async function handleReaction(emoji) {
+    await toggleReaction(emoji)
+    emit('react')
 }
 </script>
 
@@ -35,7 +34,7 @@ async function toggleReaction(emoji) {
             :key="emoji"
             class="reaction-pill"
             :class="{ 'is-own': hasReacted(emoji) }"
-            @click.stop="toggleReaction(emoji)"
+            @click.stop="handleReaction(emoji)"
         >
             <span class="reaction-emoji">{{ emoji }}</span>
             <span class="reaction-count">{{ count }}</span>
@@ -52,7 +51,7 @@ async function toggleReaction(emoji) {
                     v-for="emoji in REACTION_EMOJIS"
                     :key="emoji"
                     class="reaction-picker-item"
-                    @click="toggleReaction(emoji)"
+                    @click="handleReaction(emoji)"
                 >
                     {{ emoji }}
                 </button>

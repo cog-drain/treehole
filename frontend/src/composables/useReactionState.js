@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { getString, remove, setString } from '@/utils/storage'
 
-export function useReactionState(keyFactory, getId) {
+export function useReactionState(keyFactory, getId, reactApi) {
     const reactedKey = computed(() => keyFactory(getId()))
 
     function getReactedEmoji() {
@@ -18,9 +18,20 @@ export function useReactionState(keyFactory, getId) {
         else setString(reactedKey.value, emoji)
     }
 
+    async function toggleReaction(emoji) {
+        if (!reactApi) return
+        try {
+            await reactApi(emoji)
+            setReactedEmoji(emoji)
+        } catch (e) {
+            console.error('Reaction error:', e)
+        }
+    }
+
     return {
         getReactedEmoji,
         hasReacted,
-        setReactedEmoji
+        setReactedEmoji,
+        toggleReaction
     }
 }
