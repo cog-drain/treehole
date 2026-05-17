@@ -6,9 +6,9 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "lint": "eslint \"src/**/*.{js,ts,vue}\" \"vite.config.js\"",
-        "format": "prettier --write \"src/**/*.{js,ts,vue,css,json,md}\" \"*.{js,md}\" \"package.json\" \"tsconfig*.json\" \".prettierrc.json\"",
-        "format:check": "prettier --check \"src/**/*.{js,ts,vue,css,json,md}\" \"*.{js,md}\" \"package.json\" \"tsconfig*.json\" \".prettierrc.json\"",
+        "lint": "eslint \"src/**/*.{ts,vue}\" \"vite.config.js\"",
+        "format": "prettier --write \"src/**/*.{ts,vue,css,json,md}\" \"*.{js,md}\" \"package.json\" \"tsconfig*.json\" \".prettierrc.json\"",
+        "format:check": "prettier --check \"src/**/*.{ts,vue,css,json,md}\" \"*.{js,md}\" \"package.json\" \"tsconfig*.json\" \".prettierrc.json\"",
         "preview": "vite preview",
         "type-check": "vue-tsc --build --force",
         "test": "vitest run"

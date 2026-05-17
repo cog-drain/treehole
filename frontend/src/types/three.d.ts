@@ -76,7 +76,11 @@ declare module '3d-force-graph' {
         onNodeClick(callback: (node: unknown, event?: MouseEvent) => void): ForceGraphInstance
         controls(): Controls | null
         cameraPosition(): { x: number; y: number; z: number }
-        cameraPosition(position: { x: number; y: number; z: number }, lookAt?: unknown, duration?: number): ForceGraphInstance
+        cameraPosition(
+            position: { x: number; y: number; z: number },
+            lookAt?: unknown,
+            duration?: number
+        ): ForceGraphInstance
         zoomToFit(duration: number): void
         width(): number
         width(v: number): ForceGraphInstance

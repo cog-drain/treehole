@@ -61,10 +61,7 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
     async function render3D(data: GraphData): Promise<void> {
         if (!graphElement.value) return
         if (!ForceGraph3D || !THREE) {
-            const [forceGraphModule, threeModule] = await Promise.all([
-                import('3d-force-graph'),
-                import('three')
-            ])
+            const [forceGraphModule, threeModule] = await Promise.all([import('3d-force-graph'), import('three')])
             ForceGraph3D = forceGraphModule.default
             THREE = threeModule
         }
@@ -140,11 +137,7 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
         const ny = n.y ?? 0
         const nz = n.z ?? 0
         const distRatio = 1 + distance / Math.hypot(nx, ny, nz)
-        graph.cameraPosition(
-            { x: nx * distRatio, y: ny * distRatio, z: nz * distRatio },
-            node,
-            1500
-        )
+        graph.cameraPosition({ x: nx * distRatio, y: ny * distRatio, z: nz * distRatio }, node, 1500)
         emit('node-click', n.id)
     }
 
@@ -170,9 +163,7 @@ export function useMindGraph3D(props: MindGraphProps, emit: MindGraphEmit) {
             if (obj.name === 'node-label') {
                 obj.visible = shouldShow
                 if (obj.material) {
-                    obj.material.opacity = shouldShow
-                        ? Math.min(obj.material.opacity + 0.15, 0.95)
-                        : 0
+                    obj.material.opacity = shouldShow ? Math.min(obj.material.opacity + 0.15, 0.95) : 0
                 }
             }
         })
