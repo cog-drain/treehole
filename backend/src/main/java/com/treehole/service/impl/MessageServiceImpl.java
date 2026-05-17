@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.util.HashMap;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private static final String MESSAGE_TYPE_CONFESSION = "confession";
     private static final String MESSAGE_TYPE_NORMAL = "normal";
     private static final String CONFESSOR_USER_ID = "confessor_ai";
+    private static final ZoneId APP_ZONE = ZoneId.systemDefault();
 
     @Override
     public Map<String, Object> publish(Message message, String userId) {
@@ -92,10 +94,12 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         String messageType = normalizeMessageType(message.getMessageType());
         message.setMessageType(messageType);
         message.setUserId(userId);
+        LocalDateTime publishTime = LocalDateTime.now();
+        message.setCreateTime(publishTime);
 
         boolean confession = MESSAGE_TYPE_CONFESSION.equals(messageType);
         if (confession) {
-            message.setExpiresAt(LocalDateTime.now().plusHours(24));
+            message.setExpiresAt(publishTime.plusHours(24));
         } else {
             message.setExpiresAt(null);
         }
@@ -128,6 +132,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         }
 
         this.save(message);
+        applyMessageEpochFields(message);
         if (!confession) {
             tagService.extractAndSaveTags(message.getId(), message.getContent());
             tagSubscriptionService.notifySubscribersForMessage(message);
@@ -336,10 +341,22 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         }
 
         for (Message message : confessions) {
+            applyMessageEpochFields(message);
             message.setWitnessCount(witnessCounts.getOrDefault(message.getId(), 0L));
             message.setWitnessedByMe(witnessedIds.contains(message.getId()));
             message.setConfessorReply(replyByMessage.get(message.getId()));
         }
+    }
+
+    private void applyMessageEpochFields(Message message) {
+        if (message == null) return;
+        message.setCreateTimeEpochMs(toEpochMs(message.getCreateTime()));
+        message.setExpiresAtEpochMs(toEpochMs(message.getExpiresAt()));
+    }
+
+    private Long toEpochMs(LocalDateTime dateTime) {
+        if (dateTime == null) return null;
+        return dateTime.atZone(APP_ZONE).toInstant().toEpochMilli();
     }
 
     private void injectResonance(List<Message> messages, String viewerId) {

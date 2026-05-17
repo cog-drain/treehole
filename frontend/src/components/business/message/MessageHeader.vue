@@ -57,8 +57,8 @@ function generateDiceBearAvatar(seed) {
 
         <div class="flex items-center gap-2">
             <div v-if="isConfession" class="hidden sm:flex flex-col items-end gap-1 mr-2">
-                <span class="text-[9px] font-bold uppercase tracking-[0.18em] text-amber-700">24h confession</span>
-                <span class="text-[10px] text-slate-500">{{ Number(msg.witnessCount || 0) }} candles lit</span>
+                <span class="text-[9px] font-bold uppercase tracking-[0.18em] text-amber-700">限时告解</span>
+                <span class="text-[10px] text-slate-500">{{ Number(msg.witnessCount || 0) }} 人见证</span>
             </div>
             <button
                 v-if="isAdmin"

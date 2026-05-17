@@ -70,7 +70,9 @@ export interface ServerMessage {
     tags?: string[] | string | null
     comments?: Comment[]
     createTime?: string | null
+    createTimeEpochMs?: number | null
     expiresAt?: string | null
+    expiresAtEpochMs?: number | null
     aiReply?: string | null
     messageType?: MessageType | string | null
     type?: MessageType | string | null

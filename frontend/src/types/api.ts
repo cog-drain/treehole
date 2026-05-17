@@ -125,7 +125,9 @@ export function normalizeMessage(message: Partial<ServerMessage> | null | undefi
         reactions: normalizeReactionCounts(message?.reactions),
         comments: Array.isArray(message?.comments) ? message.comments.map(normalizeComment) : [],
         createTime: message?.createTime ?? null,
+        createTimeEpochMs: normalizeNullableNumber(message?.createTimeEpochMs),
         expiresAt: message?.expiresAt ?? null,
+        expiresAtEpochMs: normalizeNullableNumber(message?.expiresAtEpochMs),
         messageType: message?.messageType ?? message?.type ?? 'normal',
         type: message?.type ?? message?.messageType ?? 'normal',
         witnessCount: normalizeNumber(message?.witnessCount),
@@ -217,6 +219,12 @@ export function getApiErrorMessage(error: ApiErrorResponse | Error | unknown, fa
 function normalizeNumber(value: unknown): number {
     const numberValue = Number(value ?? 0)
     return Number.isFinite(numberValue) ? numberValue : 0
+}
+
+function normalizeNullableNumber(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null
+    const numberValue = Number(value)
+    return Number.isFinite(numberValue) ? numberValue : null
 }
 
 function parseJsonObject(value: string): ReactionCounts | null {

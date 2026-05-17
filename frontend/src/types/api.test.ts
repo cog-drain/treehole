@@ -74,6 +74,8 @@ describe('api type utilities', () => {
             commentCount: undefined,
             messageType: null,
             camoEffect: true,
+            createTimeEpochMs: 1710000000000,
+            expiresAtEpochMs: 1710086400000,
             reactions: '{"ok":1}',
             comments: [
                 {
@@ -91,6 +93,8 @@ describe('api type utilities', () => {
         expect(message.likeCount).toBe(0)
         expect(message.messageType).toBe('normal')
         expect(message.camoEffect).toBe(true)
+        expect(message.createTimeEpochMs).toBe(1710000000000)
+        expect(message.expiresAtEpochMs).toBe(1710086400000)
         expect(message.reactions).toEqual({ ok: 1 })
         expect(message.comments?.[0]).toMatchObject({
             id: 'c1',

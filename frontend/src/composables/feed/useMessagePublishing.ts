@@ -72,6 +72,7 @@ export function useMessagePublishing({
         const localTheme = form.theme
         const localMessageType = isConfessionMode.value ? 'confession' : 'normal'
         const localCamoEffect = isCamoActiveForPublish()
+        const optimisticCreateTimeMs = Date.now()
         const optimisticMessage = createFeedMessageState({
             id: Date.now(),
             content: String(localContent || ''),
@@ -80,7 +81,9 @@ export function useMessagePublishing({
             theme: localTheme,
             messageType: localMessageType,
             camoEffect: localCamoEffect,
-            expiresAt: localMessageType === 'confession' ? new Date(Date.now() + 86400000).toISOString() : null,
+            createTimeEpochMs: optimisticCreateTimeMs,
+            expiresAt: localMessageType === 'confession' ? new Date(optimisticCreateTimeMs + 86400000).toISOString() : null,
+            expiresAtEpochMs: localMessageType === 'confession' ? optimisticCreateTimeMs + 86400000 : null,
             witnessCount: 0,
             witnessedByMe: false,
             confessorReply: '',
@@ -88,7 +91,7 @@ export function useMessagePublishing({
             audioUrl: '',
             likes: 0,
             commentCount: 0,
-            createTime: new Date().toISOString(),
+            createTime: new Date(optimisticCreateTimeMs).toISOString(),
             isOwner: true,
             isOptimistic: true
         })

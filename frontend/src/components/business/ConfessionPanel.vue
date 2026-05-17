@@ -9,26 +9,38 @@ const props = defineProps({
 })
 const emit = defineEmits(['witness'])
 
+const CONFESSION_TTL_MS = 24 * 60 * 60 * 1000
 const now = ref(Date.now())
 let countdownTimer = null
 
 const witnessCount = computed(() => Number(props.msg.witnessCount || 0))
-const expiresAtMs = computed(() => (props.msg.expiresAt ? new Date(props.msg.expiresAt).getTime() : 0))
+const expiresAtMs = computed(() => resolveEpochMs(props.msg.expiresAtEpochMs, props.msg.expiresAt))
+const createTimeMs = computed(
+    () => resolveEpochMs(props.msg.createTimeEpochMs, props.msg.createTime) || Math.max(0, expiresAtMs.value - CONFESSION_TTL_MS)
+)
 const remainingMs = computed(() => Math.max(0, expiresAtMs.value - now.value))
 const remainingLabel = computed(() => {
     if (!expiresAtMs.value) return ''
     const totalMinutes = Math.ceil(remainingMs.value / 60000)
+    if (totalMinutes <= 0) return '即将消失'
     const hours = Math.floor(totalMinutes / 60)
     const minutes = totalMinutes % 60
-    if (hours <= 0) return `${minutes}m left`
-    return `${hours}h ${minutes.toString().padStart(2, '0')}m left`
+    if (hours <= 0) return `${minutes}分钟后消失`
+    return `${hours}小时${minutes.toString().padStart(2, '0')}分后消失`
 })
 const candleBurnPercent = computed(() => {
-    if (!props.msg.createTime || !expiresAtMs.value) return 0
-    const created = new Date(props.msg.createTime).getTime()
-    const total = Math.max(1, expiresAtMs.value - created)
-    return Math.min(100, Math.max(0, ((now.value - created) / total) * 100))
+    if (!expiresAtMs.value) return 0
+    const total = Math.max(1, expiresAtMs.value - createTimeMs.value)
+    return Math.min(100, Math.max(0, ((now.value - createTimeMs.value) / total) * 100))
 })
+
+function resolveEpochMs(epochMs, fallbackTime) {
+    const value = Number(epochMs)
+    if (Number.isFinite(value) && value > 0) return value
+    if (!fallbackTime) return 0
+    const fallback = new Date(fallbackTime).getTime()
+    return Number.isFinite(fallback) ? fallback : 0
+}
 
 function witnessConfession() {
     if (props.msg.witnessedByMe) return

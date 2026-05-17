@@ -58,6 +58,14 @@ public class Message {
     /** 告解帖过期时间 */
     private LocalDateTime expiresAt;
 
+    /** 创建时间戳毫秒 (非持久化字段，避免前端解析无时区时间) */
+    @TableField(exist = false)
+    private Long createTimeEpochMs;
+
+    /** 告解帖过期时间戳毫秒 (非持久化字段，避免前端解析无时区时间) */
+    @TableField(exist = false)
+    private Long expiresAtEpochMs;
+
     @TableLogic
     private Integer isDeleted;
 
