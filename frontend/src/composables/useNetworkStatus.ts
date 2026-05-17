@@ -5,6 +5,7 @@ import { offlineQueue, offlineQueueCount } from '@/utils/offlineQueue'
 
 export function useNetworkStatus() {
     const isOnline = ref(navigator.onLine)
+    let started = false
 
     function handleOnline(): void {
         isOnline.value = true
@@ -19,11 +20,15 @@ export function useNetworkStatus() {
     }
 
     function startNetworkListeners(): void {
+        if (started) return
+        started = true
         window.addEventListener('online', handleOnline)
         window.addEventListener('offline', handleOffline)
     }
 
     function stopNetworkListeners(): void {
+        if (!started) return
+        started = false
         window.removeEventListener('online', handleOnline)
         window.removeEventListener('offline', handleOffline)
     }

@@ -28,7 +28,8 @@ describe('useComposeForm', () => {
 
     it('captures and clears selected images', () => {
         const createObjectURL = vi.fn(() => 'blob:preview')
-        vi.stubGlobal('URL', { createObjectURL })
+        const revokeObjectURL = vi.fn()
+        vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
 
         const compose = useComposeForm()
         const file = new File(['image'], 'image.png', { type: 'image/png' })

@@ -1,7 +1,7 @@
 /**
  * 禅定模式 Composable — 从 Home.vue 中提取的音频控制逻辑
  */
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 
 export function useZenMode() {
     const isZenMode = ref(false)
@@ -17,6 +17,7 @@ export function useZenMode() {
 
     let zenAudio = new Audio()
     zenAudio.loop = true
+    let fadeTimer = null
 
     function updateZenVolume() {
         if (zenAudio) zenAudio.volume = zenVolume.value / 100
@@ -24,22 +25,33 @@ export function useZenMode() {
 
     function fadeAudio(targetVolume, duration = 1000) {
         if (!zenAudio) return Promise.resolve()
+        if (fadeTimer) clearInterval(fadeTimer)
         return new Promise(resolve => {
             const startVolume = zenAudio.volume
             const steps = 30
             const stepValue = (targetVolume - startVolume) / steps
             let current = 0
-            const timer = setInterval(() => {
+            fadeTimer = setInterval(() => {
                 current++
                 zenAudio.volume = Math.max(0, Math.min(1, startVolume + stepValue * current))
                 if (current >= steps) {
-                    clearInterval(timer)
+                    clearInterval(fadeTimer)
+                    fadeTimer = null
                     if (targetVolume === 0) zenAudio.pause()
                     resolve()
                 }
             }, duration / steps)
         })
     }
+
+    onUnmounted(() => {
+        if (fadeTimer) clearInterval(fadeTimer)
+        fadeTimer = null
+        zenAudio.pause()
+        zenAudio.src = ''
+        isZenMode.value = false
+        showZenMenu.value = false
+    })
 
     // 完全停止（视觉+听觉）
     function stopZenMode() {

@@ -19,16 +19,20 @@ export function useComposeForm() {
         return hour >= 0 && hour < 4
     })
 
+    function setImagePreview(file: File) {
+        if (imagePreview.value) URL.revokeObjectURL(imagePreview.value)
+        imageFile.value = file
+        imagePreview.value = URL.createObjectURL(file)
+    }
+
     function onImageSelect(event: Event) {
         const input = event.target as HTMLInputElement | null
         const file = input?.files?.[0]
-        if (file) {
-            imageFile.value = file
-            imagePreview.value = URL.createObjectURL(file)
-        }
+        if (file) setImagePreview(file)
     }
 
     function clearImage() {
+        if (imagePreview.value) URL.revokeObjectURL(imagePreview.value)
         imageFile.value = null
         imagePreview.value = ''
     }
@@ -40,8 +44,7 @@ export function useComposeForm() {
             if (item.type.indexOf('image') !== -1) {
                 const file = item.getAsFile()
                 if (file) {
-                    imageFile.value = file
-                    imagePreview.value = URL.createObjectURL(file)
+                    setImagePreview(file)
                     ElMessage.success('已从剪贴板捕获图片 📸')
                 }
             }

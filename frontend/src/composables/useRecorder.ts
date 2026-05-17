@@ -1,7 +1,7 @@
 /**
  * 录音与变声 Composable — 从 Home.vue 中提取的 MediaRecorder 逻辑
  */
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { applyVoiceMask } from '@/utils/audioProcessor'
 import type { VoiceEffectKey, VoiceEffectOption } from '@/types'
@@ -38,6 +38,7 @@ export function useRecorder() {
     let recordingTimer: ReturnType<typeof setInterval> | null = null
 
     async function startRecording() {
+        if (isRecording.value) return
         if (!window.isSecureContext) {
             ElMessage.error('录音仅支持 HTTPS 或 localhost，请先启用 HTTPS 🔒')
             return
@@ -63,6 +64,8 @@ export function useRecorder() {
 
             mediaRecorder.ondataavailable = e => chunks.push(e.data)
             mediaRecorder.onstop = async () => {
+                if (rawAudioUrl.value) URL.revokeObjectURL(rawAudioUrl.value)
+                if (maskedAudioUrl.value) URL.revokeObjectURL(maskedAudioUrl.value)
                 recordedBlob.value = new Blob(chunks, { type: mediaRecorder?.mimeType || 'audio/webm' })
                 rawAudioUrl.value = URL.createObjectURL(recordedBlob.value)
                 maskedAudioBlob.value = await applyVoiceMask(recordedBlob.value, voiceEffect.value)
@@ -99,6 +102,16 @@ export function useRecorder() {
         }
     }
 
+    function cleanup() {
+        stopRecording()
+        if (rawAudioUrl.value) URL.revokeObjectURL(rawAudioUrl.value)
+        if (maskedAudioUrl.value) URL.revokeObjectURL(maskedAudioUrl.value)
+        rawAudioUrl.value = ''
+        maskedAudioUrl.value = ''
+    }
+
+    onUnmounted(cleanup)
+
     function toggleRecording() {
         if (isRecording.value) stopRecording()
         else startRecording()
@@ -106,6 +119,7 @@ export function useRecorder() {
 
     async function reapplyVoiceMask() {
         if (!recordedBlob.value) return
+        if (maskedAudioUrl.value) URL.revokeObjectURL(maskedAudioUrl.value)
         maskedAudioBlob.value = await applyVoiceMask(recordedBlob.value, voiceEffect.value)
         maskedAudioUrl.value = URL.createObjectURL(maskedAudioBlob.value)
     }
@@ -133,6 +147,8 @@ export function useRecorder() {
     }
 
     function clearAudio() {
+        if (rawAudioUrl.value) URL.revokeObjectURL(rawAudioUrl.value)
+        if (maskedAudioUrl.value) URL.revokeObjectURL(maskedAudioUrl.value)
         recordedBlob.value = null
         rawAudioUrl.value = ''
         maskedAudioUrl.value = ''
