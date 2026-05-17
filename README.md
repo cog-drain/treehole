@@ -169,6 +169,8 @@ pnpm dev
 
 ```bash
 cd frontend
+pnpm lint
+pnpm format:check
 pnpm build
 pnpm type-check
 pnpm test

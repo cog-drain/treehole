@@ -42,6 +42,9 @@ src/
 pnpm install
 pnpm dev
 pnpm build
+pnpm lint
+pnpm format
+pnpm format:check
 pnpm type-check
 pnpm test
 pnpm preview
@@ -75,6 +78,8 @@ pnpm preview
 修改工具、离线队列、解析函数、API 合约或 composables 时，优先补 Vitest 测试。UI 变更至少运行：
 
 ```bash
+pnpm lint
+pnpm format:check
 pnpm test
 pnpm type-check
 pnpm build
